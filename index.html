@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doom-Style FPS Engine</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #333;
+            cursor: none;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+        }
+        
+        #debug {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 100;
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div id="ui">
+        <div>Health: <span id="health">100</span></div>
+        <div>Ammo: <span id="ammo">50</span></div>
+    </div>
+    
+    <div id="debug">
+        <div>FPS: <span id="fps">0</span></div>
+        <div>X: <span id="playerX">0</span></div>
+        <div>Y: <span id="playerY">0</span></div>
+        <div>Angle: <span id="playerAngle">0</span>°</div>
+    </div>
+    
+    <div id="instructions">
+        WASD: Move | Mouse: Look | Click to lock pointer | ESC: Release pointer
+    </div>
+
+    <!-- Engine Core -->
+    <script src="js/engine/math.js"></script>
+    <script src="js/engine/renderer.js"></script>
+    <script src="js/engine/input.js"></script>
+    <script src="js/engine/game.js"></script>
+    
+    <!-- Game Systems -->
+    <script src="js/world/map.js"></script>
+    <script src="js/entities/player.js"></script>
+    
+    <!-- Main -->
+    <script src="js/main.js"></script>
+</body>
+</html>
