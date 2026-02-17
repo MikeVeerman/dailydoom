@@ -106,7 +106,7 @@ def generate_image(prompt, output_path):
             "scheduler": "K_EULER",
             "num_inference_steps": 25,
             "guidance_scale": 7.5,
-            "seed": None
+            "seed": 42
         }
     }
     
