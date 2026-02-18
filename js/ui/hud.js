@@ -33,6 +33,14 @@ class HUD {
         // Impact sparks
         this.impactSparks = [];
 
+        // Particle system
+        this.particles = [];
+        this.maxParticles = 200;
+
+        // Screen shake
+        this.shakeIntensity = 0;
+        this.shakeDecay = 0.9;
+
         console.log('HUD system initialized');
     }
     
@@ -92,6 +100,12 @@ class HUD {
             // Render floating damage numbers and impact effects
             this.renderDamageNumbers(player, gameEngine);
             this.renderImpactSparks(player, gameEngine);
+
+            // Render particle effects
+            this.updateAndRenderParticles(player, gameEngine);
+
+            // Apply screen shake
+            this.updateScreenShake();
 
             // Render damage flash effect
             this.renderDamageFlash(player);
@@ -498,6 +512,129 @@ class HUD {
             this.ctx.fillStyle = powerup.color;
             this.ctx.fillRect(startX, y + 2, barWidth, 3);
         });
+    }
+
+    // Particle system
+    addParticle(worldX, worldY, vx, vy, color, size, lifetime) {
+        if (this.particles.length >= this.maxParticles) return;
+        this.particles.push({
+            worldX, worldY, vx, vy, color, size, lifetime,
+            spawnTime: Date.now(),
+            gravity: 0.5
+        });
+    }
+
+    // Emit blood particles at enemy position
+    emitBloodParticles(worldX, worldY, count) {
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 20 + Math.random() * 40;
+            this.addParticle(
+                worldX, worldY,
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed,
+                `rgba(${150 + Math.floor(Math.random() * 100)}, 0, 0, 1)`,
+                2 + Math.random() * 3,
+                400 + Math.random() * 300
+            );
+        }
+    }
+
+    // Emit muzzle flash particles
+    emitMuzzleParticles(worldX, worldY, angle) {
+        for (let i = 0; i < 5; i++) {
+            const spread = (Math.random() - 0.5) * 0.5;
+            const speed = 60 + Math.random() * 40;
+            this.addParticle(
+                worldX, worldY,
+                Math.cos(angle + spread) * speed,
+                Math.sin(angle + spread) * speed,
+                `rgba(255, ${200 + Math.floor(Math.random() * 55)}, 0, 1)`,
+                2 + Math.random() * 2,
+                150 + Math.random() * 100
+            );
+        }
+    }
+
+    // Emit explosion debris
+    emitExplosionParticles(worldX, worldY, count) {
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 30 + Math.random() * 60;
+            const colors = ['#FF4400', '#FF8800', '#FFCC00', '#FF2200', '#AA4400'];
+            this.addParticle(
+                worldX, worldY,
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed,
+                colors[Math.floor(Math.random() * colors.length)],
+                3 + Math.random() * 4,
+                500 + Math.random() * 500
+            );
+        }
+    }
+
+    // Trigger screen shake
+    triggerScreenShake(intensity) {
+        this.shakeIntensity = Math.max(this.shakeIntensity, intensity);
+    }
+
+    updateScreenShake() {
+        if (this.shakeIntensity > 0.5) {
+            this.shakeIntensity *= this.shakeDecay;
+        } else {
+            this.shakeIntensity = 0;
+        }
+    }
+
+    getScreenShakeOffset() {
+        if (this.shakeIntensity <= 0) return { x: 0, y: 0 };
+        return {
+            x: (Math.random() - 0.5) * this.shakeIntensity * 2,
+            y: (Math.random() - 0.5) * this.shakeIntensity * 2
+        };
+    }
+
+    updateAndRenderParticles(player, gameEngine) {
+        const now = Date.now();
+        this.particles = this.particles.filter(p => now - p.spawnTime < p.lifetime);
+
+        if (!player || !gameEngine || !gameEngine.renderer) return;
+        const renderer = gameEngine.renderer;
+
+        for (const p of this.particles) {
+            const elapsed = (now - p.spawnTime) / 1000;
+            const progress = (now - p.spawnTime) / p.lifetime;
+
+            // Update position
+            const currentX = p.worldX + p.vx * elapsed;
+            const currentY = p.worldY + p.vy * elapsed;
+
+            // Project to screen
+            const dx = currentX - player.x;
+            const dy = currentY - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > renderer.maxRenderDistance || distance < 1) continue;
+
+            let angle = Math.atan2(dy, dx);
+            let angleDiff = angle - player.angle;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            if (Math.abs(angleDiff) > renderer.fov / 2) continue;
+
+            const screenX = this.canvas.width / 2 + (angleDiff / renderer.fov) * this.canvas.width;
+            const wallHeight = (renderer.wallHeight * renderer.projectionDistance) / distance;
+            const screenY = renderer.halfHeight - wallHeight / 4; // Slightly above center
+
+            const alpha = 1 - progress;
+            const size = p.size * (1 - progress * 0.5);
+
+            this.ctx.globalAlpha = alpha;
+            this.ctx.fillStyle = p.color;
+            this.ctx.beginPath();
+            this.ctx.arc(screenX, screenY, size, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        this.ctx.globalAlpha = 1.0;
     }
 
     renderProgressionHUD(player) {

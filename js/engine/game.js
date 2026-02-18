@@ -164,13 +164,21 @@ class GameEngine {
     }
     
     render() {
+        // Apply screen shake offset
+        const shake = this.hud.getScreenShakeOffset();
+        if (shake.x !== 0 || shake.y !== 0) {
+            this.canvas.style.transform = `translate(${shake.x}px, ${shake.y}px)`;
+        } else {
+            this.canvas.style.transform = '';
+        }
+
         // Render the 3D world first (this includes putImageData which overwrites canvas)
         this.renderer.render(this.player);
-        
+
         // CRITICAL: HUD must render AFTER all world rendering is complete
         // This ensures it cannot be overwritten by putImageData or other world rendering
         this.hud.render(this.player, this);
-        
+
         // Render debug information if enabled (last layer)
         if (this.debugMode) {
             this.renderDebugInfo();

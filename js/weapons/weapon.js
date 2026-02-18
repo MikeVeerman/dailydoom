@@ -102,7 +102,18 @@ class Weapon {
         // Muzzle flash effect
         this.muzzleFlash = true;
         this.muzzleFlashStart = now;
-        
+
+        // Muzzle flash particles and screen shake
+        if (window.game && window.game.hud) {
+            const muzzleX = player.x + Math.cos(player.angle) * 20;
+            const muzzleY = player.y + Math.sin(player.angle) * 20;
+            window.game.hud.emitMuzzleParticles(muzzleX, muzzleY, player.angle);
+
+            // Screen shake based on weapon power
+            const shakeMap = { pistol: 2, shotgun: 6, rifle: 1.5, rocket: 10, chaingun: 1 };
+            window.game.hud.triggerScreenShake(shakeMap[this.type] || 3);
+        }
+
         // Play weapon sound
         if (window.soundEngine && window.soundEngine.isInitialized) {
             window.soundEngine.playWeaponFire(this.type);
@@ -153,8 +164,11 @@ class Weapon {
                 if (player.addXP) player.addXP(xpReward);
             }
 
-            // Trigger enemy hit flash
+            // Trigger enemy hit flash and blood particles
             hit.enemy.hitFlashTime = Date.now();
+            if (window.game && window.game.hud) {
+                window.game.hud.emitBloodParticles(hit.enemy.x, hit.enemy.y, wasAlive && !hit.enemy.active ? 12 : 5);
+            }
 
             // Show floating damage number
             if (window.game && window.game.hud) {
@@ -172,6 +186,12 @@ class Weapon {
         // Rocket launcher splash damage
         const stats = this.getWeaponStats(this.type);
         if (stats.splashRadius && hit.hitPoint) {
+            // Explosion particles
+            if (window.game && window.game.hud) {
+                window.game.hud.emitExplosionParticles(hit.hitPoint.x, hit.hitPoint.y, 15);
+                window.game.hud.triggerScreenShake(12);
+            }
+
             const splashRadius = stats.splashRadius;
             const splashDamage = this.damage * 0.5;
 

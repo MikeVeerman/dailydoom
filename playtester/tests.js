@@ -587,6 +587,7 @@ const TIER_2_TESTS = [
   { id: 'T2-11', name: 'Advanced weapon arsenal works', fn: T2_11_advancedWeapons }, // issue: #23
   { id: 'T2-12', name: 'Enemy variety & boss system', fn: T2_12_enemyVariety }, // issue: #24
   { id: 'T2-13', name: 'Player progression & stats', fn: T2_13_playerProgression }, // issue: #25
+  { id: 'T2-14', name: 'Particle effects & visual polish', fn: T2_14_particleEffects }, // issue: #26
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1036,6 +1037,61 @@ async function T2_13_playerProgression(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Progression system: XP, levels, ${progressData.statFields.length} stat fields, damage multiplier, HUD display`;
+  }
+}
+
+async function T2_14_particleEffects(page, result) {
+  // T2-14: Particle effects & visual polish (issue: #26)
+  // Pass condition: Particle system, screen shake, muzzle/blood/explosion emitters exist
+  await page.waitForTimeout(1000);
+
+  const particleData = await page.evaluate(() => {
+    if (!window.game || !window.game.hud) {
+      return { exists: false, reason: 'HUD not found' };
+    }
+
+    const hud = window.game.hud;
+
+    return {
+      exists: true,
+      hasParticles: Array.isArray(hud.particles),
+      hasMaxParticles: typeof hud.maxParticles === 'number',
+      hasAddParticle: typeof hud.addParticle === 'function',
+      hasEmitBlood: typeof hud.emitBloodParticles === 'function',
+      hasEmitMuzzle: typeof hud.emitMuzzleParticles === 'function',
+      hasEmitExplosion: typeof hud.emitExplosionParticles === 'function',
+      hasScreenShake: typeof hud.triggerScreenShake === 'function',
+      hasShakeOffset: typeof hud.getScreenShakeOffset === 'function',
+      hasUpdateParticles: typeof hud.updateAndRenderParticles === 'function'
+    };
+  });
+
+  if (!particleData.exists) {
+    result.status = 'fail';
+    result.note = particleData.reason;
+    return;
+  }
+
+  const checks = [
+    ['particle array', particleData.hasParticles],
+    ['max particles limit', particleData.hasMaxParticles],
+    ['addParticle method', particleData.hasAddParticle],
+    ['blood emitter', particleData.hasEmitBlood],
+    ['muzzle emitter', particleData.hasEmitMuzzle],
+    ['explosion emitter', particleData.hasEmitExplosion],
+    ['screen shake', particleData.hasScreenShake],
+    ['shake offset', particleData.hasShakeOffset],
+    ['particle renderer', particleData.hasUpdateParticles]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = 'Particle system with blood, muzzle, explosion emitters and screen shake';
   }
 }
 

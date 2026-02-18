@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-02-18T18:56:11.606Z",
-  "passed": 22,
+  "timestamp": "2026-02-18T18:58:54.376Z",
+  "passed": 23,
   "failed": 0,
   "skipped": 3,
   "results": [
@@ -27,12 +27,12 @@
     {
       "id": "T1-05",
       "status": "pass",
-      "note": "FPS: 27"
+      "note": "FPS: 26"
     },
     {
       "id": "T1-06",
       "status": "pass",
-      "note": "Moved from (160, 160) to (389, 160)"
+      "note": "Moved from (160, 160) to (388, 160)"
     },
     {
       "id": "T1-07",
@@ -113,6 +113,11 @@
       "id": "T2-13",
       "status": "pass",
       "note": "Progression system: XP, levels, 8 stat fields, damage multiplier, HUD display"
+    },
+    {
+      "id": "T2-14",
+      "status": "pass",
+      "note": "Particle system with blood, muzzle, explosion emitters and screen shake"
     },
     {
       "id": "T3-01",
