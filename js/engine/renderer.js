@@ -43,7 +43,8 @@ class Renderer {
             5: '#FF00FF', // Magenta wall
             6: '#00FFFF', // Cyan wall
             7: '#FFFFFF', // White wall
-            8: '#888888'  // Gray wall
+            8: '#888888', // Gray wall
+            9: '#8B4513'  // Door (brown/wood)
         };
         
         // Performance optimization
@@ -386,12 +387,13 @@ class Renderer {
         this.wallTypeTextures = {
             1: 'stone',    // Default walls
             2: 'brick',    // Red-ish areas
-            3: 'metal',    // Blue areas  
+            3: 'metal',    // Blue areas
             4: 'tech',     // Green areas
             5: 'marble',   // Light areas
             6: 'stone',    // Purple areas (fallback to stone)
             7: 'metal',    // Other areas
-            8: 'brick'     // Fallback
+            8: 'brick',    // Fallback
+            9: 'tech'      // Doors
         };
     }
     

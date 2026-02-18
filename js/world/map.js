@@ -37,7 +37,10 @@ class GameMap {
         this.items = []; // Collectible items
         this.enemies = []; // Enemy spawn points
         this.doors = []; // Interactive doors
-        
+
+        // Door system
+        this.initializeDoors();
+
         // Initialize additional map elements
         this.initializeMapElements();
         
@@ -69,7 +72,81 @@ class GameMap {
         // Add one more imp for swarm behavior testing
         this.enemies.push(new Enemy(5 * this.tileSize, 7 * this.tileSize, 'imp'));
     }
-    
+
+    initializeDoors() {
+        // Add doors to the map at strategic locations
+        // Doors use wall type 9 when closed, become 0 when open
+        this.addDoor(5, 3, 'none');    // Door into red room area
+        this.addDoor(10, 3, 'none');   // Door into blue room area
+        this.addDoor(6, 9, 'red');     // Red key door into inner room
+    }
+
+    addDoor(mapX, mapY, keyRequired) {
+        // Set the grid tile to door wall type (9)
+        this.grid[mapY][mapX] = 9;
+
+        this.doors.push({
+            mapX, mapY,
+            isOpen: false,
+            keyRequired, // 'none', 'red', 'blue', 'yellow'
+            openTime: 0,
+            autoCloseDelay: 5000 // Close after 5 seconds
+        });
+    }
+
+    tryOpenDoor(playerX, playerY, playerAngle, playerKeys) {
+        // Find door the player is facing within interaction range
+        const interactRange = 80;
+        const checkX = playerX + Math.cos(playerAngle) * interactRange;
+        const checkY = playerY + Math.sin(playerAngle) * interactRange;
+        const mapPos = this.worldToMap(checkX, checkY);
+
+        for (const door of this.doors) {
+            if (door.mapX === mapPos.x && door.mapY === mapPos.y) {
+                if (door.isOpen) {
+                    // Already open
+                    return { success: false, reason: 'already_open' };
+                }
+
+                // Check key requirement
+                if (door.keyRequired !== 'none') {
+                    if (!playerKeys || !playerKeys.includes(door.keyRequired)) {
+                        return { success: false, reason: 'need_key', key: door.keyRequired };
+                    }
+                }
+
+                // Open the door
+                door.isOpen = true;
+                door.openTime = Date.now();
+                this.grid[door.mapY][door.mapX] = 0; // Remove wall
+
+                // Play door sound
+                if (window.soundEngine && window.soundEngine.isInitialized) {
+                    window.soundEngine.playDoorSound();
+                }
+
+                return { success: true };
+            }
+        }
+
+        return { success: false, reason: 'no_door' };
+    }
+
+    updateDoors() {
+        const now = Date.now();
+        for (const door of this.doors) {
+            // Auto-close doors after delay
+            if (door.isOpen && now - door.openTime > door.autoCloseDelay) {
+                door.isOpen = false;
+                this.grid[door.mapY][door.mapX] = 9;
+            }
+        }
+    }
+
+    getDoorAt(mapX, mapY) {
+        return this.doors.find(d => d.mapX === mapX && d.mapY === mapY);
+    }
+
     // Check if a coordinate contains a wall
     isWall(mapX, mapY) {
         if (mapX < 0 || mapX >= this.width || mapY < 0 || mapY >= this.height) {

@@ -154,6 +154,9 @@ class GameEngine {
         // Update pickups
         this.pickupManager.update(deltaTime, this.player);
 
+        // Update doors
+        this.map.updateDoors();
+
         // Update adaptive music
         if (window.soundEngine && window.soundEngine.isInitialized) {
             window.soundEngine.updateMusicState(this.player, this.map.enemies);

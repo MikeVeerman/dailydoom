@@ -31,6 +31,9 @@ class Player {
         // Damage tracking
         this.lastDamageTime = 0;
 
+        // Keys collected
+        this.keys = [];
+
         // Weapon system
         this.weaponManager = new WeaponManager();
         
@@ -324,8 +327,15 @@ class Player {
     }
     
     useItem() {
-        console.log('Use item pressed');
-        // Implement item usage, door opening, etc.
+        // Try to open a door
+        if (window.game && window.game.map) {
+            const result = window.game.map.tryOpenDoor(this.x, this.y, this.angle, this.keys || []);
+            if (result.success) {
+                console.log('Door opened!');
+            } else if (result.reason === 'need_key') {
+                console.log(`Need ${result.key} key to open this door!`);
+            }
+        }
     }
     
     shoot(map) {
