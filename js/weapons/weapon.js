@@ -60,10 +60,15 @@ class Weapon {
     canFire() {
         const now = Date.now();
         const timeSinceLastShot = now - this.lastFireTime;
-        const fireInterval = 1000 / this.fireRate; // ms between shots
-        
-        return !this.isReloading && 
-               this.ammo > 0 && 
+        let fireInterval = 1000 / this.fireRate;
+
+        // Rapid fire power-up doubles fire rate
+        if (window.game && window.game.player && window.game.player.hasRapidFire()) {
+            fireInterval *= 0.5;
+        }
+
+        return !this.isReloading &&
+               this.ammo > 0 &&
                timeSinceLastShot >= fireInterval;
     }
     

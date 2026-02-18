@@ -352,6 +352,9 @@ class Player {
     
     // Status methods
     takeDamage(damage) {
+        // Invulnerability power-up check
+        if (this.hasInvulnerability()) return false;
+
         // Invincibility frame check (500ms after last hit)
         const now = Date.now();
         if (now - this.lastDamageTime < 500) return false;
@@ -437,24 +440,64 @@ class Player {
         this.damageBoostEndTime = Date.now() + durationMs;
         console.log('Damage boost activated!');
     }
+
+    applyRapidFire(durationMs) {
+        this.rapidFireEndTime = Date.now() + durationMs;
+        console.log('Rapid fire activated!');
+    }
+
+    applyInvulnerability(durationMs) {
+        this.invulnerabilityEndTime = Date.now() + durationMs;
+        console.log('Invulnerability activated!');
+    }
+
+    applyHealthRegen(durationMs) {
+        this.healthRegenEndTime = Date.now() + durationMs;
+        console.log('Health regen activated!');
+    }
     
     updatePowerupEffects() {
         const now = Date.now();
-        
+
         // Check speed boost
         if (now > this.speedBoostEndTime && this.speed !== this.baseSpeed) {
             this.speed = this.baseSpeed;
             console.log('Speed boost expired');
         }
-        
-        // Damage boost is checked in weapon system
-        if (now > this.damageBoostEndTime) {
-            // Effect naturally expires
+
+        // Health regen: heal 2 HP per second
+        if (this.healthRegenEndTime && now < this.healthRegenEndTime) {
+            if (!this.lastRegenTick || now - this.lastRegenTick > 500) {
+                if (this.health < this.maxHealth) {
+                    this.health = Math.min(this.maxHealth, this.health + 1);
+                }
+                this.lastRegenTick = now;
+            }
         }
     }
-    
+
     hasDamageBoost() {
         return Date.now() < this.damageBoostEndTime;
+    }
+
+    hasRapidFire() {
+        return this.rapidFireEndTime && Date.now() < this.rapidFireEndTime;
+    }
+
+    hasInvulnerability() {
+        return this.invulnerabilityEndTime && Date.now() < this.invulnerabilityEndTime;
+    }
+
+    // Get active power-ups for HUD display
+    getActivePowerups() {
+        const now = Date.now();
+        const active = [];
+        if (now < this.speedBoostEndTime) active.push({ name: 'SPEED', remaining: this.speedBoostEndTime - now, color: '#FF0088' });
+        if (now < this.damageBoostEndTime) active.push({ name: 'DAMAGE', remaining: this.damageBoostEndTime - now, color: '#FF4400' });
+        if (this.rapidFireEndTime && now < this.rapidFireEndTime) active.push({ name: 'RAPID', remaining: this.rapidFireEndTime - now, color: '#00FF88' });
+        if (this.invulnerabilityEndTime && now < this.invulnerabilityEndTime) active.push({ name: 'INVULN', remaining: this.invulnerabilityEndTime - now, color: '#FFD700' });
+        if (this.healthRegenEndTime && now < this.healthRegenEndTime) active.push({ name: 'REGEN', remaining: this.healthRegenEndTime - now, color: '#FF88CC' });
+        return active;
     }
     
     // Debug methods

@@ -86,6 +86,27 @@ class Pickup {
                 maxValue: 0,
                 sound: 'powerup',
                 message: 'Damage Boost!'
+            },
+            rapid_fire: {
+                value: 8000, // duration in ms
+                color: '#00FF88',
+                maxValue: 0,
+                sound: 'powerup',
+                message: 'Rapid Fire!'
+            },
+            invulnerability: {
+                value: 5000, // duration in ms
+                color: '#FFD700',
+                maxValue: 0,
+                sound: 'powerup',
+                message: 'Invulnerable!'
+            },
+            health_regen: {
+                value: 12000, // duration in ms
+                color: '#FF88CC',
+                maxValue: 0,
+                sound: 'powerup',
+                message: 'Health Regen!'
             }
         };
         
@@ -173,6 +194,21 @@ class Pickup {
                 
             case 'damage_boost':
                 player.applyDamageBoost(props.value);
+                canCollect = true;
+                break;
+
+            case 'rapid_fire':
+                player.applyRapidFire(props.value);
+                canCollect = true;
+                break;
+
+            case 'invulnerability':
+                player.applyInvulnerability(props.value);
+                canCollect = true;
+                break;
+
+            case 'health_regen':
+                player.applyHealthRegen(props.value);
                 canCollect = true;
                 break;
         }
@@ -384,7 +420,8 @@ class PickupManager {
             } while (map.isWallAtPosition(x, y) && attempts < 100);
             
             if (attempts < 100) {
-                const powerupType = Math.random() < 0.5 ? 'speed_boost' : 'damage_boost';
+                const powerupTypes = ['speed_boost', 'damage_boost', 'rapid_fire', 'invulnerability', 'health_regen'];
+            const powerupType = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
                 this.addPickup(x, y, powerupType);
             }
         }

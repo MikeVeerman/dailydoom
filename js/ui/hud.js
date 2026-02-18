@@ -83,6 +83,9 @@ class HUD {
                 this.renderDebugInfo(player, gameEngine);
             }
             
+            // Render active power-up indicators
+            this.renderPowerupIndicators(player);
+
             // Render floating damage numbers and impact effects
             this.renderDamageNumbers(player, gameEngine);
             this.renderImpactSparks(player, gameEngine);
@@ -410,6 +413,37 @@ class HUD {
         }
     }
     
+    renderPowerupIndicators(player) {
+        if (!player.getActivePowerups) return;
+
+        const powerups = player.getActivePowerups();
+        if (powerups.length === 0) return;
+
+        const startX = 20;
+        const startY = this.canvas.height - 130;
+
+        powerups.forEach((powerup, i) => {
+            const y = startY - (i * 22);
+            const secondsLeft = Math.ceil(powerup.remaining / 1000);
+
+            // Background
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            this.ctx.fillRect(startX - 2, y - 12, 120, 18);
+
+            // Power-up name and timer
+            this.ctx.fillStyle = powerup.color;
+            this.ctx.font = this.smallFont;
+            this.ctx.textAlign = 'left';
+            this.ctx.fillText(`${powerup.name} ${secondsLeft}s`, startX, y);
+
+            // Timer bar
+            const maxDuration = powerup.name === 'INVULN' ? 5000 : powerup.name === 'RAPID' ? 8000 : 15000;
+            const barWidth = 80 * (powerup.remaining / maxDuration);
+            this.ctx.fillStyle = powerup.color;
+            this.ctx.fillRect(startX, y + 2, barWidth, 3);
+        });
+    }
+
     // Called when player takes damage
     onPlayerDamage() {
         this.lastDamageTime = Date.now();
