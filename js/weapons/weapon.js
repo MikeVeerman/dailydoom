@@ -51,6 +51,26 @@ class Weapon {
                 ammo: 30,
                 maxAmmo: 120,
                 reloadTime: 2500 // 2.5 seconds
+            },
+            rocket: {
+                damage: 120,
+                range: 500,
+                fireRate: 0.5, // Very slow
+                accuracy: 1.0,
+                ammo: 5,
+                maxAmmo: 20,
+                reloadTime: 4000,
+                splashRadius: 80, // Area damage
+                selfDamageMultiplier: 0.5 // Reduced self damage
+            },
+            chaingun: {
+                damage: 15,
+                range: 350,
+                fireRate: 10, // Very fast
+                accuracy: 0.6,
+                ammo: 50,
+                maxAmmo: 200,
+                reloadTime: 3500
             }
         };
         
@@ -125,6 +145,44 @@ class Weapon {
             // Wall impact effect
             if (window.game && window.game.hud) {
                 window.game.hud.addImpactSpark(hit.hitPoint.x, hit.hitPoint.y);
+            }
+        }
+
+        // Rocket launcher splash damage
+        const stats = this.getWeaponStats(this.type);
+        if (stats.splashRadius && hit.hitPoint) {
+            const splashRadius = stats.splashRadius;
+            const splashDamage = this.damage * 0.5;
+
+            // Damage all enemies in splash radius
+            map.enemies.forEach(enemy => {
+                if (!enemy.active) return;
+                if (enemy === hit.enemy) return; // Already took direct hit
+                const dx = enemy.x - hit.hitPoint.x;
+                const dy = enemy.y - hit.hitPoint.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < splashRadius) {
+                    const falloff = 1 - (dist / splashRadius);
+                    const dmg = Math.round(splashDamage * falloff);
+                    enemy.takeDamage(dmg);
+                    if (window.game && window.game.hud) {
+                        window.game.hud.addDamageNumber(enemy.x, enemy.y, dmg, false);
+                    }
+                }
+            });
+
+            // Self damage if player is too close
+            const playerDist = Math.sqrt(
+                (player.x - hit.hitPoint.x) ** 2 + (player.y - hit.hitPoint.y) ** 2
+            );
+            if (playerDist < splashRadius) {
+                const selfDmg = Math.round(splashDamage * (1 - playerDist / splashRadius) * (stats.selfDamageMultiplier || 1));
+                if (selfDmg > 0) {
+                    player.takeDamage(selfDmg);
+                    if (window.game && window.game.hud) {
+                        window.game.hud.onPlayerDamage();
+                    }
+                }
             }
         }
         
@@ -248,7 +306,9 @@ class WeaponManager {
         this.weapons = {
             pistol: new Weapon('pistol'),
             shotgun: new Weapon('shotgun'),
-            rifle: new Weapon('rifle')
+            rifle: new Weapon('rifle'),
+            rocket: new Weapon('rocket'),
+            chaingun: new Weapon('chaingun')
         };
         
         this.currentWeapon = 'pistol';

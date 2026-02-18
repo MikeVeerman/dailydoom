@@ -278,6 +278,12 @@ class HUD {
             case 'RIFLE':
                 this.drawRifleSprite(x, y, spriteWidth, spriteHeight);
                 break;
+            case 'ROCKET':
+                this.drawRocketSprite(x, y, spriteWidth, spriteHeight);
+                break;
+            case 'CHAINGUN':
+                this.drawChaingunSprite(x, y, spriteWidth, spriteHeight);
+                break;
             default:
                 this.drawDefaultWeaponSprite(x, y, spriteWidth, spriteHeight);
         }
@@ -343,6 +349,53 @@ class HUD {
         this.ctx.strokeRect(centerX - 4, centerY - 38, 8, 3);
     }
     
+    drawRocketSprite(x, y, width, height) {
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+
+        // Rocket tube (wide barrel)
+        this.ctx.fillRect(centerX - 6, centerY - 30, 12, 35);
+
+        // Exhaust bell at bottom
+        this.ctx.fillRect(centerX - 10, centerY + 5, 20, 8);
+
+        // Grip/handle
+        this.ctx.fillRect(centerX - 4, centerY + 13, 8, 10);
+
+        // Warhead tip
+        this.ctx.beginPath();
+        this.ctx.moveTo(centerX, centerY - 35);
+        this.ctx.lineTo(centerX - 6, centerY - 25);
+        this.ctx.lineTo(centerX + 6, centerY - 25);
+        this.ctx.closePath();
+        this.ctx.fill();
+
+        // Sight rail
+        this.ctx.fillRect(centerX - 1, centerY - 38, 2, 5);
+    }
+
+    drawChaingunSprite(x, y, width, height) {
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+
+        // Multiple barrels
+        for (let i = -2; i <= 2; i++) {
+            this.ctx.fillRect(centerX + i * 4 - 1, centerY - 35, 2, 30);
+        }
+
+        // Barrel housing
+        this.ctx.fillRect(centerX - 12, centerY - 10, 24, 10);
+
+        // Body/receiver
+        this.ctx.fillRect(centerX - 8, centerY, 16, 15);
+
+        // Handle
+        this.ctx.fillRect(centerX - 5, centerY + 15, 10, 8);
+
+        // Ammo belt stub
+        this.ctx.fillRect(centerX + 10, centerY - 5, 8, 12);
+    }
+
     drawDefaultWeaponSprite(x, y, width, height) {
         const centerX = x + width / 2;
         const centerY = y + height / 2;

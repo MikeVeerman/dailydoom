@@ -66,6 +66,20 @@ class Pickup {
                 sound: 'ammo',
                 message: '+60 Rifle Ammo'
             },
+            ammo_rocket: {
+                value: 5,
+                color: '#FF4444',
+                maxValue: 50,
+                sound: 'ammo',
+                message: '+5 Rockets'
+            },
+            ammo_chaingun: {
+                value: 50,
+                color: '#CCCC00',
+                maxValue: 400,
+                sound: 'ammo',
+                message: '+50 Chaingun Ammo'
+            },
             armor: {
                 value: 25,
                 color: '#0088FF',
@@ -176,6 +190,20 @@ class Pickup {
             case 'ammo_rifle':
                 if (player.weaponManager.weapons.rifle.maxAmmo > 0) {
                     player.weaponManager.weapons.rifle.maxAmmo += props.value;
+                    canCollect = true;
+                }
+                break;
+
+            case 'ammo_rocket':
+                if (player.weaponManager.weapons.rocket) {
+                    player.weaponManager.weapons.rocket.maxAmmo += props.value;
+                    canCollect = true;
+                }
+                break;
+
+            case 'ammo_chaingun':
+                if (player.weaponManager.weapons.chaingun) {
+                    player.weaponManager.weapons.chaingun.maxAmmo += props.value;
                     canCollect = true;
                 }
                 break;
@@ -389,7 +417,7 @@ class PickupManager {
     
     // Spawn random pickups around the map
     spawnRandomPickups(map, count = 5) {
-        const pickupTypes = ['health', 'ammo_pistol', 'ammo_shotgun', 'ammo_rifle', 'armor'];
+        const pickupTypes = ['health', 'ammo_pistol', 'ammo_shotgun', 'ammo_rifle', 'ammo_rocket', 'ammo_chaingun', 'armor'];
         
         for (let i = 0; i < count; i++) {
             let x, y;

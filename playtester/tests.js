@@ -584,6 +584,7 @@ const TIER_2_TESTS = [
   { id: 'T2-08', name: 'Enemy damage system works', fn: T2_08_enemyDamageSystem }, // issue: #17
   { id: 'T2-09', name: 'Enemy pathfinding works', fn: T2_09_enemyPathfinding }, // issue: #18
   { id: 'T2-10', name: 'Weapon hit effects work', fn: T2_10_weaponHitEffects }, // issue: #19
+  { id: 'T2-11', name: 'Advanced weapon arsenal works', fn: T2_11_advancedWeapons }, // issue: #23
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -782,6 +783,91 @@ async function T2_10_weaponHitEffects(page, result) {
   } else {
     result.status = 'pass';
     result.note = 'Weapon hit effects system complete (damage numbers, impact sparks, critical hits)';
+  }
+}
+
+async function T2_11_advancedWeapons(page, result) {
+  // T2-11: Advanced weapon arsenal (issue: #23)
+  // Pass condition: Rocket launcher and chaingun exist, can switch to them, have proper stats
+  await page.waitForTimeout(1000);
+
+  const weaponData = await page.evaluate(() => {
+    if (!window.game || !window.game.player || !window.game.player.weaponManager) {
+      return { exists: false, reason: 'Weapon system not found' };
+    }
+
+    const wm = window.game.player.weaponManager;
+    const hasRocket = !!wm.weapons.rocket;
+    const hasChaingun = !!wm.weapons.chaingun;
+
+    // Check weapon stats
+    const rocketStats = hasRocket ? {
+      damage: wm.weapons.rocket.damage,
+      hasSplash: wm.weapons.rocket.getWeaponStats('rocket').splashRadius > 0
+    } : null;
+
+    const chaingunStats = hasChaingun ? {
+      damage: wm.weapons.chaingun.damage,
+      fireRate: wm.weapons.chaingun.fireRate
+    } : null;
+
+    // Test switching to rocket launcher
+    let canSwitchRocket = false;
+    if (hasRocket) {
+      const prev = wm.currentWeapon;
+      wm.switchWeapon('rocket');
+      canSwitchRocket = wm.currentWeapon === 'rocket';
+      wm.switchWeapon(prev);
+    }
+
+    // Test switching to chaingun
+    let canSwitchChaingun = false;
+    if (hasChaingun) {
+      const prev = wm.currentWeapon;
+      wm.switchWeapon('chaingun');
+      canSwitchChaingun = wm.currentWeapon === 'chaingun';
+      wm.switchWeapon(prev);
+    }
+
+    // Check HUD sprites
+    const hud = window.game.hud;
+    const hasRocketSprite = typeof hud.drawRocketSprite === 'function';
+    const hasChaingunSprite = typeof hud.drawChaingunSprite === 'function';
+
+    return {
+      exists: true,
+      hasRocket, hasChaingun,
+      rocketStats, chaingunStats,
+      canSwitchRocket, canSwitchChaingun,
+      hasRocketSprite, hasChaingunSprite
+    };
+  });
+
+  if (!weaponData.exists) {
+    result.status = 'fail';
+    result.note = weaponData.reason;
+    return;
+  }
+
+  const checks = [
+    ['rocket weapon', weaponData.hasRocket],
+    ['chaingun weapon', weaponData.hasChaingun],
+    ['switch to rocket', weaponData.canSwitchRocket],
+    ['switch to chaingun', weaponData.canSwitchChaingun],
+    ['rocket splash damage', weaponData.rocketStats && weaponData.rocketStats.hasSplash],
+    ['chaingun high fire rate', weaponData.chaingunStats && weaponData.chaingunStats.fireRate >= 8],
+    ['rocket HUD sprite', weaponData.hasRocketSprite],
+    ['chaingun HUD sprite', weaponData.hasChaingunSprite]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Rocket (${weaponData.rocketStats.damage}dmg, splash) and Chaingun (${weaponData.chaingunStats.fireRate}rps) functional with HUD sprites`;
   }
 }
 

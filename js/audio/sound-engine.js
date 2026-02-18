@@ -80,6 +80,14 @@ class SoundEngine {
                 frequency = 200;
                 noiseMix = 0.4;
                 break;
+            case 'rocket':
+                frequency = 60;
+                noiseMix = 0.9;
+                break;
+            case 'chaingun':
+                frequency = 250;
+                noiseMix = 0.5;
+                break;
             default:
                 frequency = 150;
                 noiseMix = 0.3;

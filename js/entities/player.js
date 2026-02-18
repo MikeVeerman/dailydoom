@@ -178,6 +178,8 @@ class Player {
         if (inputManager.isKeyPressed('weapon1')) this.switchWeapon(1);
         if (inputManager.isKeyPressed('weapon2')) this.switchWeapon(2);
         if (inputManager.isKeyPressed('weapon3')) this.switchWeapon(3);
+        if (inputManager.isKeyPressed('weapon4')) this.switchWeapon(4);
+        if (inputManager.isKeyPressed('weapon5')) this.switchWeapon(5);
     }
     
     update(deltaTime, map) {
@@ -353,7 +355,7 @@ class Player {
     }
     
     switchWeapon(weaponNumber) {
-        const weaponNames = { 1: 'pistol', 2: 'shotgun', 3: 'rifle' };
+        const weaponNames = { 1: 'pistol', 2: 'shotgun', 3: 'rifle', 4: 'rocket', 5: 'chaingun' };
         const weaponName = weaponNames[weaponNumber];
         if (weaponName) {
             this.weaponManager.switchWeapon(weaponName);
