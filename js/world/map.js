@@ -71,6 +71,14 @@ class GameMap {
         
         // Add one more imp for swarm behavior testing
         this.enemies.push(new Enemy(5 * this.tileSize, 7 * this.tileSize, 'imp'));
+
+        // New enemy types from Issue #24
+        this.enemies.push(new Enemy(10 * this.tileSize, 5 * this.tileSize, 'berserker'));
+        this.enemies.push(new Enemy(3 * this.tileSize, 8 * this.tileSize, 'spitter'));
+        this.enemies.push(new Enemy(11 * this.tileSize, 12 * this.tileSize, 'shield_guard'));
+
+        // Boss encounter in the far corner of the map
+        this.enemies.push(new Enemy(13 * this.tileSize, 13 * this.tileSize, 'boss'));
     }
 
     initializeDoors() {

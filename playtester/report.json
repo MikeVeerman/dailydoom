@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-02-18T18:49:40.700Z",
-  "passed": 20,
+  "timestamp": "2026-02-18T18:53:08.276Z",
+  "passed": 21,
   "failed": 0,
   "skipped": 3,
   "results": [
@@ -27,17 +27,17 @@
     {
       "id": "T1-05",
       "status": "pass",
-      "note": "FPS: 28"
+      "note": "FPS: 27"
     },
     {
       "id": "T1-06",
       "status": "pass",
-      "note": "Moved from (160, 160) to (397, 160)"
+      "note": "Moved from (160, 160) to (392, 160)"
     },
     {
       "id": "T1-07",
       "status": "pass",
-      "note": "Rotated from 0° to 178°"
+      "note": "Rotated from 0° to 180°"
     },
     {
       "id": "T1-08",
@@ -47,7 +47,7 @@
     {
       "id": "T1-09",
       "status": "pass",
-      "note": "FPS: 31 (threshold: 20)"
+      "note": "FPS: 28 (threshold: 20)"
     },
     {
       "id": "T2-01",
@@ -57,7 +57,7 @@
     {
       "id": "T2-02",
       "status": "pass",
-      "note": "5/5 enemies active with AI"
+      "note": "9/9 enemies active with AI"
     },
     {
       "id": "T2-03",
@@ -72,7 +72,7 @@
     {
       "id": "T2-05",
       "status": "pass",
-      "note": "Pickup system active with 6 items"
+      "note": "Pickup system active with 7 items"
     },
     {
       "id": "T2-06",
@@ -92,7 +92,7 @@
     {
       "id": "T2-09",
       "status": "pass",
-      "note": "A* pathfinding works (6 waypoints), 5 enemies with varied speeds"
+      "note": "A* pathfinding works (6 waypoints), 9 enemies with varied speeds"
     },
     {
       "id": "T2-10",
@@ -103,6 +103,11 @@
       "id": "T2-11",
       "status": "pass",
       "note": "Rocket (120dmg, splash) and Chaingun (10rps) functional with HUD sprites"
+    },
+    {
+      "id": "T2-12",
+      "status": "pass",
+      "note": "8 enemy types (guard, imp, demon, soldier, berserker, spitter, shield_guard, boss), boss with high HP, 9 total enemies"
     },
     {
       "id": "T3-01",

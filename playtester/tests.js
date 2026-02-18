@@ -585,6 +585,7 @@ const TIER_2_TESTS = [
   { id: 'T2-09', name: 'Enemy pathfinding works', fn: T2_09_enemyPathfinding }, // issue: #18
   { id: 'T2-10', name: 'Weapon hit effects work', fn: T2_10_weaponHitEffects }, // issue: #19
   { id: 'T2-11', name: 'Advanced weapon arsenal works', fn: T2_11_advancedWeapons }, // issue: #23
+  { id: 'T2-12', name: 'Enemy variety & boss system', fn: T2_12_enemyVariety }, // issue: #24
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -868,6 +869,83 @@ async function T2_11_advancedWeapons(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Rocket (${weaponData.rocketStats.damage}dmg, splash) and Chaingun (${weaponData.chaingunStats.fireRate}rps) functional with HUD sprites`;
+  }
+}
+
+async function T2_12_enemyVariety(page, result) {
+  // T2-12: Enemy variety & boss system (issue: #24)
+  // Pass condition: New enemy types exist with unique behaviors, boss has phases
+  await page.waitForTimeout(1000);
+
+  const enemyData = await page.evaluate(() => {
+    if (!window.game || !window.game.map || !window.game.map.enemies) {
+      return { exists: false, reason: 'Enemy system not found' };
+    }
+
+    const enemies = window.game.map.enemies;
+    const types = {};
+    enemies.forEach(e => {
+      types[e.type] = (types[e.type] || 0) + 1;
+    });
+
+    // Check new enemy types exist
+    const hasBerserker = !!types['berserker'];
+    const hasSpitter = !!types['spitter'];
+    const hasShieldGuard = !!types['shield_guard'];
+    const hasBoss = !!types['boss'];
+
+    // Check behavior definitions
+    const behaviors = window.EnemyBehaviors || {};
+    const hasBerserkerBehavior = behaviors.berserker && behaviors.berserker.berserkerRage === true;
+    const hasSpitterBehavior = behaviors.spitter && behaviors.spitter.rangedAttack === true;
+    const hasShieldBehavior = behaviors.shield_guard && behaviors.shield_guard.frontShield === true;
+    const hasBossBehavior = behaviors.boss && behaviors.boss.bossPhases === true;
+
+    // Check boss health is much higher
+    const boss = enemies.find(e => e.type === 'boss');
+    const bossHighHealth = boss && boss.maxHealth >= 400;
+
+    // Check total enemy variety (at least 6 unique types)
+    const uniqueTypes = Object.keys(types).length;
+
+    return {
+      exists: true,
+      types,
+      uniqueTypes,
+      hasBerserker, hasSpitter, hasShieldGuard, hasBoss,
+      hasBerserkerBehavior, hasSpitterBehavior, hasShieldBehavior, hasBossBehavior,
+      bossHighHealth,
+      totalEnemies: enemies.length
+    };
+  });
+
+  if (!enemyData.exists) {
+    result.status = 'fail';
+    result.note = enemyData.reason;
+    return;
+  }
+
+  const checks = [
+    ['berserker type', enemyData.hasBerserker],
+    ['spitter type', enemyData.hasSpitter],
+    ['shield_guard type', enemyData.hasShieldGuard],
+    ['boss type', enemyData.hasBoss],
+    ['berserker rage behavior', enemyData.hasBerserkerBehavior],
+    ['spitter ranged behavior', enemyData.hasSpitterBehavior],
+    ['shield guard behavior', enemyData.hasShieldBehavior],
+    ['boss phases behavior', enemyData.hasBossBehavior],
+    ['boss high health', enemyData.bossHighHealth],
+    ['6+ unique types', enemyData.uniqueTypes >= 6]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `${enemyData.uniqueTypes} enemy types (${Object.keys(enemyData.types).join(', ')}), boss with ${enemyData.bossHighHealth ? 'high HP' : 'normal HP'}, ${enemyData.totalEnemies} total enemies`;
   }
 }
 

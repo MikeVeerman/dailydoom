@@ -251,22 +251,46 @@ class Enemy {
     }
     
     takeDamage(damage) {
-        this.health -= damage;
-        
+        let actualDamage = damage;
+
+        // Front shield: reduce damage if hit from front
+        if (this.enhancedAI && this.enhancedAI.behavior.frontShield && window.game && window.game.player) {
+            const player = window.game.player;
+            const angleToPlayer = Math.atan2(player.y - this.y, player.x - this.x);
+            let angleDiff = angleToPlayer - this.angle;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+            // If player is roughly in front of enemy (within 90 degrees), shield reduces damage
+            if (Math.abs(angleDiff) < Math.PI / 2) {
+                actualDamage = Math.round(damage * 0.3); // 70% reduction
+            }
+        }
+
+        // Berserker rage damage boost when attacking
+        if (this.enhancedAI && this.enhancedAI.rageActive) {
+            // Berserkers take slightly more damage when enraged
+            actualDamage = Math.round(actualDamage * 1.2);
+        }
+
+        this.health -= actualDamage;
+
         // Play hit sound
         if (window.soundEngine && window.soundEngine.isInitialized) {
             window.soundEngine.playEnemyHit();
         }
-        
+
         if (this.health <= 0) {
             this.active = false;
-            console.log('Enemy destroyed!');
-            
+            console.log(`${this.type} destroyed!`);
+
             // Play death sound
             if (window.soundEngine && window.soundEngine.isInitialized) {
                 window.soundEngine.playEnemyDeath();
             }
         }
+
+        return actualDamage;
     }
     
     // Get current sprite frame (for animation)

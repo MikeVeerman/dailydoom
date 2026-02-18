@@ -72,13 +72,93 @@ const EnemyBehaviors = {
         patrolRadius: 100,
         aggressiveness: 0.3,
         intelligence: 0.9,
-        
+
         fleeHealthThreshold: 0.25,
         groupBehavior: true,
         callForHelp: true,
         useCover: true,
         strafeBehavior: true, // Moves sideways while shooting
         retreatBehavior: true // Backs away to maintain distance
+    },
+
+    // Fast berserker - gets stronger at low health
+    berserker: {
+        health: 120,
+        speed: 40,
+        detectionRange: 280,
+        attackRange: 50,
+        damage: 25,
+        attackCooldown: 1500,
+        patrolRadius: 100,
+        aggressiveness: 0.9,
+        intelligence: 0.3,
+
+        fleeHealthThreshold: 0, // Never flees
+        groupBehavior: false,
+        callForHelp: false,
+        useCover: false,
+        chargeAttack: true,
+        berserkerRage: true // Damage and speed increase at low HP
+    },
+
+    // Long-range spitter - weak in melee
+    spitter: {
+        health: 60,
+        speed: 20,
+        detectionRange: 400,
+        attackRange: 300,
+        damage: 12,
+        attackCooldown: 2000,
+        patrolRadius: 60,
+        aggressiveness: 0.4,
+        intelligence: 0.7,
+
+        fleeHealthThreshold: 0.4,
+        groupBehavior: false,
+        callForHelp: false,
+        useCover: true,
+        retreatBehavior: true, // Keeps distance
+        rangedAttack: true // Fires projectiles
+    },
+
+    // Shielded soldier - resistant from the front
+    shield_guard: {
+        health: 160,
+        speed: 18,
+        detectionRange: 280,
+        attackRange: 70,
+        damage: 22,
+        attackCooldown: 2200,
+        patrolRadius: 60,
+        aggressiveness: 0.6,
+        intelligence: 0.8,
+
+        fleeHealthThreshold: 0.1,
+        groupBehavior: true,
+        callForHelp: true,
+        useCover: false,
+        frontShield: true // 70% damage reduction from front
+    },
+
+    // Boss enemy - massive health, multiple attack phases
+    boss: {
+        health: 500,
+        speed: 22,
+        detectionRange: 500,
+        attackRange: 150,
+        damage: 40,
+        attackCooldown: 2500,
+        patrolRadius: 40,
+        aggressiveness: 1.0,
+        intelligence: 0.9,
+
+        fleeHealthThreshold: 0, // Never flees
+        groupBehavior: false,
+        callForHelp: false,
+        useCover: false,
+        chargeAttack: true,
+        bossPhases: true, // Changes behavior at health thresholds
+        summonMinions: true // Spawns additional enemies
     }
 };
 
@@ -211,6 +291,14 @@ class EnhancedEnemyAI {
             return;
         }
 
+        // Berserker rage during chase
+        if (this.behavior.berserkerRage) {
+            if (healthPercent < 0.4) {
+                this.enemy.speed = this.behavior.speed * 1.6;
+                this.rageActive = true;
+            }
+        }
+
         // Apply behavior-specific chase logic
         if (this.behavior.swarmBehavior) {
             this.swarmMovement(player, allEnemies);
@@ -230,7 +318,21 @@ class EnhancedEnemyAI {
     attackBehavior(player, deltaTime, map) {
         const distance = this.getDistanceToPlayer(player);
         const now = Date.now();
-        
+
+        // Berserker rage - boost speed and damage at low health
+        if (this.behavior.berserkerRage) {
+            const healthPercent = this.enemy.health / this.enemy.maxHealth;
+            if (healthPercent < 0.4) {
+                this.enemy.speed = this.behavior.speed * 1.6;
+                this.rageActive = true;
+            }
+        }
+
+        // Boss phase transitions
+        if (this.behavior.bossPhases) {
+            this.updateBossPhase(player, map);
+        }
+
         // Check if should retreat to maintain distance
         if (this.behavior.retreatBehavior && distance < this.enemy.attackRange * 0.6) {
             const retreatAngle = Math.atan2(this.enemy.y - player.y, this.enemy.x - player.x);
@@ -241,13 +343,13 @@ class EnhancedEnemyAI {
             this.enemy.targetX = player.x;
             this.enemy.targetY = player.y;
         }
-        
+
         // Perform attack if cooldown is ready
         if (now - this.lastAttackTime > this.behavior.attackCooldown) {
             this.performAttack(player);
             this.lastAttackTime = now;
         }
-        
+
         // Check if player moved out of range
         if (distance > this.enemy.attackRange * 1.2) {
             this.enemy.state = 'chase';
@@ -439,7 +541,12 @@ class EnhancedEnemyAI {
     
     performAttack(player) {
         if (this.hasLineOfSight(player, window.game.map)) {
-            const damage = this.behavior.damage;
+            let damage = this.behavior.damage;
+
+            // Berserker rage: double damage when below 40% health
+            if (this.behavior.berserkerRage && this.rageActive) {
+                damage = Math.round(damage * 2);
+            }
 
             // Deal damage to player (with invincibility frame check)
             if (player.takeDamage(damage)) {
@@ -558,6 +665,56 @@ class EnhancedEnemyAI {
         }
     }
     
+    updateBossPhase(player, map) {
+        const healthPercent = this.enemy.health / this.enemy.maxHealth;
+        const prevPhase = this.bossPhase || 1;
+
+        if (healthPercent > 0.6) {
+            this.bossPhase = 1;
+        } else if (healthPercent > 0.3) {
+            this.bossPhase = 2;
+        } else {
+            this.bossPhase = 3;
+        }
+
+        // Phase transition effects
+        if (this.bossPhase !== prevPhase) {
+            this.enemy.hitFlashTime = Date.now(); // Visual indicator
+
+            if (this.bossPhase === 2) {
+                // Phase 2: faster attacks
+                this.behavior.attackCooldown = 1800;
+                this.enemy.speed = this.behavior.speed * 1.3;
+            } else if (this.bossPhase === 3) {
+                // Phase 3: enraged - faster and more damage
+                this.behavior.attackCooldown = 1200;
+                this.behavior.damage = 55;
+                this.enemy.speed = this.behavior.speed * 1.6;
+
+                // Summon minions on entering phase 3
+                if (this.behavior.summonMinions && map) {
+                    this.summonMinions(map);
+                }
+            }
+        }
+    }
+
+    summonMinions(map) {
+        // Spawn 2 imps near the boss
+        for (let i = 0; i < 2; i++) {
+            const angle = (i / 2) * Math.PI * 2 + Math.random();
+            const spawnX = this.enemy.x + Math.cos(angle) * 80;
+            const spawnY = this.enemy.y + Math.sin(angle) * 80;
+
+            if (!map.isWallAtPosition(spawnX, spawnY)) {
+                const minion = new Enemy(spawnX, spawnY, 'imp');
+                minion.state = 'chase';
+                map.enemies.push(minion);
+                console.log('Boss summoned a minion!');
+            }
+        }
+    }
+
     findFleeTarget(player, map) {
         // Find position away from player
         const fleeAngle = Math.atan2(this.enemy.y - player.y, this.enemy.x - player.x);
