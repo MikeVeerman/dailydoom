@@ -26,15 +26,8 @@ class Player {
         this.armor = 0;
         this.maxArmor = 100;
         
-        // Weapon and inventory
-        this.ammo = 50;
-        this.maxAmmo = 200;
-        this.currentWeapon = 1;
-        this.weapons = {
-            1: { name: 'Pistol', ammo: 50, damage: 20 },
-            2: { name: 'Shotgun', ammo: 8, damage: 60 },
-            3: { name: 'Rifle', ammo: 30, damage: 35 }
-        };
+        // Weapon system
+        this.weaponManager = new WeaponManager();
         
         // Movement states
         this.isRunning = false;
@@ -57,7 +50,7 @@ class Player {
         console.log(`Player created at (${x}, ${y}), angle: ${MathUtils.radToDeg(angle)}°`);
     }
     
-    handleInput(inputManager, deltaTime) {
+    handleInput(inputManager, deltaTime, map) {
         // Handle turning (mouse and keyboard)
         this.handleTurning(inputManager, deltaTime);
         
@@ -65,7 +58,7 @@ class Player {
         this.handleMovement(inputManager, deltaTime);
         
         // Handle actions
-        this.handleActions(inputManager);
+        this.handleActions(inputManager, map);
         
         // Handle weapon switching
         this.handleWeaponSwitching(inputManager);
@@ -151,7 +144,7 @@ class Player {
         }
     }
     
-    handleActions(inputManager) {
+    handleActions(inputManager, map) {
         // Use/interact
         if (inputManager.isUsingItem()) {
             this.useItem();
@@ -159,7 +152,7 @@ class Player {
         
         // Shooting
         if (inputManager.isShooting()) {
-            this.shoot();
+            this.shoot(map);
         }
         
         // Reload
@@ -180,6 +173,9 @@ class Player {
         
         // Check for item collection
         this.checkItemCollection(map);
+        
+        // Update weapon system
+        this.weaponManager.update();
         
         // Update other systems
         this.updatePhysics(deltaTime);
@@ -308,25 +304,25 @@ class Player {
         // Implement item usage, door opening, etc.
     }
     
-    shoot() {
-        const weapon = this.weapons[this.currentWeapon];
-        if (weapon && this.ammo > 0) {
-            this.ammo--;
-            console.log(`Shot fired with ${weapon.name}! Ammo remaining: ${this.ammo}`);
-            
-            // Add shooting logic here (projectiles, hit detection, etc.)
+    shoot(map) {
+        const success = this.weaponManager.fire(this, map.enemies, map);
+        if (success) {
+            console.log('Weapon fired!');
         }
     }
     
     reload() {
-        console.log('Reload requested');
-        // Implement reload logic
+        const success = this.weaponManager.reload();
+        if (success) {
+            console.log('Reloading weapon...');
+        }
     }
     
     switchWeapon(weaponNumber) {
-        if (this.weapons[weaponNumber]) {
-            this.currentWeapon = weaponNumber;
-            console.log(`Switched to ${this.weapons[weaponNumber].name}`);
+        const weaponNames = { 1: 'pistol', 2: 'shotgun', 3: 'rifle' };
+        const weaponName = weaponNames[weaponNumber];
+        if (weaponName) {
+            this.weaponManager.switchWeapon(weaponName);
         }
     }
     
@@ -390,8 +386,7 @@ class Player {
             angle: Math.round(MathUtils.radToDeg(this.angle)),
             velocity: { x: this.velocityX.toFixed(2), y: this.velocityY.toFixed(2) },
             health: this.health,
-            ammo: this.ammo,
-            weapon: this.weapons[this.currentWeapon].name,
+            weapon: this.weaponManager.getHUDInfo(),
             states: {
                 running: this.isRunning,
                 crouching: this.isCrouching,

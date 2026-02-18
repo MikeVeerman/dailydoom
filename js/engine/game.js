@@ -121,7 +121,7 @@ class GameEngine {
         }
         
         // Player input handling
-        this.player.handleInput(this.inputManager, this.deltaTime);
+        this.player.handleInput(this.inputManager, this.deltaTime, this.map);
         
         // Update input manager (clear frame-specific states)
         this.inputManager.update();
@@ -131,7 +131,10 @@ class GameEngine {
         // Update game systems
         this.player.update(deltaTime, this.map);
         
-        // Update other systems here (enemies, projectiles, etc.)
+        // Update enemies
+        this.map.enemies.forEach(enemy => {
+            enemy.update(deltaTime, this.player, this.map);
+        });
     }
     
     render() {
