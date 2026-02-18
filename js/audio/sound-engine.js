@@ -278,36 +278,145 @@ class SoundEngine {
     // Ambient drone sound
     playAmbientDrone() {
         if (!this.isInitialized || this.ambientDrone) return;
-        
+
         const oscillator1 = this.audioContext.createOscillator();
         const oscillator2 = this.audioContext.createOscillator();
         const gainNode = this.audioContext.createGain();
-        
+
         oscillator1.connect(gainNode);
         oscillator2.connect(gainNode);
         gainNode.connect(this.masterGain);
-        
+
         // Low frequency drone
         oscillator1.type = 'sine';
         oscillator1.frequency.setValueAtTime(30, this.audioContext.currentTime);
-        
+
         oscillator2.type = 'sine';
-        oscillator2.frequency.setValueAtTime(30.5, this.audioContext.currentTime); // Slight beating
-        
+        oscillator2.frequency.setValueAtTime(30.5, this.audioContext.currentTime);
+
         gainNode.gain.setValueAtTime(this.musicVolume * 0.3, this.audioContext.currentTime);
-        
+
         oscillator1.start();
         oscillator2.start();
-        
+
         this.ambientDrone = { oscillator1, oscillator2, gainNode };
     }
-    
+
     stopAmbientDrone() {
         if (this.ambientDrone) {
             this.ambientDrone.oscillator1.stop();
             this.ambientDrone.oscillator2.stop();
             this.ambientDrone = null;
         }
+    }
+
+    // Adaptive music system
+    musicState = 'ambient'; // ambient, combat, victory
+
+    updateMusicState(player, enemies) {
+        if (!this.isInitialized) return;
+
+        const nearbyEnemies = enemies ? enemies.filter(e => {
+            if (!e.active) return false;
+            const dx = e.x - player.x;
+            const dy = e.y - player.y;
+            return Math.sqrt(dx * dx + dy * dy) < 300;
+        }) : [];
+
+        const newState = nearbyEnemies.length > 0 ? 'combat' : 'ambient';
+
+        if (newState !== this.musicState) {
+            this.musicState = newState;
+            this.transitionMusic(newState);
+        }
+    }
+
+    transitionMusic(state) {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Fade ambient drone based on state
+        if (this.ambientDrone) {
+            const targetVolume = state === 'combat' ? this.musicVolume * 0.1 : this.musicVolume * 0.3;
+            this.ambientDrone.gainNode.gain.linearRampToValueAtTime(targetVolume, now + 0.5);
+        }
+
+        // Start combat pulse if entering combat
+        if (state === 'combat' && !this.combatPulse) {
+            this.startCombatMusic();
+        } else if (state === 'ambient' && this.combatPulse) {
+            this.stopCombatMusic();
+        }
+    }
+
+    startCombatMusic() {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Create a pulsing bass for combat
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        const lfo = this.audioContext.createOscillator();
+        const lfoGain = this.audioContext.createGain();
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        // LFO for pulsing effect
+        lfo.connect(lfoGain);
+        lfoGain.connect(gain.gain);
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(55, now); // Low A
+
+        gain.gain.setValueAtTime(this.musicVolume * 0.15, now);
+
+        lfo.type = 'sine';
+        lfo.frequency.setValueAtTime(2, now); // 2 Hz pulse (120 BPM feel)
+        lfoGain.gain.setValueAtTime(this.musicVolume * 0.1, now);
+
+        osc.start(now);
+        lfo.start(now);
+
+        this.combatPulse = { osc, gain, lfo, lfoGain };
+    }
+
+    stopCombatMusic() {
+        if (this.combatPulse) {
+            const now = this.audioContext.currentTime;
+            this.combatPulse.gain.gain.linearRampToValueAtTime(0.001, now + 1);
+            this.combatPulse.lfoGain.gain.linearRampToValueAtTime(0, now + 1);
+
+            const pulse = this.combatPulse;
+            setTimeout(() => {
+                try { pulse.osc.stop(); } catch(e) {}
+                try { pulse.lfo.stop(); } catch(e) {}
+            }, 1200);
+
+            this.combatPulse = null;
+        }
+    }
+
+    // Environmental sound effect
+    playDoorSound() {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(100, now);
+        osc.frequency.linearRampToValueAtTime(50, now + 0.3);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+        osc.start(now);
+        osc.stop(now + 0.4);
     }
     
     // Utility: Create noise buffer for sound effects
