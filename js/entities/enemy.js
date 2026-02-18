@@ -193,9 +193,19 @@ class Enemy {
     takeDamage(damage) {
         this.health -= damage;
         
+        // Play hit sound
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playEnemyHit();
+        }
+        
         if (this.health <= 0) {
             this.active = false;
             console.log('Enemy destroyed!');
+            
+            // Play death sound
+            if (window.soundEngine && window.soundEngine.isInitialized) {
+                window.soundEngine.playEnemyDeath();
+            }
         }
     }
     

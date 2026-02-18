@@ -55,8 +55,15 @@ class GameEngine {
         this.renderer = new Renderer(this.canvas, this.map);
         console.log('Renderer initialized');
         
+        // Initialize HUD
+        this.hud = new HUD(this.canvas);
+        console.log('HUD initialized');
+        
         // Bind debug toggle
         this.bindDebugToggle();
+        
+        // Initialize audio system
+        this.initializeAudio();
         
         console.log('Game Engine initialization complete');
     }
@@ -140,6 +147,9 @@ class GameEngine {
     render() {
         // Render the 3D world
         this.renderer.render(this.player);
+        
+        // Render HUD overlay
+        this.hud.render(this.player, this);
         
         // Render debug information if enabled
         if (this.debugMode) {
@@ -232,15 +242,52 @@ class GameEngine {
     }
     
     bindDebugToggle() {
-        // Allow F1 to toggle debug mode
+        // Debug and HUD key bindings
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'F1') {
-                event.preventDefault();
-                this.debugMode = !this.debugMode;
-                window.DEBUG_MODE = this.debugMode;
-                console.log('Debug mode:', this.debugMode ? 'ON' : 'OFF');
+            switch(event.key) {
+                case 'F1':
+                    event.preventDefault();
+                    this.debugMode = !this.debugMode;
+                    window.DEBUG_MODE = this.debugMode;
+                    this.hud.showDebugInfo = this.debugMode;
+                    console.log('Debug mode:', this.debugMode ? 'ON' : 'OFF');
+                    break;
+                    
+                case 'F2':
+                    event.preventDefault();
+                    this.hud.toggleFPS();
+                    console.log('FPS display:', this.hud.showFPS ? 'ON' : 'OFF');
+                    break;
+                    
+                case 'F3':
+                    event.preventDefault();
+                    this.hud.toggleCrosshair();
+                    console.log('Crosshair:', this.hud.showCrosshair ? 'ON' : 'OFF');
+                    break;
             }
         });
+    }
+    
+    async initializeAudio() {
+        // Add click handler to start audio
+        const startAudio = async () => {
+            if (window.soundEngine && !window.soundEngine.isInitialized) {
+                const success = await window.soundEngine.init();
+                if (success) {
+                    // Start ambient drone
+                    window.soundEngine.playAmbientDrone();
+                    console.log('🔊 Audio system activated - game sounds enabled!');
+                    
+                    // Remove the event listeners after first activation
+                    document.removeEventListener('click', startAudio);
+                    document.removeEventListener('keydown', startAudio);
+                }
+            }
+        };
+        
+        // Listen for user interaction to start audio
+        document.addEventListener('click', startAudio);
+        document.addEventListener('keydown', startAudio);
     }
     
     // Utility methods

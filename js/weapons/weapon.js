@@ -78,6 +78,11 @@ class Weapon {
         this.muzzleFlash = true;
         this.muzzleFlashStart = now;
         
+        // Play weapon sound
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playWeaponFire(this.type);
+        }
+        
         // Perform raycast to find target
         const hit = this.performRaycast(player, map);
         
@@ -161,6 +166,12 @@ class Weapon {
         this.isReloading = true;
         this.reloadStartTime = Date.now();
         console.log(`Reloading ${this.type}...`);
+        
+        // Play reload sound
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playReload();
+        }
+        
         return true;
     }
     

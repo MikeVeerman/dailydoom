@@ -14,6 +14,8 @@ class Player {
         this.speed = 200; // Units per second
         this.runMultiplier = 1.5;
         this.turnSpeed = 3.0; // Radians per second
+        this.lastFootstepTime = 0;
+        this.footstepInterval = 400; // ms between footsteps
         
         // Physical properties
         this.radius = 16; // Collision radius
@@ -192,6 +194,17 @@ class Player {
             this.x = newX;
         } else {
             this.velocityX = 0; // Stop X movement on collision
+        }
+        
+        // Check for footsteps (if player moved significantly)
+        const distanceMoved = Math.sqrt((this.x - originalX) ** 2 + (this.y - originalY) ** 2);
+        const now = Date.now();
+        
+        if (distanceMoved > 2 && now - this.lastFootstepTime > this.footstepInterval) {
+            if (window.soundEngine && window.soundEngine.isInitialized) {
+                window.soundEngine.playFootstep();
+                this.lastFootstepTime = now;
+            }
         }
         
         // Try to move on Y axis
