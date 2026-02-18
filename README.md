@@ -185,13 +185,21 @@ Press **F1** to enable debug mode, showing:
 
 The `/playtester` directory contains a Playwright-based regression test suite that runs against the live GitHub Pages deployment. It catches regressions and produces a structured report with canonical screenshots.
 
-### Running locally
+### Running locally (fast development testing)
 
 ```bash
-cd playtester
-npm install
-npx playwright install chromium
-DAILYDOOM_URL=http://localhost:8080 node run-tests.js
+# Quick local testing (recommended for development)
+./test-local.sh
+
+# Or manually:
+python3 -m http.server 8080 &  # Start server
+cd playtester && DAILYDOOM_URL=http://localhost:8080 node run-tests.js
+```
+
+### Running against deployment (final validation)
+
+```bash
+cd playtester && DAILYDOOM_URL=https://mikeveerman.github.io/dailydoom node run-tests.js
 ```
 
 ### Test tiers

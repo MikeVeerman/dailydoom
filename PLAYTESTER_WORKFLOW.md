@@ -2,10 +2,19 @@
 
 ## 🎯 **Integration with Development Process**
 
-### **After Every Major Change:**
+### **After Every Major Change (Local Testing):**
 ```bash
-cd /home/claw/dailydoom/playtester
-DAILYDOOM_URL=https://mikeveerman.github.io/dailydoom node run-tests.js
+# Start local server (in separate terminal)
+cd /home/claw/dailydoom && python3 -m http.server 8080
+
+# Run tests against local server (much faster!)
+cd playtester && DAILYDOOM_URL=http://localhost:8080 node run-tests.js
+```
+
+### **For Final Deployment Validation:**
+```bash
+# Test against live GitHub Pages (after push)
+cd playtester && DAILYDOOM_URL=https://mikeveerman.github.io/dailydoom node run-tests.js
 ```
 
 ### **Expected Output:**
@@ -37,9 +46,10 @@ Report:  playtester/report.json
 ## 📊 **Current Baseline Expectations**
 
 ### **Performance Metrics:**
-- **FPS:** 25-30 (threshold: ≥20)
-- **Load Time:** <30 seconds for full initialization
+- **FPS:** 25-30 (threshold: ≥20)  
+- **Load Time:** <10 seconds for local testing, <30 seconds for GitHub Pages
 - **Canvas Size:** 802x602 optimal
+- **Test Runtime:** ~15 seconds locally vs ~45 seconds against GitHub Pages
 
 ### **Feature Validation:**
 - **Enemy Count:** 5/5 active with AI
@@ -96,13 +106,12 @@ async function T2_XX_featureName(page, result) {
 cd /home/claw/dailydoom && claude -p "Make this change: [DESCRIPTION]
 
 After implementation:
-1. Commit the changes
-2. Push to GitHub  
-3. Wait 2 minutes for deployment
-4. Run: cd playtester && DAILYDOOM_URL=https://mikeveerman.github.io/dailydoom node run-tests.js
-5. Analyze results and report status
-6. If tests fail, debug and fix issues
-7. If tests pass, document success
+1. Start local server: python3 -m http.server 8080 &
+2. Run local tests: cd playtester && DAILYDOOM_URL=http://localhost:8080 node run-tests.js
+3. Analyze results and fix any issues
+4. If tests pass, commit and push to GitHub
+5. Optionally run final validation against GitHub Pages
+6. Document success
 
 Use --dangerously-skip-permissions flag for all operations." --model opus --dangerously-skip-permissions
 ```
