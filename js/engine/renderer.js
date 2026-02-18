@@ -28,6 +28,10 @@ class Renderer {
         this.sprites = {};
         this.loadSprites();
         
+        // Texture system
+        this.textures = {};
+        this.loadTextures();
+        
         // Colors
         this.floorColor = '#333333';
         this.ceilingColor = '#666666';
@@ -130,12 +134,14 @@ class Renderer {
             distance: perpDistance,
             wallType,
             hitSide,
-            angle: fixedRayAngle
+            angle: fixedRayAngle,
+            hitX: rayX,
+            hitY: rayY
         };
     }
     
     renderWallSlice(x, rayResult, player) {
-        const { distance, wallType, hitSide } = rayResult;
+        const { distance, wallType, hitSide, hitX, hitY } = rayResult;
         
         if (distance >= this.maxRenderDistance) {
             // Render floor and ceiling only
@@ -148,23 +154,41 @@ class Renderer {
         const wallTop = this.halfHeight - wallScreenHeight / 2;
         const wallBottom = this.halfHeight + wallScreenHeight / 2;
         
-        // Get wall color
-        let wallColor = this.wallColors[wallType] || '#FFFFFF';
+        // Get texture for this wall type
+        const textureName = this.wallTypeTextures[wallType] || 'stone';
+        const texture = this.textures[textureName];
         
         // Apply shading based on distance and wall side
         const shadingFactor = Math.max(0.2, 1 - (distance / this.maxRenderDistance));
         const sideFactor = hitSide === 0 ? 1.0 : 0.7; // Darken horizontal walls
+        const totalShading = shadingFactor * sideFactor;
         
-        const color = this.applyShading(wallColor, shadingFactor * sideFactor);
+        // Calculate texture U coordinate (horizontal position on texture)
+        let textureU;
+        if (hitSide === 0) {
+            // Vertical wall - use Y coordinate
+            textureU = (hitY % this.wallHeight) / this.wallHeight;
+        } else {
+            // Horizontal wall - use X coordinate
+            textureU = (hitX % this.wallHeight) / this.wallHeight;
+        }
         
         // Render floor
         for (let y = 0; y < wallTop && y < this.height; y++) {
             this.setPixel(x, Math.floor(y), this.hexToRgb(this.floorColor));
         }
         
-        // Render wall
-        for (let y = Math.max(0, wallTop); y < Math.min(this.height, wallBottom); y++) {
-            this.setPixel(x, Math.floor(y), color);
+        // Render textured wall
+        if (texture && texture.complete) {
+            this.renderTexturedWallSlice(x, wallTop, wallBottom, textureU, texture, totalShading);
+        } else {
+            // Fallback to solid color if texture not loaded
+            let wallColor = this.wallColors[wallType] || '#FFFFFF';
+            const color = this.applyShading(wallColor, totalShading);
+            
+            for (let y = Math.max(0, wallTop); y < Math.min(this.height, wallBottom); y++) {
+                this.setPixel(x, Math.floor(y), color);
+            }
         }
         
         // Render ceiling
@@ -205,6 +229,57 @@ class Renderer {
         const g = Math.floor(parseInt(hexColor.slice(3, 5), 16) * factor);
         const b = Math.floor(parseInt(hexColor.slice(5, 7), 16) * factor);
         return 0xFF000000 | (b << 16) | (g << 8) | r;
+    }
+    
+    renderTexturedWallSlice(x, wallTop, wallBottom, textureU, texture, shading) {
+        // Get texture dimensions
+        const textureWidth = texture.width;
+        const textureHeight = texture.height;
+        
+        // Calculate which horizontal pixel of texture to use
+        const textureX = Math.floor(textureU * textureWidth) % textureWidth;
+        
+        // Create a temporary canvas to sample texture pixels (only once)
+        if (!this.textureCanvas) {
+            this.textureCanvas = document.createElement('canvas');
+            this.textureCtx = this.textureCanvas.getContext('2d');
+            this.cachedTexture = null;
+            this.cachedTextureData = null;
+        }
+        
+        // Cache texture data to avoid redrawing same texture repeatedly
+        if (this.cachedTexture !== texture) {
+            this.textureCanvas.width = textureWidth;
+            this.textureCanvas.height = textureHeight;
+            this.textureCtx.drawImage(texture, 0, 0);
+            this.cachedTextureData = this.textureCtx.getImageData(0, 0, textureWidth, textureHeight);
+            this.cachedTexture = texture;
+        }
+        
+        // Render each pixel of the wall column
+        const wallHeight = wallBottom - wallTop;
+        
+        for (let y = Math.max(0, wallTop); y < Math.min(this.height, wallBottom); y++) {
+            // Calculate V coordinate (vertical position on texture)
+            const textureV = (y - wallTop) / wallHeight;
+            const textureY = Math.floor(textureV * textureHeight) % textureHeight;
+            
+            // Get pixel from texture
+            const pixelIndex = (textureY * textureWidth + textureX) * 4;
+            let r = this.cachedTextureData.data[pixelIndex];
+            let g = this.cachedTextureData.data[pixelIndex + 1]; 
+            let b = this.cachedTextureData.data[pixelIndex + 2];
+            
+            // Apply shading
+            r = Math.floor(r * shading);
+            g = Math.floor(g * shading);
+            b = Math.floor(b * shading);
+            
+            // Convert to the format expected by setPixel (ARGB)
+            const color = 0xFF000000 | (b << 16) | (g << 8) | r;
+            
+            this.setPixel(x, Math.floor(y), color);
+        }
     }
     
     renderMinimap(player) {
@@ -266,15 +341,46 @@ class Renderer {
     loadSprites() {
         console.log('Loading sprites...');
         
-        // Load imp sprite
+        // Load imp sprite (transparent version)
         this.sprites.imp = new Image();
         this.sprites.imp.onload = () => {
-            console.log('Imp sprite loaded successfully');
+            console.log('Transparent imp sprite loaded successfully');
         };
         this.sprites.imp.onerror = () => {
-            console.error('Failed to load imp sprite');
+            console.error('Failed to load transparent imp sprite');
+            // Fallback to original sprite
+            this.sprites.imp.src = 'assets/sprites/imp.png';
         };
-        this.sprites.imp.src = 'assets/sprites/imp.png';
+        this.sprites.imp.src = 'assets/sprites/imp_transparent.png';
+    }
+    
+    loadTextures() {
+        console.log('Loading wall textures...');
+        
+        const textureTypes = ['stone', 'metal', 'brick', 'tech', 'marble'];
+        
+        textureTypes.forEach(type => {
+            this.textures[type] = new Image();
+            this.textures[type].onload = () => {
+                console.log(`${type} texture loaded successfully`);
+            };
+            this.textures[type].onerror = () => {
+                console.error(`Failed to load ${type} texture`);
+            };
+            this.textures[type].src = `assets/textures/${type}.png`;
+        });
+        
+        // Map wall types to textures
+        this.wallTypeTextures = {
+            1: 'stone',    // Default walls
+            2: 'brick',    // Red-ish areas
+            3: 'metal',    // Blue areas  
+            4: 'tech',     // Green areas
+            5: 'marble',   // Light areas
+            6: 'stone',    // Purple areas (fallback to stone)
+            7: 'metal',    // Other areas
+            8: 'brick'     // Fallback
+        };
     }
     
     renderSprites(player) {
@@ -331,16 +437,22 @@ class Renderer {
         const screenX = this.width / 2 + (angleDiff / this.fov) * this.width;
         
         // Calculate sprite size based on distance
-        const spriteSize = (this.wallHeight * this.projectionDistance) / distance;
+        // Use a more reasonable scaling factor
+        const spriteSize = (this.wallHeight * this.projectionDistance) / distance * 0.6;
         
-        // Calculate vertical position (sprites sit on ground)
-        const screenY = this.halfHeight + spriteSize / 2;
+        // Calculate vertical position - sprite bottom should align with floor
+        const screenY = this.halfHeight; // Ground level
         
-        // Draw the sprite
+        // Debug logging for first few renders
+        if (Math.random() < 0.01) { // Log occasionally
+            console.log(`Sprite debug: distance=${distance.toFixed(1)}, size=${spriteSize.toFixed(1)}, screenX=${screenX.toFixed(1)}, player=(${player.x.toFixed(1)}, ${player.y.toFixed(1)}), enemy=(${spriteData.x.toFixed(1)}, ${spriteData.y.toFixed(1)})`);
+        }
+        
+        // Draw the sprite (bottom-aligned to ground)
         this.ctx.drawImage(
             sprite,
-            screenX - spriteSize / 2,
-            screenY - spriteSize,
+            screenX - spriteSize / 2,    // Center horizontally
+            screenY - spriteSize,         // Bottom touches ground
             spriteSize,
             spriteSize
         );

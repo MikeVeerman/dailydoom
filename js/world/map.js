@@ -67,6 +67,28 @@ class GameMap {
             type: 'guard',
             active: true
         });
+        
+        // Add more enemies for testing sprite positioning and scaling
+        this.enemies.push({
+            x: 6 * this.tileSize,
+            y: 6 * this.tileSize,
+            type: 'guard',
+            active: true
+        });
+        
+        this.enemies.push({
+            x: 12 * this.tileSize,
+            y: 10 * this.tileSize,
+            type: 'guard',
+            active: true
+        });
+        
+        this.enemies.push({
+            x: 4 * this.tileSize,
+            y: 12 * this.tileSize,
+            type: 'guard',
+            active: true
+        });
     }
     
     // Check if a coordinate contains a wall
