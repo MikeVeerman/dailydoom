@@ -586,6 +586,7 @@ const TIER_2_TESTS = [
   { id: 'T2-10', name: 'Weapon hit effects work', fn: T2_10_weaponHitEffects }, // issue: #19
   { id: 'T2-11', name: 'Advanced weapon arsenal works', fn: T2_11_advancedWeapons }, // issue: #23
   { id: 'T2-12', name: 'Enemy variety & boss system', fn: T2_12_enemyVariety }, // issue: #24
+  { id: 'T2-13', name: 'Player progression & stats', fn: T2_13_playerProgression }, // issue: #25
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -946,6 +947,95 @@ async function T2_12_enemyVariety(page, result) {
   } else {
     result.status = 'pass';
     result.note = `${enemyData.uniqueTypes} enemy types (${Object.keys(enemyData.types).join(', ')}), boss with ${enemyData.bossHighHealth ? 'high HP' : 'normal HP'}, ${enemyData.totalEnemies} total enemies`;
+  }
+}
+
+async function T2_13_playerProgression(page, result) {
+  // T2-13: Player progression & stats (issue: #25)
+  // Pass condition: XP system, stats tracking, level system, HUD progression display
+  await page.waitForTimeout(1000);
+
+  const progressData = await page.evaluate(() => {
+    if (!window.game || !window.game.player) {
+      return { exists: false, reason: 'Player not found' };
+    }
+
+    const player = window.game.player;
+
+    // Check XP/Level system
+    const hasXP = typeof player.xp === 'number';
+    const hasLevel = typeof player.level === 'number';
+    const hasAddXP = typeof player.addXP === 'function';
+    const hasXPProgress = typeof player.getXPProgress === 'function';
+
+    // Check stats object
+    const hasStats = player.stats && typeof player.stats === 'object';
+    const statFields = hasStats ? Object.keys(player.stats) : [];
+    const hasAllStats = hasStats &&
+      'enemiesKilled' in player.stats &&
+      'shotsFired' in player.stats &&
+      'damageTaken' in player.stats &&
+      'damageDealt' in player.stats;
+
+    // Check level bonuses
+    const hasBonuses = player.levelBonuses && typeof player.levelBonuses === 'object';
+    const hasDamageMultiplier = hasBonuses && typeof player.levelBonuses.damageMultiplier === 'number';
+
+    // Check HUD progression display
+    const hasProgressionHUD = window.game.hud && typeof window.game.hud.renderProgressionHUD === 'function';
+
+    // Test XP gain and level up
+    let levelUpWorks = false;
+    if (hasAddXP) {
+      const prevLevel = player.level;
+      const prevXP = player.xp;
+      player.addXP(500); // Should level up multiple times
+      levelUpWorks = player.level > prevLevel;
+      // Restore
+      player.level = prevLevel;
+      player.xp = prevXP;
+      player.maxHealth = 100;
+      player.baseSpeed = 200;
+      player.speed = 200;
+      player.levelBonuses = { maxHealthBonus: 0, damageMultiplier: 1.0, speedBonus: 0 };
+    }
+
+    return {
+      exists: true,
+      hasXP, hasLevel, hasAddXP, hasXPProgress,
+      hasStats, statFields, hasAllStats,
+      hasBonuses, hasDamageMultiplier,
+      hasProgressionHUD,
+      levelUpWorks
+    };
+  });
+
+  if (!progressData.exists) {
+    result.status = 'fail';
+    result.note = progressData.reason;
+    return;
+  }
+
+  const checks = [
+    ['XP tracking', progressData.hasXP],
+    ['level system', progressData.hasLevel],
+    ['addXP method', progressData.hasAddXP],
+    ['XP progress', progressData.hasXPProgress],
+    ['stats object', progressData.hasAllStats],
+    ['level bonuses', progressData.hasBonuses],
+    ['damage multiplier', progressData.hasDamageMultiplier],
+    ['HUD progression', progressData.hasProgressionHUD],
+    ['level up works', progressData.levelUpWorks]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Progression system: XP, levels, ${progressData.statFields.length} stat fields, damage multiplier, HUD display`;
   }
 }
 

@@ -108,10 +108,16 @@ class Weapon {
             window.soundEngine.playWeaponFire(this.type);
         }
         
+        // Track shot stats
+        if (player.stats) player.stats.shotsFired++;
+
         // Perform raycast to find target
         const hit = this.performRaycast(player, map);
-        
+
         if (hit.enemy) {
+            // Track hit
+            if (player.stats) player.stats.shotsHit++;
+
             // Calculate damage with accuracy
             let actualDamage = this.damage;
             if (Math.random() > this.accuracy) {
@@ -129,8 +135,23 @@ class Weapon {
                 actualDamage *= 1.5;
             }
 
+            // Apply level damage multiplier
+            if (player.levelBonuses) {
+                actualDamage *= player.levelBonuses.damageMultiplier;
+            }
+
             actualDamage = Math.round(actualDamage);
+            const wasAlive = hit.enemy.active;
             hit.enemy.takeDamage(actualDamage);
+
+            // Track damage dealt and kills
+            if (player.stats) player.stats.damageDealt += actualDamage;
+            if (wasAlive && !hit.enemy.active) {
+                if (player.stats) player.stats.enemiesKilled++;
+                // Grant XP based on enemy type
+                const xpReward = this.getKillXP(hit.enemy);
+                if (player.addXP) player.addXP(xpReward);
+            }
 
             // Trigger enemy hit flash
             hit.enemy.hitFlashTime = Date.now();
@@ -288,6 +309,14 @@ class Weapon {
         }
     }
     
+    getKillXP(enemy) {
+        const xpTable = {
+            imp: 15, guard: 20, soldier: 30, demon: 40,
+            berserker: 35, spitter: 25, shield_guard: 45, boss: 200
+        };
+        return xpTable[enemy.type] || 20;
+    }
+
     getAmmoString() {
         return `${this.ammo}/${this.maxAmmo}`;
     }

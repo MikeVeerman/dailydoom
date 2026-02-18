@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-02-18T18:53:08.276Z",
-  "passed": 21,
+  "timestamp": "2026-02-18T18:56:11.606Z",
+  "passed": 22,
   "failed": 0,
   "skipped": 3,
   "results": [
@@ -32,12 +32,12 @@
     {
       "id": "T1-06",
       "status": "pass",
-      "note": "Moved from (160, 160) to (392, 160)"
+      "note": "Moved from (160, 160) to (389, 160)"
     },
     {
       "id": "T1-07",
       "status": "pass",
-      "note": "Rotated from 0° to 180°"
+      "note": "Rotated from 0° to 175°"
     },
     {
       "id": "T1-08",
@@ -47,7 +47,7 @@
     {
       "id": "T1-09",
       "status": "pass",
-      "note": "FPS: 28 (threshold: 20)"
+      "note": "FPS: 33 (threshold: 20)"
     },
     {
       "id": "T2-01",
@@ -72,7 +72,7 @@
     {
       "id": "T2-05",
       "status": "pass",
-      "note": "Pickup system active with 7 items"
+      "note": "Pickup system active with 6 items"
     },
     {
       "id": "T2-06",
@@ -108,6 +108,11 @@
       "id": "T2-12",
       "status": "pass",
       "note": "8 enemy types (guard, imp, demon, soldier, berserker, spitter, shield_guard, boss), boss with high HP, 9 total enemies"
+    },
+    {
+      "id": "T2-13",
+      "status": "pass",
+      "note": "Progression system: XP, levels, 8 stat fields, damage multiplier, HUD display"
     },
     {
       "id": "T3-01",

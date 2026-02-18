@@ -86,6 +86,9 @@ class HUD {
             // Render active power-up indicators
             this.renderPowerupIndicators(player);
 
+            // Render XP bar and level
+            this.renderProgressionHUD(player);
+
             // Render floating damage numbers and impact effects
             this.renderDamageNumbers(player, gameEngine);
             this.renderImpactSparks(player, gameEngine);
@@ -495,6 +498,39 @@ class HUD {
             this.ctx.fillStyle = powerup.color;
             this.ctx.fillRect(startX, y + 2, barWidth, 3);
         });
+    }
+
+    renderProgressionHUD(player) {
+        if (!player.level) return;
+
+        const barWidth = 150;
+        const barHeight = 8;
+        const x = 20;
+        const y = this.canvas.height - 50;
+
+        // Background
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        this.ctx.fillRect(x - 2, y - 14, barWidth + 4, 28);
+
+        // Level label
+        this.ctx.fillStyle = '#AAAAFF';
+        this.ctx.font = this.smallFont;
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText(`LV ${player.level}`, x, y - 2);
+
+        // XP bar background
+        this.ctx.fillStyle = '#333333';
+        this.ctx.fillRect(x + 40, y - 6, barWidth - 40, barHeight);
+
+        // XP bar fill
+        const progress = player.getXPProgress ? player.getXPProgress() : 0;
+        this.ctx.fillStyle = '#6666FF';
+        this.ctx.fillRect(x + 40, y - 6, (barWidth - 40) * progress, barHeight);
+
+        // Kills counter
+        const kills = player.stats ? player.stats.enemiesKilled : 0;
+        this.ctx.fillStyle = '#FF8888';
+        this.ctx.fillText(`K:${kills}`, x + barWidth - 30, y + 10);
     }
 
     // Called when player takes damage

@@ -34,6 +34,30 @@ class Player {
         // Keys collected
         this.keys = [];
 
+        // Progression system
+        this.xp = 0;
+        this.level = 1;
+        this.xpToNextLevel = 100;
+
+        // Stats tracking
+        this.stats = {
+            enemiesKilled: 0,
+            shotsFired: 0,
+            shotsHit: 0,
+            damageTaken: 0,
+            damageDealt: 0,
+            itemsCollected: 0,
+            deaths: 0,
+            timeSurvived: 0
+        };
+
+        // Level bonuses (cumulative)
+        this.levelBonuses = {
+            maxHealthBonus: 0,
+            damageMultiplier: 1.0,
+            speedBonus: 0
+        };
+
         // Weapon system
         this.weaponManager = new WeaponManager();
         
@@ -183,6 +207,9 @@ class Player {
     }
     
     update(deltaTime, map) {
+        // Track survival time
+        this.stats.timeSurvived += deltaTime;
+
         // Apply movement with collision detection
         this.updatePosition(deltaTime, map);
         
@@ -381,6 +408,7 @@ class Player {
 
         this.health = Math.max(0, this.health - actualDamage);
         this.lastDamageTime = now;
+        this.stats.damageTaken += actualDamage;
         console.log(`Player took ${actualDamage} damage. Health: ${this.health}, Armor: ${this.armor}`);
 
         if (this.health <= 0) {
@@ -399,6 +427,7 @@ class Player {
     die() {
         console.log('Player died!');
         this.isDead = true;
+        this.stats.deaths++;
 
         // Play death sound
         if (window.soundEngine && window.soundEngine.isInitialized) {
@@ -512,6 +541,37 @@ class Player {
         return active;
     }
     
+    // Progression methods
+    addXP(amount) {
+        this.xp += amount;
+        while (this.xp >= this.xpToNextLevel) {
+            this.xp -= this.xpToNextLevel;
+            this.levelUp();
+        }
+    }
+
+    levelUp() {
+        this.level++;
+        this.xpToNextLevel = Math.floor(100 * Math.pow(1.3, this.level - 1));
+
+        // Apply level bonuses
+        this.levelBonuses.maxHealthBonus += 10;
+        this.levelBonuses.damageMultiplier += 0.05;
+        this.levelBonuses.speedBonus += 5;
+
+        // Apply bonuses
+        this.maxHealth = 100 + this.levelBonuses.maxHealthBonus;
+        this.health = Math.min(this.health + 20, this.maxHealth); // Heal 20 on level up
+        this.baseSpeed = 200 + this.levelBonuses.speedBonus;
+        this.speed = this.baseSpeed;
+
+        console.log(`Level up! Now level ${this.level}. Max HP: ${this.maxHealth}, DMG: ${(this.levelBonuses.damageMultiplier * 100).toFixed(0)}%`);
+    }
+
+    getXPProgress() {
+        return this.xp / this.xpToNextLevel;
+    }
+
     // Debug methods
     getDebugInfo() {
         return {
