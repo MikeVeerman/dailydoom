@@ -1,0 +1,13 @@
+{
+  "name": "dailydoom-playtester",
+  "version": "1.0.0",
+  "description": "Automated playtester for DailyDoom — Playwright-based regression tests",
+  "private": true,
+  "scripts": {
+    "test": "node run-tests.js",
+    "test:local": "DAILYDOOM_URL=http://localhost:8080 node run-tests.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
+  }
+}

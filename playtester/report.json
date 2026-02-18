@@ -1,0 +1,54 @@
+{
+  "timestamp": "2026-02-18T10:11:27.212Z",
+  "passed": 9,
+  "failed": 0,
+  "skipped": 0,
+  "results": [
+    {
+      "id": "T1-01",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "T1-02",
+      "status": "pass",
+      "note": "Canvas size: 802x602"
+    },
+    {
+      "id": "T1-03",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "T1-04",
+      "status": "pass",
+      "note": "Player at (160, 160)"
+    },
+    {
+      "id": "T1-05",
+      "status": "pass",
+      "note": "FPS: 24"
+    },
+    {
+      "id": "T1-06",
+      "status": "pass",
+      "note": "Moved from (160, 160) to (389, 160)"
+    },
+    {
+      "id": "T1-07",
+      "status": "pass",
+      "note": "Rotated from 0° to 178°"
+    },
+    {
+      "id": "T1-08",
+      "status": "pass",
+      "note": "Screenshot saved to screenshots/latest.png"
+    },
+    {
+      "id": "T1-09",
+      "status": "pass",
+      "note": "FPS: 27 (threshold: 20)"
+    }
+  ],
+  "screenshotPath": "screenshots/latest.png"
+}

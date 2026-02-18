@@ -1,0 +1,111 @@
+name: Playtester CI
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  guard-tests:
+    name: Guard — Prevent test weakening
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for removed or weakened tests
+        run: |
+          # Extract test IDs from the previous commit's tests.js
+          git show HEAD~1:playtester/tests.js 2>/dev/null > /tmp/old_tests.js || {
+            echo "No previous tests.js found — first run, skipping guard."
+            exit 0
+          }
+
+          # Extract all test IDs (T1-XX, T2-XX, etc.) from old and new files
+          grep -oP "id:\s*'[^']+'" /tmp/old_tests.js | sort > /tmp/old_ids.txt
+          grep -oP "id:\s*'[^']+'" playtester/tests.js | sort > /tmp/new_ids.txt
+
+          # Check if any old IDs are missing from new file
+          MISSING=$(comm -23 /tmp/old_ids.txt /tmp/new_ids.txt)
+          if [ -n "$MISSING" ]; then
+            echo "::error::Test IDs removed or renamed — this is not allowed:"
+            echo "$MISSING"
+            exit 1
+          fi
+
+          echo "All existing test IDs preserved."
+
+  run-playtester:
+    name: Run playtester suite
+    needs: guard-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: playtester
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: playtester
+        run: npx playwright install --with-deps chromium
+
+      - name: Wait for Pages deployment
+        run: |
+          # Give GitHub Pages time to deploy the latest push
+          echo "Waiting 60s for GitHub Pages deployment..."
+          sleep 60
+
+      - name: Run playtester
+        working-directory: playtester
+        env:
+          DAILYDOOM_URL: https://mikeveerman.github.io/dailydoom/
+        run: node run-tests.js
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playtester-report
+          path: |
+            playtester/report.json
+            playtester/screenshots/latest.png
+
+      - name: Post commit status
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f playtester/report.json ]; then
+            PASSED=$(jq '.passed' playtester/report.json)
+            FAILED=$(jq '.failed' playtester/report.json)
+            TOTAL=$((PASSED + FAILED))
+
+            if [ "$FAILED" -eq 0 ]; then
+              STATE="success"
+              DESC="All $TOTAL tests passed"
+            else
+              STATE="failure"
+              DESC="$FAILED/$TOTAL tests failed"
+            fi
+          else
+            STATE="error"
+            DESC="Playtester did not produce a report"
+          fi
+
+          gh api repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -f state="$STATE" \
+            -f description="$DESC" \
+            -f context="playtester"

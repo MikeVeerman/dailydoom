@@ -28,20 +28,38 @@ A complete web-based first-person shooter engine built from scratch using HTML5 
 ## Project Structure
 
 ```
-doom-fps/
+dailydoom/
 ├── index.html              # Main HTML file
-├── README.md              # This file
-└── js/
-    ├── main.js            # Entry point and initialization
-    ├── engine/
-    │   ├── math.js        # Math utilities and Vector2 class
-    │   ├── renderer.js    # Raycasting renderer
-    │   ├── input.js       # Input management system
-    │   └── game.js        # Core game engine and loop
-    ├── world/
-    │   └── map.js         # Game world and collision detection
-    └── entities/
-        └── player.js      # Player entity and movement
+├── js/
+│   ├── main.js             # Entry point and initialization
+│   ├── engine/
+│   │   ├── math.js         # Math utilities and Vector2 class
+│   │   ├── renderer.js     # Raycasting renderer
+│   │   ├── input.js        # Input management system
+│   │   └── game.js         # Core game engine and loop
+│   ├── world/
+│   │   └── map.js          # Game world and collision detection
+│   ├── entities/
+│   │   ├── player.js       # Player entity and movement
+│   │   ├── enemy.js        # Enemy base class and AI
+│   │   ├── enemy-behaviors.js  # Advanced enemy behavior system
+│   │   └── pickup.js       # Items and power-ups
+│   ├── weapons/
+│   │   └── weapon.js       # Weapon system and combat
+│   ├── audio/
+│   │   └── sound-engine.js # Procedural audio via Web Audio API
+│   └── ui/
+│       └── hud.js          # Heads-up display rendering
+├── assets/                 # Sprites and textures
+├── playtester/             # Automated regression test suite
+│   ├── run-tests.js        # Test runner (produces report.json)
+│   ├── tests.js            # Test definitions (Tier 1 + Tier 2)
+│   ├── playwright.config.js
+│   ├── package.json
+│   └── screenshots/        # Canonical screenshots per run
+└── .github/workflows/
+    ├── pages.yml           # GitHub Pages deployment
+    └── playtester.yml      # Playtester CI checks
 ```
 
 ## Quick Start
@@ -163,16 +181,47 @@ Press **F1** to enable debug mode, showing:
 - Memory usage: ~10-20MB typical
 - CPU usage: Moderate (single-threaded JavaScript)
 
-## Future Enhancements
+## Automated Playtester
 
-Potential additions:
-- Sprite rendering (enemies, items, decorations)
-- Audio system (positional 3D sound)
-- Texture mapping for walls
-- Animated sprites and effects
-- Multiplayer networking
-- Map editor
-- Mobile touch controls
+The `/playtester` directory contains a Playwright-based regression test suite that runs against the live GitHub Pages deployment. It catches regressions and produces a structured report with canonical screenshots.
+
+### Running locally
+
+```bash
+cd playtester
+npm install
+npx playwright install chromium
+DAILYDOOM_URL=http://localhost:8080 node run-tests.js
+```
+
+### Test tiers
+
+**Tier 1 — Engine Baseline** (9 tests, never removable):
+
+| ID | Test | Pass Condition |
+|----|------|----------------|
+| T1-01 | No console errors | Zero `console.error` calls during load |
+| T1-02 | Canvas present | `<canvas>` exists with non-zero size |
+| T1-03 | HUD renders | Health, Ammo, FPS, X, Y, Angle elements in DOM |
+| T1-04 | Player spawns | X and Y are numeric after 1s |
+| T1-05 | Render loop running | FPS > 0 after 2s |
+| T1-06 | Player movement | X or Y changes after holding W for 1s |
+| T1-07 | Player rotation | Angle changes after holding ArrowRight for 1s |
+| T1-08 | Canonical screenshot | Screenshot saved to `screenshots/latest.png` |
+| T1-09 | FPS threshold | FPS >= 20 after 3s |
+
+**Tier 2 — Feature Tests** are added as new features land, each tagged with the GitHub issue that introduced it.
+
+### Output
+
+Each run produces `playtester/report.json` with pass/fail results and `playtester/screenshots/latest.png` (previous run preserved as `previous.png`).
+
+### CI
+
+The `playtester.yml` GitHub Action runs on every push to main:
+1. Guards against removal or weakening of existing tests
+2. Runs the full suite against the GitHub Pages deployment
+3. Posts results as a commit status check
 
 ## Development
 
