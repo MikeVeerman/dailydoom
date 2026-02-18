@@ -582,6 +582,7 @@ const TIER_2_TESTS = [
   { id: 'T2-06', name: 'Wall textures load', fn: T2_06_wallTextures }, // issue: #9
   { id: 'T2-07', name: 'Weapon sprite visible in HUD', fn: T2_07_weaponSprite }, // issue: #10
   { id: 'T2-08', name: 'Enemy damage system works', fn: T2_08_enemyDamageSystem }, // issue: #17
+  { id: 'T2-09', name: 'Enemy pathfinding works', fn: T2_09_enemyPathfinding }, // issue: #18
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -663,6 +664,73 @@ async function T2_08_enemyDamageSystem(page, result) {
     result.status = 'pass';
     result.note = 'Enemy damage system fully functional with invincibility frames';
   }
+}
+
+async function T2_09_enemyPathfinding(page, result) {
+  // T2-09: Enemy pathfinding works (issue: #18)
+  // Pass condition: Map has A* pathfinding, enemies can find paths around walls
+  await page.waitForTimeout(1000);
+
+  const pathData = await page.evaluate(() => {
+    if (!window.game || !window.game.map) {
+      return { exists: false, reason: 'Map not found' };
+    }
+
+    const map = window.game.map;
+
+    // Check findPath method exists
+    const hasFindPath = typeof map.findPath === 'function';
+    if (!hasFindPath) {
+      return { exists: true, hasFindPath: false };
+    }
+
+    // Test pathfinding around a wall (from tile 2,2 to tile 5,5 which goes around wall at 3,3)
+    const path = map.findPath(
+      2.5 * map.tileSize, 2.5 * map.tileSize,
+      5.5 * map.tileSize, 5.5 * map.tileSize
+    );
+
+    // Check enemies have movement speeds
+    const enemies = map.enemies.filter(e => e.active);
+    const speeds = enemies.map(e => ({ type: e.type, speed: e.speed }));
+    const hasVariedSpeeds = new Set(speeds.map(s => s.speed)).size > 1;
+
+    return {
+      exists: true,
+      hasFindPath: true,
+      pathFound: path !== null,
+      pathLength: path ? path.length : 0,
+      hasVariedSpeeds,
+      enemySpeeds: speeds
+    };
+  });
+
+  if (!pathData.exists) {
+    result.status = 'fail';
+    result.note = pathData.reason;
+    return;
+  }
+
+  if (!pathData.hasFindPath) {
+    result.status = 'fail';
+    result.note = 'findPath method not found on map';
+    return;
+  }
+
+  if (!pathData.pathFound) {
+    result.status = 'fail';
+    result.note = 'A* pathfinding returned no path';
+    return;
+  }
+
+  if (!pathData.hasVariedSpeeds) {
+    result.status = 'fail';
+    result.note = 'All enemies have the same speed';
+    return;
+  }
+
+  result.status = 'pass';
+  result.note = `A* pathfinding works (${pathData.pathLength} waypoints), ${pathData.enemySpeeds.length} enemies with varied speeds`;
 }
 
 async function T3_03_demonTransparency(page, result) {

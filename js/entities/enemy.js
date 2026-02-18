@@ -128,13 +128,41 @@ class Enemy {
     }
     
     chase(player, deltaTime, map) {
-        // Move towards player position
-        this.targetX = player.x;
-        this.targetY = player.y;
-        
-        // Store last known player position for prediction
+        // Store last known player position
         this.lastPlayerX = player.x;
         this.lastPlayerY = player.y;
+
+        // Use pathfinding if no line of sight
+        if (this.hasLineOfSight(player, map)) {
+            this.targetX = player.x;
+            this.targetY = player.y;
+            this.currentPath = null;
+        } else {
+            const now = Date.now();
+            if (!this.currentPath || !this.lastPathTime || now - this.lastPathTime > 500) {
+                this.currentPath = map.findPath(this.x, this.y, player.x, player.y);
+                this.pathIndex = 0;
+                this.lastPathTime = now;
+            }
+
+            if (this.currentPath && this.currentPath.length > 0) {
+                const wp = this.currentPath[this.pathIndex];
+                if (wp) {
+                    this.targetX = wp.x;
+                    this.targetY = wp.y;
+                    const d = Math.sqrt((this.x - wp.x) ** 2 + (this.y - wp.y) ** 2);
+                    if (d < 20) {
+                        this.pathIndex++;
+                        if (this.pathIndex >= this.currentPath.length) {
+                            this.currentPath = null;
+                        }
+                    }
+                }
+            } else {
+                this.targetX = player.x;
+                this.targetY = player.y;
+            }
+        }
     }
     
     attack(player) {

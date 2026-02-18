@@ -208,7 +208,97 @@ class GameMap {
         };
     }
     
-    // Pathfinding helpers (basic A* could be added later)
+    // A* pathfinding - returns array of {x, y} world positions
+    findPath(startX, startY, goalX, goalY) {
+        const start = this.worldToMap(startX, startY);
+        const goal = this.worldToMap(goalX, goalY);
+
+        // Quick exit if goal is a wall or start equals goal
+        if (this.isWall(goal.x, goal.y)) return null;
+        if (start.x === goal.x && start.y === goal.y) return [];
+
+        const key = (x, y) => x + ',' + y;
+        const openSet = [start];
+        const cameFrom = {};
+        const gScore = {};
+        const fScore = {};
+
+        gScore[key(start.x, start.y)] = 0;
+        fScore[key(start.x, start.y)] = this.heuristic(start, goal);
+
+        const closedSet = new Set();
+        let iterations = 0;
+        const maxIterations = 200; // Prevent infinite loops
+
+        while (openSet.length > 0 && iterations < maxIterations) {
+            iterations++;
+
+            // Find node with lowest fScore
+            let currentIdx = 0;
+            for (let i = 1; i < openSet.length; i++) {
+                if ((fScore[key(openSet[i].x, openSet[i].y)] || Infinity) <
+                    (fScore[key(openSet[currentIdx].x, openSet[currentIdx].y)] || Infinity)) {
+                    currentIdx = i;
+                }
+            }
+            const current = openSet[currentIdx];
+            const currentKey = key(current.x, current.y);
+
+            if (current.x === goal.x && current.y === goal.y) {
+                // Reconstruct path as world positions
+                const path = [];
+                let node = currentKey;
+                while (node && cameFrom[node]) {
+                    const [nx, ny] = node.split(',').map(Number);
+                    const worldPos = this.getTileCenter(nx, ny);
+                    path.unshift(worldPos);
+                    node = cameFrom[node];
+                }
+                return path;
+            }
+
+            openSet.splice(currentIdx, 1);
+            closedSet.add(currentKey);
+
+            const neighbors = this.getNeighbors(current.x, current.y);
+            for (const neighbor of neighbors) {
+                const neighborKey = key(neighbor.x, neighbor.y);
+                if (closedSet.has(neighborKey)) continue;
+
+                // For diagonal moves, check that both adjacent cardinal tiles are open
+                if (neighbor.diagonal) {
+                    const dx = neighbor.x - current.x;
+                    const dy = neighbor.y - current.y;
+                    if (this.isWall(current.x + dx, current.y) || this.isWall(current.x, current.y + dy)) {
+                        continue; // Can't cut corners
+                    }
+                }
+
+                const tentativeG = (gScore[currentKey] || 0) + (neighbor.diagonal ? 1.414 : 1);
+
+                if (tentativeG < (gScore[neighborKey] || Infinity)) {
+                    cameFrom[neighborKey] = currentKey;
+                    gScore[neighborKey] = tentativeG;
+                    fScore[neighborKey] = tentativeG + this.heuristic(neighbor, goal);
+
+                    if (!openSet.some(n => n.x === neighbor.x && n.y === neighbor.y)) {
+                        openSet.push(neighbor);
+                    }
+                }
+            }
+        }
+
+        return null; // No path found
+    }
+
+    heuristic(a, b) {
+        // Octile distance heuristic
+        const dx = Math.abs(a.x - b.x);
+        const dy = Math.abs(a.y - b.y);
+        return Math.max(dx, dy) + 0.414 * Math.min(dx, dy);
+    }
+
+    // Pathfinding helpers
     getNeighbors(mapX, mapY) {
         const neighbors = [];
         const directions = [

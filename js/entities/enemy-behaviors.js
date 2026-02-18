@@ -189,14 +189,14 @@ class EnhancedEnemyAI {
     
     chaseBehavior(player, deltaTime, map, allEnemies) {
         const distance = this.getDistanceToPlayer(player);
-        
+
         // Check if should flee
         const healthPercent = this.enemy.health / this.enemy.maxHealth;
         if (healthPercent < this.behavior.fleeHealthThreshold) {
             this.enemy.state = 'flee';
             return;
         }
-        
+
         // Check if lost player
         if (distance > this.enemy.detectionRange * 1.5) {
             if (!this.hasLineOfSight(player, map)) {
@@ -204,22 +204,26 @@ class EnhancedEnemyAI {
                 return;
             }
         }
-        
+
         // Check if in attack range
         if (distance < this.enemy.attackRange) {
             this.enemy.state = 'attack';
             return;
         }
-        
+
         // Apply behavior-specific chase logic
         if (this.behavior.swarmBehavior) {
             this.swarmMovement(player, allEnemies);
         } else if (this.behavior.strafeBehavior) {
             this.strafeMovement(player);
-        } else {
-            // Standard chase
+        } else if (this.hasLineOfSight(player, map)) {
+            // Direct line of sight - move straight toward player
             this.enemy.targetX = player.x;
             this.enemy.targetY = player.y;
+            this.enemy.currentPath = null;
+        } else {
+            // No line of sight - use A* pathfinding
+            this.followPath(player, map);
         }
     }
     
@@ -296,45 +300,93 @@ class EnhancedEnemyAI {
         const dx = this.enemy.targetX - this.enemy.x;
         const dy = this.enemy.targetY - this.enemy.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         if (distance > 5) {
+            const prevX = this.enemy.x;
+            const prevY = this.enemy.y;
+
             let moveDistance = this.enemy.speed * (deltaTime / 1000);
-            
+
             // Apply aggressiveness modifier
             if (this.enemy.state === 'chase' || this.enemy.state === 'attack') {
                 moveDistance *= (0.5 + this.behavior.aggressiveness * 0.5);
             }
-            
+
             let moveX = (dx / distance) * moveDistance;
             let moveY = (dy / distance) * moveDistance;
-            
+
             // Apply separation from other enemies to prevent clustering
             if (this.behavior.groupBehavior) {
                 const separation = this.calculateSeparation(allEnemies);
                 moveX += separation.x;
                 moveY += separation.y;
             }
-            
+
             // Enhanced collision detection
             const newX = this.enemy.x + moveX;
             const newY = this.enemy.y + moveY;
-            
+
             if (this.canMoveTo(newX, this.enemy.y, map)) {
                 this.enemy.x = newX;
             } else if (this.behavior.intelligence > 0.5) {
-                // Try to find alternate path
                 this.enemy.x += this.findAlternatePath(moveX, 0, map).x;
             }
-            
+
             if (this.canMoveTo(this.enemy.x, newY, map)) {
                 this.enemy.y = newY;
             } else if (this.behavior.intelligence > 0.5) {
-                // Try to find alternate path
                 this.enemy.y += this.findAlternatePath(0, moveY, map).y;
+            }
+
+            // Stuck detection - if barely moved, force path recalculation
+            const movedDist = Math.sqrt((this.enemy.x - prevX) ** 2 + (this.enemy.y - prevY) ** 2);
+            if (movedDist < 0.1) {
+                if (!this.stuckCounter) this.stuckCounter = 0;
+                this.stuckCounter++;
+                if (this.stuckCounter > 30) {
+                    // Force new pathfinding
+                    this.enemy.currentPath = null;
+                    this.lastPathTime = 0;
+                    this.stuckCounter = 0;
+                }
+            } else {
+                this.stuckCounter = 0;
             }
         }
     }
     
+    followPath(player, map) {
+        const now = Date.now();
+        // Recalculate path every 500ms to avoid expensive recomputation each frame
+        if (!this.enemy.currentPath || !this.lastPathTime || now - this.lastPathTime > 500) {
+            this.enemy.currentPath = map.findPath(this.enemy.x, this.enemy.y, player.x, player.y);
+            this.enemy.pathIndex = 0;
+            this.lastPathTime = now;
+        }
+
+        if (this.enemy.currentPath && this.enemy.currentPath.length > 0) {
+            const waypoint = this.enemy.currentPath[this.enemy.pathIndex];
+            if (waypoint) {
+                this.enemy.targetX = waypoint.x;
+                this.enemy.targetY = waypoint.y;
+
+                // Advance to next waypoint when close enough
+                const dx = this.enemy.x - waypoint.x;
+                const dy = this.enemy.y - waypoint.y;
+                if (Math.sqrt(dx * dx + dy * dy) < 20) {
+                    this.enemy.pathIndex++;
+                    if (this.enemy.pathIndex >= this.enemy.currentPath.length) {
+                        this.enemy.currentPath = null; // Path completed
+                    }
+                }
+            }
+        } else {
+            // Fallback: move toward player directly
+            this.enemy.targetX = player.x;
+            this.enemy.targetY = player.y;
+        }
+    }
+
     // Utility methods
     swarmMovement(player, allEnemies) {
         // Try to position around player with other swarming enemies
