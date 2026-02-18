@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-02-18T10:53:32.410Z",
-  "passed": 16,
-  "failed": 0,
+  "timestamp": "2026-02-18T11:01:47.641Z",
+  "passed": 15,
+  "failed": 1,
   "skipped": 0,
   "results": [
     {
@@ -27,17 +27,17 @@
     {
       "id": "T1-05",
       "status": "pass",
-      "note": "FPS: 25"
+      "note": "FPS: 26"
     },
     {
       "id": "T1-06",
       "status": "pass",
-      "note": "Moved from (160, 160) to (415, 160)"
+      "note": "Moved from (160, 160) to (403, 160)"
     },
     {
       "id": "T1-07",
       "status": "pass",
-      "note": "Rotated from 0° to 178°"
+      "note": "Rotated from 0° to 175°"
     },
     {
       "id": "T1-08",
@@ -47,7 +47,7 @@
     {
       "id": "T1-09",
       "status": "pass",
-      "note": "FPS: 23 (threshold: 20)"
+      "note": "FPS: 28 (threshold: 20)"
     },
     {
       "id": "T2-01",
@@ -72,7 +72,7 @@
     {
       "id": "T2-05",
       "status": "pass",
-      "note": "Pickup system active with 5 items"
+      "note": "Pickup system active with 7 items"
     },
     {
       "id": "T2-06",
@@ -81,8 +81,8 @@
     },
     {
       "id": "T2-07",
-      "status": "pass",
-      "note": "Weapon sprite system functional (SHOTGUN), F4 toggle works"
+      "status": "fail",
+      "note": "Unexpected error: page.waitForTimeout: Target page, context or browser has been closed"
     }
   ],
   "screenshotPath": "screenshots/latest.png"

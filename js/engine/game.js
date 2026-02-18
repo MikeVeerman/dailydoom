@@ -153,13 +153,14 @@ class GameEngine {
     }
     
     render() {
-        // Render the 3D world
+        // Render the 3D world first (this includes putImageData which overwrites canvas)
         this.renderer.render(this.player);
         
-        // Render HUD overlay
+        // CRITICAL: HUD must render AFTER all world rendering is complete
+        // This ensures it cannot be overwritten by putImageData or other world rendering
         this.hud.render(this.player, this);
         
-        // Render debug information if enabled
+        // Render debug information if enabled (last layer)
         if (this.debugMode) {
             this.renderDebugInfo();
         }

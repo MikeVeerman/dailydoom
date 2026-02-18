@@ -31,12 +31,19 @@ class HUD {
     }
     
     render(player, gameEngine) {
-        // Set up HUD rendering
+        // CRITICAL: Ensure we have a clean canvas context for HUD rendering
+        // This prevents any interference from the world renderer
         this.ctx.save();
+        
+        // Reset all canvas state to ensure HUD renders correctly
+        this.ctx.globalAlpha = 1.0;
+        this.ctx.globalCompositeOperation = 'source-over';
         this.ctx.font = this.font;
         this.ctx.fillStyle = this.textColor;
         this.ctx.strokeStyle = this.textColor;
         this.ctx.lineWidth = 1;
+        this.ctx.textAlign = 'left';
+        this.ctx.textBaseline = 'alphabetic';
         
         // Debug logging
         console.log('HUD render called - Player health:', player.health, 'Canvas size:', this.canvas.width, 'x', this.canvas.height);
@@ -51,17 +58,30 @@ class HUD {
         this.ctx.font = '20px monospace';
         this.ctx.fillText('HUD DEBUG TEST', 110, 130);
         
-        // Render HUD elements
-        console.log('Rendering health bar...');
-        this.renderHealthBar(player);
-        console.log('Rendering weapon info...');
-        this.renderWeaponInfo(player);
-        console.log('Rendering ammo counter...');
-        this.renderAmmoCounter(player);
-        console.log('Rendering weapon sprite...');
-        this.renderWeaponSprite(player);
-        console.log('Rendering crosshair...');
-        this.renderCrosshair();
+        // Render HUD elements with error handling
+        try {
+            console.log('Rendering health bar...');
+            this.renderHealthBar(player);
+            console.log('Health bar rendered successfully');
+            
+            console.log('Rendering weapon info...');
+            this.renderWeaponInfo(player);
+            console.log('Weapon info rendered successfully');
+            
+            console.log('Rendering ammo counter...');
+            this.renderAmmoCounter(player);
+            console.log('Ammo counter rendered successfully');
+            
+            console.log('Rendering weapon sprite...');
+            this.renderWeaponSprite(player);
+            console.log('Weapon sprite rendered successfully');
+            
+            console.log('Rendering crosshair...');
+            this.renderCrosshair();
+            console.log('Crosshair rendered successfully');
+        } catch (error) {
+            console.error('HUD rendering error:', error);
+        }
         
         if (this.showFPS && gameEngine) {
             this.renderFPSCounter(gameEngine);
@@ -74,6 +94,15 @@ class HUD {
         // Render damage flash effect
         this.renderDamageFlash(player);
         
+        // FORCE a final visible marker to prove HUD rendering works
+        this.ctx.fillStyle = '#00FF00';
+        this.ctx.fillRect(this.canvas.width - 100, 10, 80, 20);
+        this.ctx.fillStyle = '#000000';
+        this.ctx.font = '12px monospace';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('HUD OK', this.canvas.width - 60, 24);
+        
+        console.log('HUD render complete - final marker drawn at', this.canvas.width - 60, 24);
         this.ctx.restore();
     }
     
