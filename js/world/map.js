@@ -65,7 +65,7 @@ class GameMap {
             x: 8 * this.tileSize,
             y: 8 * this.tileSize,
             type: 'guard',
-            active: false
+            active: true
         });
     }
     

@@ -24,6 +24,10 @@ class Renderer {
         this.wallHeight = 64;
         this.maxRenderDistance = 800;
         
+        // Sprite system
+        this.sprites = {};
+        this.loadSprites();
+        
         // Colors
         this.floorColor = '#333333';
         this.ceilingColor = '#666666';
@@ -63,6 +67,9 @@ class Renderer {
         
         // Update canvas
         this.ctx.putImageData(this.imageData, 0, 0);
+        
+        // Render sprites (enemies, items, etc.)
+        this.renderSprites(player);
         
         // Render minimap (optional debug view)
         if (window.DEBUG_MODE) {
@@ -242,6 +249,101 @@ class Renderer {
             10 + playerMapY + Math.sin(player.angle) * 20
         );
         this.ctx.stroke();
+        
+        // Render enemies on minimap
+        this.map.enemies.forEach(enemy => {
+            if (enemy.active) {
+                const enemyMapX = (enemy.x / this.wallHeight) * mapScale;
+                const enemyMapY = (enemy.y / this.wallHeight) * mapScale;
+                this.ctx.fillStyle = '#FF0000';
+                this.ctx.beginPath();
+                this.ctx.arc(10 + enemyMapX, 10 + enemyMapY, 2, 0, MathUtils.PI2);
+                this.ctx.fill();
+            }
+        });
+    }
+    
+    loadSprites() {
+        console.log('Loading sprites...');
+        
+        // Load imp sprite
+        this.sprites.imp = new Image();
+        this.sprites.imp.onload = () => {
+            console.log('Imp sprite loaded successfully');
+        };
+        this.sprites.imp.onerror = () => {
+            console.error('Failed to load imp sprite');
+        };
+        this.sprites.imp.src = 'assets/sprites/imp.png';
+    }
+    
+    renderSprites(player) {
+        // Get all active enemies
+        const activeEnemies = this.map.enemies.filter(enemy => enemy.active);
+        
+        // Calculate distance and angle for each enemy relative to player
+        const spritesToRender = [];
+        
+        activeEnemies.forEach(enemy => {
+            const dx = enemy.x - player.x;
+            const dy = enemy.y - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Skip if too far away
+            if (distance > this.maxRenderDistance) return;
+            
+            // Calculate angle relative to player's view direction
+            let enemyAngle = Math.atan2(dy, dx);
+            let angleDiff = enemyAngle - player.angle;
+            
+            // Normalize angle difference to -PI to PI
+            while (angleDiff > Math.PI) angleDiff -= MathUtils.PI2;
+            while (angleDiff < -Math.PI) angleDiff += MathUtils.PI2;
+            
+            // Skip if not in field of view
+            if (Math.abs(angleDiff) > this.fov / 2) return;
+            
+            spritesToRender.push({
+                enemy: enemy,
+                distance: distance,
+                angleDiff: angleDiff,
+                x: enemy.x,
+                y: enemy.y
+            });
+        });
+        
+        // Sort sprites by distance (furthest first)
+        spritesToRender.sort((a, b) => b.distance - a.distance);
+        
+        // Render each sprite
+        spritesToRender.forEach(spriteData => {
+            this.renderSprite(spriteData, player);
+        });
+    }
+    
+    renderSprite(spriteData, player) {
+        const sprite = this.sprites.imp; // Use imp sprite for all enemies for now
+        if (!sprite || !sprite.complete) return;
+        
+        const { distance, angleDiff } = spriteData;
+        
+        // Calculate screen position
+        const screenX = this.width / 2 + (angleDiff / this.fov) * this.width;
+        
+        // Calculate sprite size based on distance
+        const spriteSize = (this.wallHeight * this.projectionDistance) / distance;
+        
+        // Calculate vertical position (sprites sit on ground)
+        const screenY = this.halfHeight + spriteSize / 2;
+        
+        // Draw the sprite
+        this.ctx.drawImage(
+            sprite,
+            screenX - spriteSize / 2,
+            screenY - spriteSize,
+            spriteSize,
+            spriteSize
+        );
     }
 }
 
