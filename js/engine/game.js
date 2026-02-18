@@ -59,6 +59,11 @@ class GameEngine {
         this.hud = new HUD(this.canvas);
         console.log('HUD initialized');
         
+        // Initialize pickup system
+        this.pickupManager = new PickupManager();
+        this.pickupManager.spawnRandomPickups(this.map, 6);
+        console.log('Pickup system initialized');
+        
         // Bind debug toggle
         this.bindDebugToggle();
         
@@ -142,6 +147,9 @@ class GameEngine {
         this.map.enemies.forEach(enemy => {
             enemy.update(deltaTime, this.player, this.map);
         });
+        
+        // Update pickups
+        this.pickupManager.update(deltaTime, this.player);
     }
     
     render() {

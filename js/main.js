@@ -45,6 +45,9 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
         game = new GameEngine(canvas);
         
+        // Expose game instance globally for cross-system access
+        window.game = game;
+        
         // Setup event listeners
         setupEventListeners();
         

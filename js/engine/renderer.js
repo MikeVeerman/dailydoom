@@ -336,6 +336,18 @@ class Renderer {
                 this.ctx.fill();
             }
         });
+        
+        // Render pickups on minimap
+        if (window.game && window.game.pickupManager) {
+            window.game.pickupManager.getActivePickups().forEach(pickup => {
+                const pickupMapX = (pickup.x / this.wallHeight) * mapScale;
+                const pickupMapY = (pickup.y / this.wallHeight) * mapScale;
+                this.ctx.fillStyle = pickup.properties.color;
+                this.ctx.beginPath();
+                this.ctx.arc(10 + pickupMapX, 10 + pickupMapY, 1.5, 0, MathUtils.PI2);
+                this.ctx.fill();
+            });
+        }
     }
     
     loadSprites() {
@@ -387,6 +399,10 @@ class Renderer {
         // Get all active enemies
         const activeEnemies = this.map.enemies.filter(enemy => enemy.active);
         
+        // Get all active pickups (if pickup manager exists)
+        const activePickups = window.game && window.game.pickupManager ? 
+            window.game.pickupManager.getActivePickups() : [];
+        
         // Calculate distance and angle for each enemy relative to player
         const spritesToRender = [];
         
@@ -410,11 +426,42 @@ class Renderer {
             if (Math.abs(angleDiff) > this.fov / 2) return;
             
             spritesToRender.push({
-                enemy: enemy,
+                entity: enemy,
+                entityType: 'enemy',
                 distance: distance,
                 angleDiff: angleDiff,
                 x: enemy.x,
                 y: enemy.y
+            });
+        });
+        
+        // Add pickups to rendering queue
+        activePickups.forEach(pickup => {
+            const dx = pickup.x - player.x;
+            const dy = pickup.y - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Skip if too far away
+            if (distance > this.maxRenderDistance) return;
+            
+            // Calculate angle relative to player's view direction
+            let pickupAngle = Math.atan2(dy, dx);
+            let angleDiff = pickupAngle - player.angle;
+            
+            // Normalize angle difference to -PI to PI
+            while (angleDiff > Math.PI) angleDiff -= MathUtils.PI2;
+            while (angleDiff < -Math.PI) angleDiff += MathUtils.PI2;
+            
+            // Skip if not in field of view
+            if (Math.abs(angleDiff) > this.fov / 2) return;
+            
+            spritesToRender.push({
+                entity: pickup,
+                entityType: 'pickup',
+                distance: distance,
+                angleDiff: angleDiff,
+                x: pickup.x,
+                y: pickup.y
             });
         });
         
@@ -428,34 +475,46 @@ class Renderer {
     }
     
     renderSprite(spriteData, player) {
-        const sprite = this.sprites.imp; // Use imp sprite for all enemies for now
-        if (!sprite || !sprite.complete) return;
-        
-        const { distance, angleDiff } = spriteData;
+        const { entity, entityType, distance, angleDiff } = spriteData;
         
         // Calculate screen position
         const screenX = this.width / 2 + (angleDiff / this.fov) * this.width;
         
-        // Calculate sprite size based on distance
-        // Use a more reasonable scaling factor
-        const spriteSize = (this.wallHeight * this.projectionDistance) / distance * 0.6;
-        
-        // Calculate vertical position - sprite bottom should align with floor
-        const screenY = this.halfHeight; // Ground level
-        
-        // Debug logging for first few renders
-        if (Math.random() < 0.01) { // Log occasionally
-            console.log(`Sprite debug: distance=${distance.toFixed(1)}, size=${spriteSize.toFixed(1)}, screenX=${screenX.toFixed(1)}, player=(${player.x.toFixed(1)}, ${player.y.toFixed(1)}), enemy=(${spriteData.x.toFixed(1)}, ${spriteData.y.toFixed(1)})`);
+        if (entityType === 'enemy') {
+            // Render enemy sprite
+            const sprite = this.sprites.imp; // Use imp sprite for all enemies for now
+            if (!sprite || !sprite.complete) return;
+            
+            // Calculate sprite size based on distance
+            const spriteSize = (this.wallHeight * this.projectionDistance) / distance * 0.6;
+            
+            // Calculate vertical position - sprite bottom should align with floor
+            const screenY = this.halfHeight; // Ground level
+            
+            // Draw the sprite (bottom-aligned to ground)
+            this.ctx.drawImage(
+                sprite,
+                screenX - spriteSize / 2,    // Center horizontally
+                screenY - spriteSize,         // Bottom touches ground
+                spriteSize,
+                spriteSize
+            );
+        } else if (entityType === 'pickup') {
+            // Render pickup as colored circle (simple representation)
+            const renderInfo = entity.getRenderInfo();
+            const size = (this.wallHeight * this.projectionDistance) / distance * 0.3; // Smaller than enemies
+            const screenY = this.halfHeight - size / 2; // Center on ground level
+            
+            this.ctx.fillStyle = renderInfo.color;
+            this.ctx.beginPath();
+            this.ctx.arc(screenX, screenY, size / 2, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Add a white border for visibility
+            this.ctx.strokeStyle = '#FFFFFF';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
         }
-        
-        // Draw the sprite (bottom-aligned to ground)
-        this.ctx.drawImage(
-            sprite,
-            screenX - spriteSize / 2,    // Center horizontally
-            screenY - spriteSize,         // Bottom touches ground
-            spriteSize,
-            spriteSize
-        );
     }
 }
 

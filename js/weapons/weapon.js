@@ -93,6 +93,11 @@ class Weapon {
                 actualDamage *= 0.3; // Partial damage on inaccurate shots
             }
             
+            // Apply damage boost if active
+            if (player.hasDamageBoost && player.hasDamageBoost()) {
+                actualDamage *= 1.5; // 50% damage increase
+            }
+            
             hit.enemy.takeDamage(actualDamage);
             console.log(`Hit enemy for ${actualDamage.toFixed(0)} damage! Enemy health: ${hit.enemy.health}`);
         }

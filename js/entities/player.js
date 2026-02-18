@@ -31,6 +31,11 @@ class Player {
         // Weapon system
         this.weaponManager = new WeaponManager();
         
+        // Power-up effects
+        this.speedBoostEndTime = 0;
+        this.damageBoostEndTime = 0;
+        this.baseSpeed = this.speed;
+        
         // Movement states
         this.isRunning = false;
         this.isCrouching = false;
@@ -178,6 +183,9 @@ class Player {
         
         // Update weapon system
         this.weaponManager.update();
+        
+        // Update power-up effects
+        this.updatePowerupEffects();
         
         // Update other systems
         this.updatePhysics(deltaTime);
@@ -390,6 +398,37 @@ class Player {
     
     angleTo(x, y) {
         return Math.atan2(y - this.y, x - this.x);
+    }
+    
+    // Power-up effects
+    applySpeedBoost(durationMs) {
+        this.speedBoostEndTime = Date.now() + durationMs;
+        this.speed = this.baseSpeed * 1.5; // 50% speed increase
+        console.log('Speed boost activated!');
+    }
+    
+    applyDamageBoost(durationMs) {
+        this.damageBoostEndTime = Date.now() + durationMs;
+        console.log('Damage boost activated!');
+    }
+    
+    updatePowerupEffects() {
+        const now = Date.now();
+        
+        // Check speed boost
+        if (now > this.speedBoostEndTime && this.speed !== this.baseSpeed) {
+            this.speed = this.baseSpeed;
+            console.log('Speed boost expired');
+        }
+        
+        // Damage boost is checked in weapon system
+        if (now > this.damageBoostEndTime) {
+            // Effect naturally expires
+        }
+    }
+    
+    hasDamageBoost() {
+        return Date.now() < this.damageBoostEndTime;
     }
     
     // Debug methods
