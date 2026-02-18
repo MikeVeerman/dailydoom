@@ -26,7 +26,13 @@ class HUD {
         // Animation
         this.lastDamageTime = 0;
         this.damageFlashDuration = 300;
-        
+
+        // Floating damage numbers
+        this.damageNumbers = [];
+
+        // Impact sparks
+        this.impactSparks = [];
+
         console.log('HUD system initialized');
     }
     
@@ -77,9 +83,13 @@ class HUD {
                 this.renderDebugInfo(player, gameEngine);
             }
             
+            // Render floating damage numbers and impact effects
+            this.renderDamageNumbers(player, gameEngine);
+            this.renderImpactSparks(player, gameEngine);
+
             // Render damage flash effect
             this.renderDamageFlash(player);
-            
+
             this.ctx.restore();
         } catch (error) {
             console.error('HUD: Critical rendering error:', error);
@@ -403,6 +413,102 @@ class HUD {
     // Called when player takes damage
     onPlayerDamage() {
         this.lastDamageTime = Date.now();
+    }
+
+    // Add a floating damage number
+    addDamageNumber(worldX, worldY, damage, isCritical) {
+        this.damageNumbers.push({
+            worldX, worldY, damage, isCritical,
+            spawnTime: Date.now(),
+            duration: 1000,
+            offsetY: 0
+        });
+    }
+
+    // Add a wall impact spark
+    addImpactSpark(worldX, worldY) {
+        this.impactSparks.push({
+            worldX, worldY,
+            spawnTime: Date.now(),
+            duration: 300
+        });
+    }
+
+    renderDamageNumbers(player, gameEngine) {
+        const now = Date.now();
+
+        // Remove expired numbers
+        this.damageNumbers = this.damageNumbers.filter(dn => now - dn.spawnTime < dn.duration);
+
+        if (!player || !gameEngine || !gameEngine.renderer) return;
+        const renderer = gameEngine.renderer;
+
+        for (const dn of this.damageNumbers) {
+            const elapsed = now - dn.spawnTime;
+            const progress = elapsed / dn.duration;
+
+            // Calculate screen position from world position
+            const dx = dn.worldX - player.x;
+            const dy = dn.worldY - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > renderer.maxRenderDistance || distance < 1) continue;
+
+            let angle = Math.atan2(dy, dx);
+            let angleDiff = angle - player.angle;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            if (Math.abs(angleDiff) > renderer.fov / 2) continue;
+
+            const screenX = this.canvas.width / 2 + (angleDiff / renderer.fov) * this.canvas.width;
+            const wallHeight = (renderer.wallHeight * renderer.projectionDistance) / distance;
+            const baseY = renderer.halfHeight - wallHeight / 2;
+            const screenY = baseY - 20 - (progress * 40); // Float upward
+
+            const alpha = 1 - progress;
+            const fontSize = dn.isCritical ? 20 : 14;
+
+            this.ctx.font = `bold ${fontSize}px monospace`;
+            this.ctx.textAlign = 'center';
+            this.ctx.fillStyle = dn.isCritical
+                ? `rgba(255, 255, 0, ${alpha})`
+                : `rgba(255, 100, 100, ${alpha})`;
+            this.ctx.fillText(dn.damage.toString(), screenX, screenY);
+        }
+    }
+
+    renderImpactSparks(player, gameEngine) {
+        const now = Date.now();
+        this.impactSparks = this.impactSparks.filter(s => now - s.spawnTime < s.duration);
+
+        if (!player || !gameEngine || !gameEngine.renderer) return;
+        const renderer = gameEngine.renderer;
+
+        for (const spark of this.impactSparks) {
+            const elapsed = now - spark.spawnTime;
+            const progress = elapsed / spark.duration;
+
+            const dx = spark.worldX - player.x;
+            const dy = spark.worldY - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > renderer.maxRenderDistance || distance < 1) continue;
+
+            let angle = Math.atan2(dy, dx);
+            let angleDiff = angle - player.angle;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            if (Math.abs(angleDiff) > renderer.fov / 2) continue;
+
+            const screenX = this.canvas.width / 2 + (angleDiff / renderer.fov) * this.canvas.width;
+            const screenY = renderer.halfHeight;
+
+            const alpha = 1 - progress;
+            const size = 4 * (1 - progress);
+
+            this.ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
+            this.ctx.beginPath();
+            this.ctx.arc(screenX, screenY, size, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
     }
     
     // Toggle functions

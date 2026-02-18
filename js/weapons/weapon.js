@@ -92,14 +92,35 @@ class Weapon {
             if (Math.random() > this.accuracy) {
                 actualDamage *= 0.3; // Partial damage on inaccurate shots
             }
-            
+
+            // Critical hit (10% chance for 2x damage)
+            let isCritical = Math.random() < 0.1;
+            if (isCritical) {
+                actualDamage *= 2;
+            }
+
             // Apply damage boost if active
             if (player.hasDamageBoost && player.hasDamageBoost()) {
-                actualDamage *= 1.5; // 50% damage increase
+                actualDamage *= 1.5;
             }
-            
+
+            actualDamage = Math.round(actualDamage);
             hit.enemy.takeDamage(actualDamage);
-            console.log(`Hit enemy for ${actualDamage.toFixed(0)} damage! Enemy health: ${hit.enemy.health}`);
+
+            // Trigger enemy hit flash
+            hit.enemy.hitFlashTime = Date.now();
+
+            // Show floating damage number
+            if (window.game && window.game.hud) {
+                window.game.hud.addDamageNumber(hit.enemy.x, hit.enemy.y, actualDamage, isCritical);
+            }
+
+            console.log(`${isCritical ? 'CRITICAL! ' : ''}Hit enemy for ${actualDamage} damage! Enemy health: ${hit.enemy.health}`);
+        } else if (hit.hitWall) {
+            // Wall impact effect
+            if (window.game && window.game.hud) {
+                window.game.hud.addImpactSpark(hit.hitPoint.x, hit.hitPoint.y);
+            }
         }
         
         // Auto-reload when empty
@@ -159,7 +180,8 @@ class Weapon {
         return {
             enemy: closestEnemy,
             distance: closestDistance,
-            hitPoint: { x: currentX, y: currentY }
+            hitPoint: { x: currentX, y: currentY },
+            hitWall: !closestEnemy && map.isWallAtPosition(currentX, currentY)
         };
     }
     

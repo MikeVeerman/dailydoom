@@ -526,13 +526,17 @@ class Renderer {
             const floorY = this.halfHeight + wallScreenHeight / 2;
 
             // Draw the sprite with bottom aligned to floor
-            this.ctx.drawImage(
-                sprite,
-                screenX - spriteSize / 2,    // Center horizontally
-                floorY - spriteSize,          // Bottom aligned to floor
-                spriteSize,
-                spriteSize
-            );
+            const spriteX = screenX - spriteSize / 2;
+            const spriteY = floorY - spriteSize;
+            this.ctx.drawImage(sprite, spriteX, spriteY, spriteSize, spriteSize);
+
+            // Hit flash overlay (red tint for 150ms after being hit)
+            if (entity.hitFlashTime && Date.now() - entity.hitFlashTime < 150) {
+                this.ctx.globalAlpha = 0.4;
+                this.ctx.fillStyle = '#FF0000';
+                this.ctx.fillRect(spriteX, spriteY, spriteSize, spriteSize);
+                this.ctx.globalAlpha = 1.0;
+            }
         } else if (entityType === 'pickup') {
             // Render pickup as colored circle (simple representation)
             const renderInfo = entity.getRenderInfo();

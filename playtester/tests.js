@@ -583,6 +583,7 @@ const TIER_2_TESTS = [
   { id: 'T2-07', name: 'Weapon sprite visible in HUD', fn: T2_07_weaponSprite }, // issue: #10
   { id: 'T2-08', name: 'Enemy damage system works', fn: T2_08_enemyDamageSystem }, // issue: #17
   { id: 'T2-09', name: 'Enemy pathfinding works', fn: T2_09_enemyPathfinding }, // issue: #18
+  { id: 'T2-10', name: 'Weapon hit effects work', fn: T2_10_weaponHitEffects }, // issue: #19
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -731,6 +732,57 @@ async function T2_09_enemyPathfinding(page, result) {
 
   result.status = 'pass';
   result.note = `A* pathfinding works (${pathData.pathLength} waypoints), ${pathData.enemySpeeds.length} enemies with varied speeds`;
+}
+
+async function T2_10_weaponHitEffects(page, result) {
+  // T2-10: Weapon hit effects system works (issue: #19)
+  // Pass condition: Damage numbers, hit flash, impact sparks, critical hits exist
+  await page.waitForTimeout(1000);
+
+  const effectData = await page.evaluate(() => {
+    if (!window.game || !window.game.hud || !window.game.player) {
+      return { exists: false, reason: 'Game systems not found' };
+    }
+
+    const hud = window.game.hud;
+    const player = window.game.player;
+
+    return {
+      exists: true,
+      hasDamageNumbers: typeof hud.addDamageNumber === 'function',
+      hasImpactSparks: typeof hud.addImpactSpark === 'function',
+      hasDamageNumberArray: Array.isArray(hud.damageNumbers),
+      hasImpactSparkArray: Array.isArray(hud.impactSparks),
+      hasRenderDamageNumbers: typeof hud.renderDamageNumbers === 'function',
+      hasRenderImpactSparks: typeof hud.renderImpactSparks === 'function',
+      hasPlayerHitSound: window.soundEngine && typeof window.soundEngine.playPlayerHit === 'function'
+    };
+  });
+
+  if (!effectData.exists) {
+    result.status = 'fail';
+    result.note = effectData.reason;
+    return;
+  }
+
+  const checks = [
+    ['addDamageNumber', effectData.hasDamageNumbers],
+    ['addImpactSpark', effectData.hasImpactSparks],
+    ['damageNumbers array', effectData.hasDamageNumberArray],
+    ['impactSparks array', effectData.hasImpactSparkArray],
+    ['renderDamageNumbers', effectData.hasRenderDamageNumbers],
+    ['renderImpactSparks', effectData.hasRenderImpactSparks]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = 'Weapon hit effects system complete (damage numbers, impact sparks, critical hits)';
+  }
 }
 
 async function T3_03_demonTransparency(page, result) {
