@@ -38,14 +38,29 @@ class HUD {
         this.ctx.strokeStyle = this.textColor;
         this.ctx.lineWidth = 1;
         
+        // Debug logging
+        console.log('HUD render called - Player health:', player.health, 'Canvas size:', this.canvas.width, 'x', this.canvas.height);
+        
         // Clear any previous HUD content (transparent areas only)
         // We don't clear the whole screen since that's done by the renderer
         
+        // DEBUG: Render a bright test rectangle that should be impossible to miss
+        this.ctx.fillStyle = '#FF0000';
+        this.ctx.fillRect(100, 100, 200, 50);
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = '20px monospace';
+        this.ctx.fillText('HUD DEBUG TEST', 110, 130);
+        
         // Render HUD elements
+        console.log('Rendering health bar...');
         this.renderHealthBar(player);
+        console.log('Rendering weapon info...');
         this.renderWeaponInfo(player);
+        console.log('Rendering ammo counter...');
         this.renderAmmoCounter(player);
+        console.log('Rendering weapon sprite...');
         this.renderWeaponSprite(player);
+        console.log('Rendering crosshair...');
         this.renderCrosshair();
         
         if (this.showFPS && gameEngine) {
