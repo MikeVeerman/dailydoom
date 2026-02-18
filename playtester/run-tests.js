@@ -16,7 +16,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
-const { TIER_1_TESTS, TIER_2_TESTS } = require('./tests');
+const { TIER_1_TESTS, TIER_2_TESTS, TIER_3_TESTS } = require('./tests');
 
 const TARGET_URL = process.env.DAILYDOOM_URL;
 if (!TARGET_URL) {
@@ -33,7 +33,7 @@ async function main() {
     fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
   }
 
-  const allTests = [...TIER_1_TESTS, ...TIER_2_TESTS];
+  const allTests = [...TIER_1_TESTS, ...TIER_2_TESTS, ...TIER_3_TESTS];
   const results = [];
   let passed = 0;
   let failed = 0;

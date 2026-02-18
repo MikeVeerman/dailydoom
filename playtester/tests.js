@@ -503,6 +503,60 @@ async function T2_07_weaponSprite(page, result) {
 }
 
 // ---------------------------------------------------------------------------
+// Tier 3 — Visual Verification (requires ANTHROPIC_API_KEY)
+// ---------------------------------------------------------------------------
+
+const { isVisionAvailable, verifyScreenshot } = require('./vision-verify');
+
+async function T3_01_hudVisuallyPresent(page, result) {
+  // T3-01: HUD elements visually present in screenshot
+  // Pass condition: Claude vision confirms ≥3 of 4 HUD elements visible
+  if (!isVisionAvailable()) {
+    result.status = 'skip';
+    result.note = 'ANTHROPIC_API_KEY not set';
+    return;
+  }
+
+  const screenshot = await page.screenshot();
+
+  const verification = await verifyScreenshot(
+    screenshot,
+    'Look at this screenshot of a first-person shooter game. Check for these 4 HUD elements:\n' +
+    '1. Health bar or health number\n' +
+    '2. Ammo count\n' +
+    '3. Weapon name label\n' +
+    '4. Crosshair in the center\n\n' +
+    'Count how many of the 4 are visible. Pass if 3 or more are present.'
+  );
+
+  result.status = verification.pass ? 'pass' : 'fail';
+  result.note = verification.explanation;
+}
+
+async function T3_02_3dSceneRendered(page, result) {
+  // T3-02: 3D scene is actually rendering
+  // Pass condition: Claude vision confirms a 3D world is visible (not blank/black)
+  if (!isVisionAvailable()) {
+    result.status = 'skip';
+    result.note = 'ANTHROPIC_API_KEY not set';
+    return;
+  }
+
+  const screenshot = await page.screenshot();
+
+  const verification = await verifyScreenshot(
+    screenshot,
+    'Look at this screenshot of a first-person shooter game. Determine if a 3D world is rendering:\n' +
+    '- Is there a visible 3D scene (walls, floor, ceiling, depth perspective)?\n' +
+    '- Is the screen NOT just a blank, black, or solid-color screen?\n\n' +
+    'Pass if a 3D environment with walls or depth is visible.'
+  );
+
+  result.status = verification.pass ? 'pass' : 'fail';
+  result.note = verification.explanation;
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -529,4 +583,9 @@ const TIER_2_TESTS = [
   { id: 'T2-07', name: 'Weapon sprite visible in HUD', fn: T2_07_weaponSprite }, // issue: #10
 ];
 
-module.exports = { TIER_1_TESTS, TIER_2_TESTS };
+const TIER_3_TESTS = [
+  { id: 'T3-01', name: 'HUD visually present (vision)', fn: T3_01_hudVisuallyPresent },
+  { id: 'T3-02', name: '3D scene rendered (vision)', fn: T3_02_3dSceneRendered },
+];
+
+module.exports = { TIER_1_TESTS, TIER_2_TESTS, TIER_3_TESTS };
