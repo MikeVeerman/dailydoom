@@ -9,8 +9,9 @@ class Enemy {
         this.active = true;
         
         // AI state
-        this.state = 'idle'; // idle, patrol, chase, attack
+        this.state = 'idle'; // idle, patrol, chase, attack, flee, investigate
         this.health = 100;
+        this.maxHealth = 100;
         this.speed = 20; // Units per second
         this.detectionRange = 300;
         this.attackRange = 80;
@@ -30,11 +31,31 @@ class Enemy {
         this.angle = 0;
         this.lastPlayerX = 0;
         this.lastPlayerY = 0;
+        
+        // Enhanced AI system
+        this.enhancedAI = null;
+        if (window.EnhancedEnemyAI) {
+            this.enhancedAI = new EnhancedEnemyAI(this, type);
+        }
     }
     
-    update(deltaTime, player, map) {
+    update(deltaTime, player, map, allEnemies) {
         if (!this.active) return;
         
+        // Use enhanced AI if available
+        if (this.enhancedAI) {
+            this.enhancedAI.update(deltaTime, player, map, allEnemies || []);
+        } else {
+            // Fallback to original AI
+            this.originalUpdate(deltaTime, player, map);
+        }
+        
+        // Common updates regardless of AI type
+        this.moveTowardsTarget(deltaTime, map);
+        this.updateFacing(player);
+    }
+    
+    originalUpdate(deltaTime, player, map) {
         const now = Date.now();
         const playerDistance = this.getDistanceToPlayer(player);
         

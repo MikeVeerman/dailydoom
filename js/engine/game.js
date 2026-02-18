@@ -143,9 +143,9 @@ class GameEngine {
         // Update game systems
         this.player.update(deltaTime, this.map);
         
-        // Update enemies
+        // Update enemies (with coordination)
         this.map.enemies.forEach(enemy => {
-            enemy.update(deltaTime, this.player, this.map);
+            enemy.update(deltaTime, this.player, this.map, this.map.enemies);
         });
         
         // Update pickups

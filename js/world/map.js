@@ -60,11 +60,14 @@ class GameMap {
             collected: false
         });
         
-        // Add enemy spawn points (using Enemy AI objects)
+        // Add diverse enemy spawn points with different AI behaviors
         this.enemies.push(new Enemy(8 * this.tileSize, 8 * this.tileSize, 'guard'));
-        this.enemies.push(new Enemy(6 * this.tileSize, 6 * this.tileSize, 'guard'));
-        this.enemies.push(new Enemy(12 * this.tileSize, 10 * this.tileSize, 'guard'));
-        this.enemies.push(new Enemy(4 * this.tileSize, 12 * this.tileSize, 'guard'));
+        this.enemies.push(new Enemy(6 * this.tileSize, 6 * this.tileSize, 'imp'));
+        this.enemies.push(new Enemy(12 * this.tileSize, 10 * this.tileSize, 'demon'));
+        this.enemies.push(new Enemy(4 * this.tileSize, 12 * this.tileSize, 'soldier'));
+        
+        // Add one more imp for swarm behavior testing
+        this.enemies.push(new Enemy(5 * this.tileSize, 7 * this.tileSize, 'imp'));
     }
     
     // Check if a coordinate contains a wall
