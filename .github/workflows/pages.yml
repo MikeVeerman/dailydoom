@@ -55,14 +55,14 @@ jobs:
           SHORT_SHA=${GITHUB_SHA::7}
           echo "Using cache bust version: $SHORT_SHA"
           
-          # Add cache busting to all script and link tags in HTML files
-          find . -name "*.html" -type f -exec sed -i "s/\(src=\"[^\"]*\.js\)\"/\1?v=$SHORT_SHA\"/g" {} \;
-          find . -name "*.html" -type f -exec sed -i "s/\(href=\"[^\"]*\.css\)\"/\1?v=$SHORT_SHA\"/g" {} \;
+          # Simple and reliable cache busting for JS files
+          sed -i "s/src=\"\([^\"]*\.js\)\"/src=\"\1?v=$SHORT_SHA\"/g" index.html
           
-          # Add no-cache meta tags to HTML head sections
-          find . -name "*.html" -type f -exec sed -i 's/<head>/<head>\n    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">\n    <meta http-equiv="Pragma" content="no-cache">\n    <meta http-equiv="Expires" content="0">/g' {} \;
+          # Add no-cache meta tag to head (simple approach)
+          sed -i 's/<head>/<head>\n    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">/' index.html
           
-          echo "Cache busting applied to HTML files"
+          echo "Cache busting applied to index.html"
+          cat index.html | grep -E "(\.js\?v=|Cache-Control)" || echo "No matches found"
           
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
