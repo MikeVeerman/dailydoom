@@ -387,12 +387,20 @@ class EnhancedEnemyAI {
     
     performAttack(player) {
         if (this.hasLineOfSight(player, window.game.map)) {
-            // Deal damage to player (would be handled by game systems)
-            console.log(`Enemy attacks player for ${this.behavior.damage} damage!`);
-            
-            // Play attack sound
-            if (window.soundEngine && window.soundEngine.isInitialized) {
-                this.playAttackSound();
+            const damage = this.behavior.damage;
+
+            // Deal damage to player (with invincibility frame check)
+            if (player.takeDamage(damage)) {
+                // Trigger HUD damage flash
+                if (window.game && window.game.hud) {
+                    window.game.hud.onPlayerDamage();
+                }
+
+                // Play attack and pain sounds
+                if (window.soundEngine && window.soundEngine.isInitialized) {
+                    this.playAttackSound();
+                    window.soundEngine.playPlayerHit();
+                }
             }
         }
     }

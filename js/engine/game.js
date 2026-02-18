@@ -140,14 +140,17 @@ class GameEngine {
     }
     
     update(deltaTime) {
+        // Skip updates while player is dead
+        if (this.player.isDead) return;
+
         // Update game systems
         this.player.update(deltaTime, this.map);
-        
+
         // Update enemies (with coordination)
         this.map.enemies.forEach(enemy => {
             enemy.update(deltaTime, this.player, this.map, this.map.enemies);
         });
-        
+
         // Update pickups
         this.pickupManager.update(deltaTime, this.player);
     }

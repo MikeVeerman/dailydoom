@@ -581,7 +581,89 @@ const TIER_2_TESTS = [
   { id: 'T2-05', name: 'Pickups are collectable', fn: T2_05_pickups }, // issue: pickup-system
   { id: 'T2-06', name: 'Wall textures load', fn: T2_06_wallTextures }, // issue: #9
   { id: 'T2-07', name: 'Weapon sprite visible in HUD', fn: T2_07_weaponSprite }, // issue: #10
+  { id: 'T2-08', name: 'Enemy damage system works', fn: T2_08_enemyDamageSystem }, // issue: #17
 ];
+
+async function T2_08_enemyDamageSystem(page, result) {
+  // T2-08: Enemy damage system works (issue: #17)
+  // Pass condition: Player has takeDamage method, enemies have attack behavior, invincibility frames exist
+  await page.waitForTimeout(1000);
+
+  const damageData = await page.evaluate(() => {
+    if (!window.game || !window.game.player) {
+      return { exists: false, reason: 'Player not found' };
+    }
+
+    const player = window.game.player;
+    const enemies = window.game.map ? window.game.map.enemies : [];
+
+    // Check player damage system
+    const hasTakeDamage = typeof player.takeDamage === 'function';
+    const hasLastDamageTime = 'lastDamageTime' in player;
+    const hasHealth = typeof player.health === 'number';
+
+    // Check enemy attack capability
+    const hasEnemyAttack = enemies.length > 0 && enemies.some(e => {
+      if (e.enhancedAI && e.enhancedAI.behavior) {
+        return typeof e.enhancedAI.behavior.damage === 'number';
+      }
+      return typeof e.attack === 'function';
+    });
+
+    // Check HUD damage flash
+    const hasHudFlash = window.game.hud && typeof window.game.hud.onPlayerDamage === 'function';
+
+    // Check sound support
+    const hasPlayerHitSound = window.soundEngine && typeof window.soundEngine.playPlayerHit === 'function';
+
+    // Test invincibility frames by simulating damage
+    const healthBefore = player.health;
+    player.takeDamage(10);
+    const healthAfterFirst = player.health;
+    player.takeDamage(10); // Should be blocked by invincibility frames
+    const healthAfterSecond = player.health;
+
+    // Restore player health
+    player.health = healthBefore;
+    player.lastDamageTime = 0;
+
+    return {
+      exists: true,
+      hasTakeDamage,
+      hasLastDamageTime,
+      hasHealth,
+      hasEnemyAttack,
+      hasHudFlash,
+      hasPlayerHitSound,
+      invincibilityWorks: healthAfterFirst < healthBefore && healthAfterSecond === healthAfterFirst
+    };
+  });
+
+  if (!damageData.exists) {
+    result.status = 'fail';
+    result.note = damageData.reason;
+    return;
+  }
+
+  const checks = [
+    ['takeDamage method', damageData.hasTakeDamage],
+    ['invincibility frames', damageData.hasLastDamageTime],
+    ['enemy attack damage', damageData.hasEnemyAttack],
+    ['HUD damage flash', damageData.hasHudFlash],
+    ['player hit sound', damageData.hasPlayerHitSound],
+    ['invincibility works', damageData.invincibilityWorks]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = 'Enemy damage system fully functional with invincibility frames';
+  }
+}
 
 async function T3_03_demonTransparency(page, result) {
   // T3-03: Demon sprites have transparent backgrounds (vision)

@@ -223,6 +223,58 @@ class SoundEngine {
         oscillator.stop(now + 0.15);
     }
     
+    // Player pain/hit sound
+    playPlayerHit() {
+        if (!this.isInitialized) return;
+
+        const now = this.audioContext.currentTime;
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(this.masterGain);
+
+        // Low grunt/pain sound
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(180, now);
+        oscillator.frequency.exponentialRampToValueAtTime(60, now + 0.25);
+
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(this.sfxVolume * 0.5, now + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+        oscillator.start(now);
+        oscillator.stop(now + 0.3);
+    }
+
+    // Player death sound
+    playPlayerDeath() {
+        if (!this.isInitialized) return;
+
+        const now = this.audioContext.currentTime;
+
+        for (let i = 0; i < 4; i++) {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(this.masterGain);
+
+            const baseFreq = 200 - (i * 30);
+            oscillator.type = i < 2 ? 'sawtooth' : 'square';
+            oscillator.frequency.setValueAtTime(baseFreq, now);
+            oscillator.frequency.exponentialRampToValueAtTime(20, now + 1.2);
+
+            const startDelay = i * 0.15;
+            gainNode.gain.setValueAtTime(0, now + startDelay);
+            gainNode.gain.linearRampToValueAtTime(this.sfxVolume * 0.4, now + startDelay + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + startDelay + 1.2);
+
+            oscillator.start(now + startDelay);
+            oscillator.stop(now + startDelay + 1.2);
+        }
+    }
+
     // Ambient drone sound
     playAmbientDrone() {
         if (!this.isInitialized || this.ambientDrone) return;

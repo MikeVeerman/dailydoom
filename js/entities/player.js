@@ -28,6 +28,9 @@ class Player {
         this.armor = 0;
         this.maxArmor = 100;
         
+        // Damage tracking
+        this.lastDamageTime = 0;
+
         // Weapon system
         this.weaponManager = new WeaponManager();
         
@@ -349,6 +352,10 @@ class Player {
     
     // Status methods
     takeDamage(damage) {
+        // Invincibility frame check (500ms after last hit)
+        const now = Date.now();
+        if (now - this.lastDamageTime < 500) return false;
+
         // Apply armor reduction
         let actualDamage = damage;
         if (this.armor > 0) {
@@ -356,13 +363,16 @@ class Player {
             actualDamage -= armorAbsorbed;
             this.armor -= armorAbsorbed;
         }
-        
+
         this.health = Math.max(0, this.health - actualDamage);
+        this.lastDamageTime = now;
         console.log(`Player took ${actualDamage} damage. Health: ${this.health}, Armor: ${this.armor}`);
-        
+
         if (this.health <= 0) {
             this.die();
         }
+
+        return true;
     }
     
     heal(amount) {
@@ -373,7 +383,23 @@ class Player {
     
     die() {
         console.log('Player died!');
-        // Implement death logic (respawn, game over, etc.)
+        this.isDead = true;
+
+        // Play death sound
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playPlayerDeath();
+        }
+
+        // Respawn after delay
+        setTimeout(() => {
+            this.health = this.maxHealth;
+            this.armor = 0;
+            this.isDead = false;
+            this.x = 160;
+            this.y = 160;
+            this.angle = 0;
+            console.log('Player respawned!');
+        }, 2000);
     }
     
     isAlive() {

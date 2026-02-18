@@ -138,10 +138,21 @@ class Enemy {
     }
     
     attack(player) {
-        // Basic attack - could deal damage, play sound, etc.
-        if (Math.random() < 0.01) { // 1% chance per frame when in attack range
-            console.log('Enemy attacks player!');
-            // TODO: Deal damage to player
+        // Basic attack with cooldown
+        const now = Date.now();
+        if (!this.lastAttackTime) this.lastAttackTime = 0;
+
+        if (now - this.lastAttackTime > 2000) { // 2 second cooldown
+            const damage = 15; // Default fallback damage
+            if (player.takeDamage(damage)) {
+                if (window.game && window.game.hud) {
+                    window.game.hud.onPlayerDamage();
+                }
+                if (window.soundEngine && window.soundEngine.isInitialized) {
+                    window.soundEngine.playPlayerHit();
+                }
+            }
+            this.lastAttackTime = now;
         }
     }
     
