@@ -21,6 +21,7 @@ class HUD {
         this.showFPS = true;
         this.showDebugInfo = false;
         this.showCrosshair = true;
+        this.showWeaponSprite = true;
         
         // Animation
         this.lastDamageTime = 0;
@@ -44,6 +45,7 @@ class HUD {
         this.renderHealthBar(player);
         this.renderWeaponInfo(player);
         this.renderAmmoCounter(player);
+        this.renderWeaponSprite(player);
         this.renderCrosshair();
         
         if (this.showFPS && gameEngine) {
@@ -195,6 +197,117 @@ class HUD {
         this.ctx.fillRect(centerX - 1, centerY - 1, 2, 2);
     }
     
+    renderWeaponSprite(player) {
+        if (!this.showWeaponSprite) return;
+        
+        const weaponInfo = player.weaponManager.getHUDInfo();
+        const weaponName = weaponInfo.weaponName;
+        
+        // Position in bottom center of screen
+        const centerX = this.canvas.width / 2;
+        const bottomY = this.canvas.height - 80;
+        const spriteWidth = 120;
+        const spriteHeight = 60;
+        const x = centerX - spriteWidth / 2;
+        const y = bottomY - spriteHeight;
+        
+        // Background for weapon sprite area
+        this.ctx.fillStyle = this.backgroundColor;
+        this.ctx.fillRect(x - 5, y - 5, spriteWidth + 10, spriteHeight + 10);
+        
+        // Border
+        this.ctx.strokeStyle = this.textColor;
+        this.ctx.strokeRect(x - 5, y - 5, spriteWidth + 10, spriteHeight + 10);
+        
+        // Weapon-specific visual representation
+        this.ctx.fillStyle = this.textColor;
+        this.ctx.strokeStyle = this.textColor;
+        this.ctx.lineWidth = 2;
+        
+        switch(weaponName) {
+            case 'PISTOL':
+                this.drawPistolSprite(x, y, spriteWidth, spriteHeight);
+                break;
+            case 'SHOTGUN':
+                this.drawShotgunSprite(x, y, spriteWidth, spriteHeight);
+                break;
+            case 'RIFLE':
+                this.drawRifleSprite(x, y, spriteWidth, spriteHeight);
+                break;
+            default:
+                this.drawDefaultWeaponSprite(x, y, spriteWidth, spriteHeight);
+        }
+        
+        // Weapon name label
+        this.ctx.fillStyle = this.textColor;
+        this.ctx.font = this.smallFont;
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(weaponName, centerX, bottomY + 15);
+    }
+    
+    drawPistolSprite(x, y, width, height) {
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+        
+        // Pistol barrel
+        this.ctx.fillRect(centerX - 3, centerY - 25, 6, 30);
+        
+        // Pistol grip
+        this.ctx.fillRect(centerX - 8, centerY - 5, 16, 20);
+        
+        // Trigger guard
+        this.ctx.strokeRect(centerX - 5, centerY + 5, 10, 8);
+        
+        // Sight
+        this.ctx.fillRect(centerX - 1, centerY - 28, 2, 3);
+    }
+    
+    drawShotgunSprite(x, y, width, height) {
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+        
+        // Shotgun barrel (wider and longer)
+        this.ctx.fillRect(centerX - 4, centerY - 30, 8, 35);
+        
+        // Stock
+        this.ctx.fillRect(centerX - 6, centerY + 5, 12, 15);
+        
+        // Pump action
+        this.ctx.fillRect(centerX - 8, centerY - 15, 16, 8);
+        
+        // Front sight
+        this.ctx.fillRect(centerX - 1, centerY - 33, 2, 3);
+    }
+    
+    drawRifleSprite(x, y, width, height) {
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+        
+        // Rifle barrel (longest)
+        this.ctx.fillRect(centerX - 3, centerY - 35, 6, 40);
+        
+        // Stock
+        this.ctx.fillRect(centerX - 8, centerY + 5, 16, 18);
+        
+        // Magazine
+        this.ctx.fillRect(centerX - 5, centerY - 10, 10, 15);
+        
+        // Scope/sight
+        this.ctx.fillRect(centerX - 2, centerY - 38, 4, 6);
+        
+        // Muzzle
+        this.ctx.strokeRect(centerX - 4, centerY - 38, 8, 3);
+    }
+    
+    drawDefaultWeaponSprite(x, y, width, height) {
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+        
+        // Generic weapon shape
+        this.ctx.fillRect(centerX - 4, centerY - 20, 8, 25);
+        this.ctx.fillRect(centerX - 6, centerY + 5, 12, 10);
+    }
+    
     renderFPSCounter(gameEngine) {
         const x = 20;
         const y = 30;
@@ -272,6 +385,10 @@ class HUD {
     
     toggleCrosshair() {
         this.showCrosshair = !this.showCrosshair;
+    }
+    
+    toggleWeaponSprite() {
+        this.showWeaponSprite = !this.showWeaponSprite;
     }
 }
 

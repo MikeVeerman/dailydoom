@@ -401,6 +401,104 @@ async function T2_06_wallTextures(page, result) {
   }
 }
 
+async function T2_07_weaponSprite(page, result) {
+  // T2-07: Weapon sprite visible in HUD (issue: #10)
+  // Pass condition: Weapon sprite system functional and visible
+  await page.waitForTimeout(2000);
+
+  const weaponSpriteData = await page.evaluate(() => {
+    if (!window.game || !window.game.hud) {
+      return { exists: false, reason: 'HUD not found' };
+    }
+    
+    const hud = window.game.hud;
+    
+    // Check if weapon sprite system exists
+    if (typeof hud.showWeaponSprite === 'undefined') {
+      return { exists: false, reason: 'showWeaponSprite property not found' };
+    }
+    
+    if (typeof hud.renderWeaponSprite !== 'function') {
+      return { exists: false, reason: 'renderWeaponSprite method not found' };
+    }
+    
+    if (typeof hud.toggleWeaponSprite !== 'function') {
+      return { exists: false, reason: 'toggleWeaponSprite method not found' };
+    }
+    
+    // Check current weapon info
+    const player = window.game.player;
+    if (!player || !player.weaponManager) {
+      return { exists: false, reason: 'Player weapon manager not found' };
+    }
+    
+    const weaponInfo = player.weaponManager.getHUDInfo();
+    
+    return {
+      exists: true,
+      showWeaponSprite: hud.showWeaponSprite,
+      currentWeapon: weaponInfo.weaponName,
+      hasDrawMethods: {
+        pistol: typeof hud.drawPistolSprite === 'function',
+        shotgun: typeof hud.drawShotgunSprite === 'function', 
+        rifle: typeof hud.drawRifleSprite === 'function'
+      }
+    };
+  });
+
+  if (!weaponSpriteData.exists) {
+    result.status = 'fail';
+    result.note = weaponSpriteData.reason;
+    return;
+  }
+
+  // Test F4 toggle functionality
+  const initialState = weaponSpriteData.showWeaponSprite;
+  
+  // Press F4 to toggle
+  await page.keyboard.press('F4');
+  await page.waitForTimeout(100);
+  
+  const toggledState = await page.evaluate(() => {
+    return window.game.hud.showWeaponSprite;
+  });
+
+  if (toggledState === initialState) {
+    result.status = 'fail';
+    result.note = 'F4 toggle not working';
+    return;
+  }
+
+  // Toggle back
+  await page.keyboard.press('F4');
+  await page.waitForTimeout(100);
+
+  const finalState = await page.evaluate(() => {
+    return window.game.hud.showWeaponSprite;
+  });
+
+  if (finalState !== initialState) {
+    result.status = 'fail';
+    result.note = 'F4 toggle inconsistent';
+    return;
+  }
+
+  // Check if all weapon draw methods exist
+  const missingMethods = [];
+  if (!weaponSpriteData.hasDrawMethods.pistol) missingMethods.push('pistol');
+  if (!weaponSpriteData.hasDrawMethods.shotgun) missingMethods.push('shotgun'); 
+  if (!weaponSpriteData.hasDrawMethods.rifle) missingMethods.push('rifle');
+  
+  if (missingMethods.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing draw methods for: ${missingMethods.join(', ')}`;
+    return;
+  }
+
+  result.status = 'pass';
+  result.note = `Weapon sprite system functional (${weaponSpriteData.currentWeapon}), F4 toggle works`;
+}
+
 // ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
@@ -425,6 +523,7 @@ const TIER_2_TESTS = [
   { id: 'T2-04', name: 'Audio system initializes', fn: T2_04_audioSystem }, // issue: audio-system
   { id: 'T2-05', name: 'Pickups are collectable', fn: T2_05_pickups }, // issue: pickup-system
   { id: 'T2-06', name: 'Wall textures load', fn: T2_06_wallTextures }, // issue: #9
+  { id: 'T2-07', name: 'Weapon sprite visible in HUD', fn: T2_07_weaponSprite }, // issue: #10
 ];
 
 module.exports = { TIER_1_TESTS, TIER_2_TESTS };

@@ -272,6 +272,12 @@ class GameEngine {
                     this.hud.toggleCrosshair();
                     console.log('Crosshair:', this.hud.showCrosshair ? 'ON' : 'OFF');
                     break;
+                    
+                case 'F4':
+                    event.preventDefault();
+                    this.hud.toggleWeaponSprite();
+                    console.log('Weapon Sprite:', this.hud.showWeaponSprite ? 'ON' : 'OFF');
+                    break;
             }
         });
     }
