@@ -520,15 +520,16 @@ class Renderer {
             
             // Calculate sprite size based on distance
             const spriteSize = (this.wallHeight * this.projectionDistance) / distance * 0.6;
-            
-            // Calculate vertical position - sprite center should align with crosshair
-            const screenY = this.halfHeight; // Crosshair level
-            
-            // Draw the sprite (center-aligned with crosshair for combat)
+
+            // Calculate floor position at this distance (bottom of wall)
+            const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
+            const floorY = this.halfHeight + wallScreenHeight / 2;
+
+            // Draw the sprite with bottom aligned to floor
             this.ctx.drawImage(
                 sprite,
                 screenX - spriteSize / 2,    // Center horizontally
-                screenY - spriteSize / 2,     // Center vertically at crosshair
+                floorY - spriteSize,          // Bottom aligned to floor
                 spriteSize,
                 spriteSize
             );
@@ -536,8 +537,10 @@ class Renderer {
             // Render pickup as colored circle (simple representation)
             const renderInfo = entity.getRenderInfo();
             const size = (this.wallHeight * this.projectionDistance) / distance * 0.3; // Smaller than enemies
-            const screenY = this.halfHeight - size / 2; // Center on ground level
-            
+            const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
+            const floorY = this.halfHeight + wallScreenHeight / 2;
+            const screenY = floorY - size / 2; // Center circle sitting on floor
+
             this.ctx.fillStyle = renderInfo.color;
             this.ctx.beginPath();
             this.ctx.arc(screenX, screenY, size / 2, 0, Math.PI * 2);
