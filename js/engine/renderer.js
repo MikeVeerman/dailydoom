@@ -363,7 +363,7 @@ class Renderer {
             // Fallback to original sprite
             this.sprites.imp.src = 'assets/sprites/imp.png';
         };
-        this.sprites.imp.src = 'assets/sprites/imp_transparent.png';
+        this.sprites.imp.src = 'assets/sprites/imp_fixed_transparent.png';
     }
     
     loadTextures() {

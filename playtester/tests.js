@@ -583,9 +583,62 @@ const TIER_2_TESTS = [
   { id: 'T2-07', name: 'Weapon sprite visible in HUD', fn: T2_07_weaponSprite }, // issue: #10
 ];
 
+async function T3_03_demonTransparency(page, result) {
+  // T3-03: Demon sprites have transparent backgrounds (vision)
+  // Pass condition: Claude vision confirms demons don't have visible background boxes
+  if (!isVisionAvailable()) {
+    result.status = 'skip';
+    result.note = 'ANTHROPIC_API_KEY not set';
+    return;
+  }
+
+  // Navigate toward enemy spawn locations (enemies at coordinates like 6*64=384, 8*64=512)
+  // Player starts at ~160, need to move right and up to find enemies
+  
+  // Move forward (W) to get deeper into the map
+  for (let i = 0; i < 8; i++) {
+    await page.keyboard.press('KeyW');
+    await page.waitForTimeout(200);
+  }
+  
+  // Turn right to face toward enemy areas
+  await page.keyboard.press('KeyD');
+  await page.waitForTimeout(300);
+  await page.keyboard.press('KeyD');
+  await page.waitForTimeout(300);
+  
+  // Move forward more to encounter enemies
+  for (let i = 0; i < 5; i++) {
+    await page.keyboard.press('KeyW');
+    await page.waitForTimeout(200);
+  }
+  
+  // Look around for enemies
+  await page.keyboard.press('KeyA');
+  await page.waitForTimeout(200);
+  await page.keyboard.press('KeyD');
+  await page.waitForTimeout(200);
+  
+  const screenshot = await page.screenshot();
+
+  const verification = await verifyScreenshot(
+    screenshot,
+    'Look at this first-person shooter game screenshot. Focus on any red demon/enemy sprites visible in the scene:\n' +
+    '1. Are there any red demon/enemy creatures visible?\n' +
+    '2. If yes, do they have transparent backgrounds (no visible background boxes/rectangles around them)?\n' +
+    '3. Do the demons blend naturally with the 3D environment?\n\n' +
+    'Pass if: (A) No enemies visible, OR (B) Enemies visible with transparent backgrounds (no background boxes). ' +
+    'Fail if: Enemies have visible gray/colored background boxes around them.'
+  );
+
+  result.status = verification.pass ? 'pass' : 'fail';
+  result.note = verification.explanation;
+}
+
 const TIER_3_TESTS = [
   { id: 'T3-01', name: 'HUD visually present (vision)', fn: T3_01_hudVisuallyPresent },
   { id: 'T3-02', name: '3D scene rendered (vision)', fn: T3_02_3dSceneRendered },
+  { id: 'T3-03', name: 'Demon sprites transparent (vision)', fn: T3_03_demonTransparency },
 ];
 
 module.exports = { TIER_1_TESTS, TIER_2_TESTS, TIER_3_TESTS };
