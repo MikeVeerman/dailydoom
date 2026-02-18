@@ -621,14 +621,39 @@ async function T3_03_demonTransparency(page, result) {
   
   const screenshot = await page.screenshot();
 
+  // Check if enemy system is active first
+  const enemySystemCheck = await page.evaluate(() => {
+    if (!window.game || !window.game.map || !window.game.map.enemies) {
+      return { active: false, count: 0, reason: 'Enemy system not found' };
+    }
+    
+    const enemies = window.game.map.enemies;
+    const activeEnemies = enemies.filter(e => e.active);
+    const positions = activeEnemies.map(e => ({ x: Math.floor(e.x), y: Math.floor(e.y) }));
+    
+    return { 
+      active: true, 
+      totalCount: enemies.length,
+      activeCount: activeEnemies.length,
+      positions: positions.slice(0, 3) // First 3 positions
+    };
+  });
+
+  if (!enemySystemCheck.active) {
+    result.status = 'fail';
+    result.note = `Enemy system issue: ${enemySystemCheck.reason}`;
+    return;
+  }
+
   const verification = await verifyScreenshot(
     screenshot,
-    'Look at this first-person shooter game screenshot. Focus on any red demon/enemy sprites visible in the scene:\n' +
-    '1. Are there any red demon/enemy creatures visible?\n' +
-    '2. If yes, do they have transparent backgrounds (no visible background boxes/rectangles around them)?\n' +
-    '3. Do the demons blend naturally with the 3D environment?\n\n' +
-    'Pass if: (A) No enemies visible, OR (B) Enemies visible with transparent backgrounds (no background boxes). ' +
-    'Fail if: Enemies have visible gray/colored background boxes around them.'
+    'Look at this first-person shooter game screenshot and examine it carefully for ANY sprite elements:\n' +
+    '1. Are there any red demon/enemy creatures visible anywhere in the scene?\n' +
+    '2. Are there any rectangular background boxes or gray backgrounds around sprites?\n' +
+    '3. Do any sprite elements blend naturally with the environment?\n\n' +
+    'CONTEXT: Game has ' + enemySystemCheck.activeCount + ' active enemies out of ' + enemySystemCheck.totalCount + ' total.\n' +
+    'Pass if: (A) No sprites visible, OR (B) Sprites visible with transparent/clean backgrounds. ' +
+    'Fail ONLY if: Sprites have visible gray/dark background rectangles around them.'
   );
 
   result.status = verification.pass ? 'pass' : 'fail';

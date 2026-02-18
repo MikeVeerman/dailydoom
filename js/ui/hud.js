@@ -31,46 +31,66 @@ class HUD {
     }
     
     render(player, gameEngine) {
-        // CRITICAL: Ensure we have a clean canvas context for HUD rendering
-        // This prevents any interference from the world renderer
-        this.ctx.save();
-        
-        // Reset all canvas state to ensure HUD renders correctly
-        this.ctx.globalAlpha = 1.0;
-        this.ctx.globalCompositeOperation = 'source-over';
-        this.ctx.font = this.font;
-        this.ctx.fillStyle = this.textColor;
-        this.ctx.strokeStyle = this.textColor;
-        this.ctx.lineWidth = 1;
-        this.ctx.textAlign = 'left';
-        this.ctx.textBaseline = 'alphabetic';
+        // CRITICAL: Multiple safeguards to ensure HUD always renders
+        try {
+            // Verify canvas context is valid
+            if (!this.ctx || !this.canvas) {
+                console.error('HUD: Invalid canvas context');
+                return;
+            }
+            
+            // Force canvas context reset with maximum compatibility
+            this.ctx.save();
+            
+            // Comprehensive canvas state reset
+            this.ctx.globalAlpha = 1.0;
+            this.ctx.globalCompositeOperation = 'source-over';
+            this.ctx.imageSmoothingEnabled = true;
+            this.ctx.font = this.font;
+            this.ctx.fillStyle = this.textColor;
+            this.ctx.strokeStyle = this.textColor;
+            this.ctx.lineWidth = 1;
+            this.ctx.textAlign = 'left';
+            this.ctx.textBaseline = 'alphabetic';
+            this.ctx.lineCap = 'butt';
+            this.ctx.lineJoin = 'miter';
+            this.ctx.miterLimit = 10;
+            
+            // Clear any transform matrices
+            this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         
         // Clear any previous HUD content (transparent areas only)
         // We don't clear the whole screen since that's done by the renderer
         
-        // Render HUD elements with error handling
-        try {
+            // Render HUD elements with comprehensive error handling
             this.renderHealthBar(player);
             this.renderWeaponInfo(player);
             this.renderAmmoCounter(player);
             this.renderWeaponSprite(player);
             this.renderCrosshair();
+            
+            if (this.showFPS && gameEngine) {
+                this.renderFPSCounter(gameEngine);
+            }
+            
+            if (this.showDebugInfo && gameEngine) {
+                this.renderDebugInfo(player, gameEngine);
+            }
+            
+            // Render damage flash effect
+            this.renderDamageFlash(player);
+            
+            this.ctx.restore();
         } catch (error) {
-            console.error('HUD rendering error:', error);
+            console.error('HUD: Critical rendering error:', error);
+            
+            // Emergency fallback - attempt to restore canvas state even after failure
+            try {
+                this.ctx.restore();
+            } catch (restoreError) {
+                console.error('HUD: Failed to restore canvas state:', restoreError);
+            }
         }
-        
-        if (this.showFPS && gameEngine) {
-            this.renderFPSCounter(gameEngine);
-        }
-        
-        if (this.showDebugInfo && gameEngine) {
-            this.renderDebugInfo(player, gameEngine);
-        }
-        
-        // Render damage flash effect
-        this.renderDamageFlash(player);
-        
-        this.ctx.restore();
     }
     
     renderHealthBar(player) {

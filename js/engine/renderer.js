@@ -425,6 +425,9 @@ class Renderer {
             // Skip if not in field of view
             if (Math.abs(angleDiff) > this.fov / 2) return;
             
+            // Skip if occluded by walls
+            if (this.isOccludedByWall(player.x, player.y, enemy.x, enemy.y)) return;
+            
             spritesToRender.push({
                 entity: enemy,
                 entityType: 'enemy',
@@ -455,6 +458,9 @@ class Renderer {
             // Skip if not in field of view
             if (Math.abs(angleDiff) > this.fov / 2) return;
             
+            // Skip if occluded by walls
+            if (this.isOccludedByWall(player.x, player.y, pickup.x, pickup.y)) return;
+            
             spritesToRender.push({
                 entity: pickup,
                 entityType: 'pickup',
@@ -474,6 +480,33 @@ class Renderer {
         });
     }
     
+    isOccludedByWall(playerX, playerY, spriteX, spriteY) {
+        // Ray-cast from player to sprite to check for wall intersections
+        const dx = spriteX - playerX;
+        const dy = spriteY - playerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Step size for ray marching (smaller = more accurate)
+        const stepSize = 8; // 8 units per step
+        const steps = Math.floor(distance / stepSize);
+        
+        const stepX = dx / steps;
+        const stepY = dy / steps;
+        
+        // March along the ray checking for walls
+        for (let i = 1; i < steps; i++) { // Skip first step (player position)
+            const checkX = playerX + stepX * i;
+            const checkY = playerY + stepY * i;
+            
+            // Check if this position intersects a wall
+            if (this.map.isWallAtPosition(checkX, checkY)) {
+                return true; // Sprite is occluded
+            }
+        }
+        
+        return false; // Clear line of sight
+    }
+
     renderSprite(spriteData, player) {
         const { entity, entityType, distance, angleDiff } = spriteData;
         
@@ -488,14 +521,14 @@ class Renderer {
             // Calculate sprite size based on distance
             const spriteSize = (this.wallHeight * this.projectionDistance) / distance * 0.6;
             
-            // Calculate vertical position - sprite bottom should align with floor
-            const screenY = this.halfHeight; // Ground level
+            // Calculate vertical position - sprite center should align with crosshair
+            const screenY = this.halfHeight; // Crosshair level
             
-            // Draw the sprite (bottom-aligned to ground)
+            // Draw the sprite (center-aligned with crosshair for combat)
             this.ctx.drawImage(
                 sprite,
                 screenX - spriteSize / 2,    // Center horizontally
-                screenY - spriteSize,         // Bottom touches ground
+                screenY - spriteSize / 2,     // Center vertically at crosshair
                 spriteSize,
                 spriteSize
             );
