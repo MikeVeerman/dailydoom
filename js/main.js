@@ -70,27 +70,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function setupCanvas(canvas) {
     const ctx = canvas.getContext('2d');
-    
-    // Set canvas size
+
+    // Set canvas size - always use logical dimensions
+    // The engine mixes putImageData (ignores ctx.scale) with drawImage/arc
+    // (respects ctx.scale), so HiDPI scaling via ctx.scale causes mismatches.
+    // Use CSS scaling for sharp display on HiDPI screens instead.
     canvas.width = CONFIG.canvas.defaultWidth;
     canvas.height = CONFIG.canvas.defaultHeight;
-    
+    canvas.style.width = CONFIG.canvas.defaultWidth + 'px';
+    canvas.style.height = CONFIG.canvas.defaultHeight + 'px';
+
     // Setup rendering context
     ctx.imageSmoothingEnabled = false; // Pixel-perfect rendering for retro feel
-    
-    // Handle high DPI displays
-    if (CONFIG.graphics.pixelRatio > 1) {
-        const width = canvas.width;
-        const height = canvas.height;
-        
-        canvas.width = width * CONFIG.graphics.pixelRatio;
-        canvas.height = height * CONFIG.graphics.pixelRatio;
-        canvas.style.width = width + 'px';
-        canvas.style.height = height + 'px';
-        
-        ctx.scale(CONFIG.graphics.pixelRatio, CONFIG.graphics.pixelRatio);
-    }
-    
+
     console.log(`Canvas initialized: ${canvas.width}x${canvas.height}`);
 }
 
