@@ -25,6 +25,30 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v4
+      - name: Clean up build artifacts
+        run: |
+          # Remove Python virtual environments and build artifacts
+          rm -rf sprite_env/
+          rm -rf __pycache__/
+          rm -rf *.pyc
+          rm -rf .Python
+          rm -rf build/
+          rm -rf develop-eggs/
+          rm -rf dist/
+          rm -rf downloads/
+          rm -rf eggs/
+          rm -rf .eggs/
+          rm -rf lib/
+          rm -rf lib64/
+          rm -rf parts/
+          rm -rf sdist/
+          rm -rf var/
+          rm -rf wheels/
+          rm -rf *.egg-info/
+          # Remove large binary files that aren't needed for web deployment
+          find . -name "*.b64" -delete
+          find . -name "*.tar.gz" -delete
+          
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
