@@ -592,6 +592,7 @@ const TIER_2_TESTS = [
   { id: 'T2-16', name: 'Enemy visual diversity', fn: T2_16_enemyVisualDiversity }, // issue: #28
   { id: 'T2-17', name: 'Enemy movement system', fn: T2_17_enemyMovement }, // issue: #29
   { id: 'T2-18', name: 'Project structure complete', fn: T2_18_projectStructure }, // issue: #30
+  { id: 'T2-19', name: 'No Game loaded popup on start', fn: T2_19_noGameLoadedPopup }, // issue: #31
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1485,6 +1486,31 @@ async function T3_03_demonTransparency(page, result) {
 
   result.status = verification.pass ? 'pass' : 'fail';
   result.note = verification.explanation;
+}
+
+async function T2_19_noGameLoadedPopup(page, result) {
+  // T2-19: No "Game loaded" popup on start (issue: #31)
+  // Pass condition: No overlay/popup with "Game loaded" text appears after page load
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(3000);
+
+  const popupFound = await page.evaluate(() => {
+    const allElements = document.querySelectorAll('div');
+    for (const el of allElements) {
+      if (el.textContent.includes('Game loaded') && el.style.position === 'fixed') {
+        return true;
+      }
+    }
+    return false;
+  });
+
+  if (popupFound) {
+    result.status = 'fail';
+    result.note = '"Game loaded" popup still appears on page load';
+  } else {
+    result.status = 'pass';
+    result.note = 'No "Game loaded" popup detected on page load';
+  }
 }
 
 const TIER_3_TESTS = [

@@ -59,9 +59,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('Game started successfully!');
         
-        // Show loading complete message
-        showMessage('Game loaded! Click to start playing.', 3000);
-        
     } catch (error) {
         console.error('Failed to initialize game:', error);
         showError('Failed to load game. Please refresh the page.');
