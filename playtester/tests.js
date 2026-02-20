@@ -590,6 +590,7 @@ const TIER_2_TESTS = [
   { id: 'T2-14', name: 'Particle effects & visual polish', fn: T2_14_particleEffects }, // issue: #26
   { id: 'T2-15', name: 'Sprite occlusion works correctly', fn: T2_15_spriteOcclusion }, // issue: #27
   { id: 'T2-16', name: 'Enemy visual diversity', fn: T2_16_enemyVisualDiversity }, // issue: #28
+  { id: 'T2-17', name: 'Enemy movement system', fn: T2_17_enemyMovement }, // issue: #29
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1274,6 +1275,88 @@ async function T2_16_enemyVisualDiversity(page, result) {
   } else {
     result.status = 'pass';
     result.note = `${visualData.tintedTypes.length} enemy types with unique color tints and scale factors`;
+  }
+}
+
+async function T2_17_enemyMovement(page, result) {
+  // T2-17: Enemy movement system - enemies actively move (issue: #29)
+  // Pass condition: Enemies change position over time, different speeds per type
+  await page.waitForTimeout(1000);
+
+  const movementData = await page.evaluate(() => {
+    if (!window.game || !window.game.map || !window.game.map.enemies) {
+      return { exists: false, reason: 'Enemy system not found' };
+    }
+
+    const enemies = window.game.map.enemies.filter(e => e.active);
+
+    // Record initial positions
+    const initialPositions = enemies.map(e => ({
+      type: e.type,
+      x: e.x,
+      y: e.y,
+      speed: e.speed,
+      state: e.state
+    }));
+
+    return {
+      exists: true,
+      initialPositions,
+      enemyCount: enemies.length
+    };
+  });
+
+  if (!movementData.exists) {
+    result.status = 'fail';
+    result.note = movementData.reason;
+    return;
+  }
+
+  // Wait for enemies to move
+  await page.waitForTimeout(3000);
+
+  const afterData = await page.evaluate(() => {
+    const enemies = window.game.map.enemies.filter(e => e.active);
+    return enemies.map(e => ({
+      type: e.type,
+      x: e.x,
+      y: e.y,
+      speed: e.speed,
+      state: e.state
+    }));
+  });
+
+  // Check how many enemies moved
+  let movedCount = 0;
+  const speeds = new Set();
+
+  for (let i = 0; i < Math.min(movementData.initialPositions.length, afterData.length); i++) {
+    const before = movementData.initialPositions[i];
+    const after = afterData[i];
+    if (!after) continue;
+
+    const dx = Math.abs(after.x - before.x);
+    const dy = Math.abs(after.y - before.y);
+    if (dx > 1 || dy > 1) {
+      movedCount++;
+    }
+    speeds.add(after.speed);
+  }
+
+  const checks = [
+    ['enemies exist', movementData.enemyCount > 0],
+    ['some enemies moved', movedCount > 0],
+    ['varied speeds', speeds.size > 1]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Movement issues: ${failed.map(([name]) => name).join(', ')} (${movedCount}/${movementData.enemyCount} moved)`;
+  } else {
+    result.status = 'pass';
+    result.note = `${movedCount}/${movementData.enemyCount} enemies moved, ${speeds.size} distinct speeds`;
   }
 }
 

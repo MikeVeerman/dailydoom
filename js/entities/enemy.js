@@ -41,17 +41,18 @@ class Enemy {
     
     update(deltaTime, player, map, allEnemies) {
         if (!this.active) return;
-        
+
         // Use enhanced AI if available
         if (this.enhancedAI) {
+            // Enhanced AI handles its own movement via enhancedMovement()
             this.enhancedAI.update(deltaTime, player, map, allEnemies || []);
         } else {
-            // Fallback to original AI
+            // Fallback to original AI (sets targets + state transitions)
             this.originalUpdate(deltaTime, player, map);
+            // Move toward the target set by original AI
+            this.moveTowardsTarget(deltaTime, map);
         }
-        
-        // Common updates regardless of AI type
-        this.moveTowardsTarget(deltaTime, map);
+
         this.updateFacing(player);
     }
     
@@ -98,12 +99,6 @@ class Enemy {
                 }
                 break;
         }
-        
-        // Update position
-        this.moveTowardsTarget(deltaTime, map);
-        
-        // Update angle to face target/player
-        this.updateFacing(player);
     }
     
     patrol(deltaTime, map) {
@@ -190,7 +185,7 @@ class Enemy {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance > 5) { // Don't move if very close to target
-            const moveDistance = this.speed * (deltaTime / 1000);
+            const moveDistance = this.speed * deltaTime;
             const moveX = (dx / distance) * moveDistance;
             const moveY = (dy / distance) * moveDistance;
             

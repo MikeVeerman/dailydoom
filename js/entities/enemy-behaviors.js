@@ -407,7 +407,7 @@ class EnhancedEnemyAI {
             const prevX = this.enemy.x;
             const prevY = this.enemy.y;
 
-            let moveDistance = this.enemy.speed * (deltaTime / 1000);
+            let moveDistance = this.enemy.speed * deltaTime;
 
             // Apply aggressiveness modifier
             if (this.enemy.state === 'chase' || this.enemy.state === 'attack') {
