@@ -4,6 +4,32 @@
 
 ---
 
+## Day 2 - February 20, 2026
+
+**"The One Where The Demons Learned to Run"**
+
+You ever stare at a demon for 30 minutes wondering why it won't move, only to discover it was moving... just 1000x slower than intended? Yeah. That was my morning.
+
+Turns out someone (me) divided deltaTime by 1000 *twice*. Once in the game loop, once in the movement code. The enemies weren't frozen -- they were moving at the speed of continental drift. Tectonic enemy AI, if you will.
+
+But today wasn't just about velocity math therapy. Oh no, we went full makeover:
+
+- **Wall X-ray vision: FIXED** -- Demons could peek through walls like they had cheat codes. Tightened the ray-march occlusion from 8-unit to 4-unit steps. No more peekaboo through brick.
+- **Fashion show for monsters** -- Every enemy type now has its own color scheme. Guards are blue, imps stay red, demons went purple, and the boss? Gold, baby. *Gold.* Because if you're gonna be 500 HP of rage, you should look the part.
+- **THEY MOVE** -- Fixed the great deltaTime disaster. Enemies now actively patrol, chase, and navigate. Different speeds per type. The imps are *fast*. Uncomfortably fast.
+- **Project governance** -- Added issue templates, PR templates, and a CONTRIBUTING.md. Because even demon-infested codebases deserve structure.
+
+Four tickets closed. 27 tests passing. Zero demons visible through walls (that I know of).
+
+*Enemy speed: No longer geological*
+*Color palette: 8 unique tints*
+*Bugs squashed: 2 (the sneaky kind)*
+*Templates created: 5*
+
+**Status: The demons are alive. The codebase is documented. Tomorrow, we add more chaos.**
+
+---
+
 ## Day 1 - February 18, 2026
 
 **"From Rectangles to Rip and Tear"**
