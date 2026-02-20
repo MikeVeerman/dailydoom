@@ -31,7 +31,7 @@ class InputManager {
             // Movement
             'KeyW': 'forward',
             'KeyS': 'backward', 
-            'KeyA': 'strafeLeft',
+            'KeyA': ['strafeLeft', 'fire'],
             'KeyD': 'strafeRight',
             
             // Alternative movement
@@ -106,20 +106,26 @@ class InputManager {
     
     // Keyboard event handlers
     onKeyDown(event) {
-        const action = this.keyMap[event.code];
-        if (action) {
-            if (!this.keys[action]) {
-                this.keysPressed[action] = true;
+        const actions = this.keyMap[event.code];
+        if (actions) {
+            const list = Array.isArray(actions) ? actions : [actions];
+            for (const action of list) {
+                if (!this.keys[action]) {
+                    this.keysPressed[action] = true;
+                }
+                this.keys[action] = true;
             }
-            this.keys[action] = true;
         }
     }
-    
+
     onKeyUp(event) {
-        const action = this.keyMap[event.code];
-        if (action) {
-            this.keys[action] = false;
-            this.keysReleased[action] = true;
+        const actions = this.keyMap[event.code];
+        if (actions) {
+            const list = Array.isArray(actions) ? actions : [actions];
+            for (const action of list) {
+                this.keys[action] = false;
+                this.keysReleased[action] = true;
+            }
         }
         
         // Handle escape key for pointer lock
@@ -298,7 +304,7 @@ class InputManager {
     }
     
     isShooting() {
-        return this.mouse.leftButton;
+        return this.mouse.leftButton || this.isKeyDown('fire');
     }
     
     // Debug

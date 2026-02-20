@@ -613,6 +613,70 @@ a:hover {
 }
 
 /* ==========================================================================
+   Controls Page Styles
+   ========================================================================== */
+
+.controls-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+}
+
+.controls-group {
+    background: #111;
+    border: 1px solid #1a1a1a;
+    border-radius: 6px;
+    padding: 28px;
+}
+
+.controls-group-title {
+    color: #ff6b6b;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #1a1a1a;
+}
+
+.controls-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.control-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #141414;
+}
+
+.control-row:last-child {
+    border-bottom: none;
+}
+
+.control-key {
+    display: inline-block;
+    min-width: 100px;
+    background: #1a1a1a;
+    color: #ddd;
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 3px;
+    border: 1px solid #333;
+    text-align: center;
+    margin-right: 16px;
+    font-family: 'Courier New', monospace;
+}
+
+.control-desc {
+    color: #888;
+    font-size: 0.85rem;
+}
+
+/* ==========================================================================
    Responsive
    ========================================================================== */
 
@@ -630,6 +694,10 @@ a:hover {
     }
 
     .process-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .controls-grid {
         grid-template-columns: 1fr;
     }
 
