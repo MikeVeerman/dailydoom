@@ -594,6 +594,7 @@ const TIER_2_TESTS = [
   { id: 'T2-18', name: 'Project structure complete', fn: T2_18_projectStructure }, // issue: #30
   { id: 'T2-19', name: 'No Game loaded popup on start', fn: T2_19_noGameLoadedPopup }, // issue: #31
   { id: 'T2-20', name: 'Multi-room reactor map', fn: T2_20_multiRoomMap }, // issue: #33
+  { id: 'T2-21', name: 'Minimap system', fn: T2_21_minimapSystem }, // issue: #34
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1588,6 +1589,65 @@ async function T2_20_multiRoomMap(page, result) {
   } else {
     result.status = 'fail';
     result.note = `Map checks: expanded=${mapData.isExpanded}, wallTypes=${mapData.wallTypeCount}, quadrants=${mapData.quadrantsCovered}, pickups=${mapData.hasPickups}`;
+  }
+}
+
+async function T2_21_minimapSystem(page, result) {
+  // T2-21: Minimap renders with player and enemies (issue: #34)
+  // Pass condition: Minimap system exists, renders, and can be toggled with M key
+  await page.waitForTimeout(1000);
+
+  const minimapData = await page.evaluate(() => {
+    if (!window.game || !window.game.hud) {
+      return { exists: false, reason: 'HUD not found' };
+    }
+
+    const hud = window.game.hud;
+
+    return {
+      exists: true,
+      hasShowMinimap: typeof hud.showMinimap === 'boolean',
+      hasRenderMinimap: typeof hud.renderMinimap === 'function',
+      hasToggleMinimap: typeof hud.toggleMinimap === 'function',
+      initialState: hud.showMinimap
+    };
+  });
+
+  if (!minimapData.exists) {
+    result.status = 'fail';
+    result.note = minimapData.reason;
+    return;
+  }
+
+  // Test M key toggle
+  const initialState = minimapData.initialState;
+
+  await page.keyboard.press('m');
+  await page.waitForTimeout(200);
+
+  const toggledState = await page.evaluate(() => window.game.hud.showMinimap);
+
+  await page.keyboard.press('m');
+  await page.waitForTimeout(200);
+
+  const restoredState = await page.evaluate(() => window.game.hud.showMinimap);
+
+  const checks = [
+    ['showMinimap property', minimapData.hasShowMinimap],
+    ['renderMinimap method', minimapData.hasRenderMinimap],
+    ['toggleMinimap method', minimapData.hasToggleMinimap],
+    ['M key toggles off', toggledState !== initialState],
+    ['M key toggles back on', restoredState === initialState]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = 'Minimap system functional with M key toggle';
   }
 }
 
