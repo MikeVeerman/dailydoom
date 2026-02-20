@@ -593,6 +593,7 @@ const TIER_2_TESTS = [
   { id: 'T2-17', name: 'Enemy movement system', fn: T2_17_enemyMovement }, // issue: #29
   { id: 'T2-18', name: 'Project structure complete', fn: T2_18_projectStructure }, // issue: #30
   { id: 'T2-19', name: 'No Game loaded popup on start', fn: T2_19_noGameLoadedPopup }, // issue: #31
+  { id: 'T2-20', name: 'Multi-room reactor map', fn: T2_20_multiRoomMap }, // issue: #33
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1510,6 +1511,83 @@ async function T2_19_noGameLoadedPopup(page, result) {
   } else {
     result.status = 'pass';
     result.note = 'No "Game loaded" popup detected on page load';
+  }
+}
+
+async function T2_20_multiRoomMap(page, result) {
+  // T2-20: Multi-room nuclear reactor map (issue: #33)
+  // Pass condition: Map is larger than 16x16, has multiple rooms with different wall types,
+  // enemies and pickups distributed across the map
+  await page.waitForTimeout(1000);
+
+  const mapData = await page.evaluate(() => {
+    if (!window.game || !window.game.map) {
+      return { exists: false, reason: 'Map not found' };
+    }
+
+    const map = window.game.map;
+
+    // Check map dimensions are expanded
+    const isExpanded = map.width >= 20 && map.height >= 20;
+
+    // Count distinct wall types used (excluding 0 and outer walls)
+    const wallTypes = new Set();
+    for (let y = 1; y < map.height - 1; y++) {
+      for (let x = 1; x < map.width - 1; x++) {
+        if (map.grid[y][x] > 0) wallTypes.add(map.grid[y][x]);
+      }
+    }
+
+    // Count distinct rooms (contiguous regions of different wall types)
+    const hasMultipleWallTypes = wallTypes.size >= 4;
+
+    // Check enemies are spread across the map (not all in one quadrant)
+    const midX = (map.width * map.tileSize) / 2;
+    const midY = (map.height * map.tileSize) / 2;
+    let quadrants = new Set();
+    for (const enemy of map.enemies) {
+      const qx = enemy.x < midX ? 'L' : 'R';
+      const qy = enemy.y < midY ? 'T' : 'B';
+      quadrants.add(qx + qy);
+    }
+
+    // Check pickups exist across the map
+    const hasPickups = map.items.length >= 4;
+
+    return {
+      exists: true,
+      width: map.width,
+      height: map.height,
+      isExpanded,
+      wallTypeCount: wallTypes.size,
+      wallTypes: Array.from(wallTypes).sort(),
+      hasMultipleWallTypes,
+      enemyCount: map.enemies.length,
+      quadrantsCovered: quadrants.size,
+      pickupCount: map.items.length,
+      hasPickups
+    };
+  });
+
+  if (!mapData.exists) {
+    result.status = 'fail';
+    result.note = mapData.reason;
+    return;
+  }
+
+  const checks = [
+    mapData.isExpanded,
+    mapData.hasMultipleWallTypes,
+    mapData.quadrantsCovered >= 3,
+    mapData.hasPickups
+  ];
+
+  if (checks.every(Boolean)) {
+    result.status = 'pass';
+    result.note = `${mapData.width}x${mapData.height} map, ${mapData.wallTypeCount} wall types [${mapData.wallTypes}], ${mapData.enemyCount} enemies in ${mapData.quadrantsCovered} quadrants, ${mapData.pickupCount} pickups`;
+  } else {
+    result.status = 'fail';
+    result.note = `Map checks: expanded=${mapData.isExpanded}, wallTypes=${mapData.wallTypeCount}, quadrants=${mapData.quadrantsCovered}, pickups=${mapData.hasPickups}`;
   }
 }
 

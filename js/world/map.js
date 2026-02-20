@@ -3,34 +3,44 @@
  */
 class GameMap {
     constructor() {
-        // Map dimensions
-        this.width = 16;
-        this.height = 16;
+        // Map dimensions — expanded for multi-room nuclear reactor facility
+        this.width = 24;
+        this.height = 24;
         this.tileSize = 64; // Size of each map tile in world units
-        
-        // Player spawn point
+
+        // Player spawn point — Control Room (top-left)
         this.spawnX = 2.5 * this.tileSize;
         this.spawnY = 2.5 * this.tileSize;
         this.spawnAngle = 0;
-        
-        // Map grid (0 = empty, 1-8 = different wall types)
+
+        // Wall types: 1=stone(outer), 2=brick(containment), 3=metal(cooling),
+        // 4=tech(control room), 5=marble(reactor core), 6=stone(waste storage)
         this.grid = [
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,2,2,0,0,0,0,0,0,3,3,0,0,1],
-            [1,0,0,2,2,0,0,0,0,0,0,3,3,0,0,1],
-            [1,0,0,0,0,0,0,4,4,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,4,4,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,5,5,5,5,0,0,0,0,0,1],
-            [1,0,0,6,0,0,5,0,0,5,0,0,0,7,0,1],
-            [1,0,0,6,0,0,5,0,0,5,0,0,0,7,0,1],
-            [1,0,0,6,0,0,5,5,5,5,0,0,0,7,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        //   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1], // 0  outer wall
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 1  north corridor
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 2  north corridor
+            [1,0,0,4,4,4,4,0,0,1,1,1,0,1,1,0,0,0,2,2,2,2,0,1], // 3  control room top / containment top
+            [1,0,0,4,0,0,4,0,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,1], // 4  control room interior
+            [1,0,0,4,0,0,4,4,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,1], // 5  control room (wall at col 7)
+            [1,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,1], // 6  control room exit
+            [1,0,0,4,4,0,4,4,0,1,1,1,0,1,1,0,0,0,2,2,0,2,0,1], // 7  control room bottom / divider
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 8  main east-west corridor
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 9  main corridor
+            [1,3,3,3,0,3,3,0,0,5,5,5,0,5,5,5,0,0,3,3,0,3,3,1], // 10 cooling tunnels / reactor top
+            [1,0,0,3,0,0,3,0,0,5,0,0,0,0,0,5,0,0,3,0,0,0,3,1], // 11 cooling / reactor interior
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 12 open cross-passage
+            [1,0,0,3,0,0,3,0,0,5,0,0,0,0,0,5,0,0,3,0,0,0,3,1], // 13 cooling / reactor interior
+            [1,0,0,3,0,0,3,0,0,5,0,0,0,0,0,5,0,0,3,0,0,0,3,1], // 14 cooling / reactor interior
+            [1,3,3,3,0,3,3,0,0,5,5,5,0,5,5,5,0,0,3,3,0,3,3,1], // 15 cooling tunnels / reactor bottom
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 16 south corridor
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 17 south corridor
+            [1,6,6,6,6,6,6,0,0,1,1,1,0,1,1,1,0,0,1,1,1,1,1,1], // 18 waste storage top / south rooms
+            [1,6,0,0,0,0,6,0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,1], // 19 waste storage
+            [1,6,0,0,0,0,6,0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,1], // 20 waste storage
+            [1,6,0,0,0,0,6,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1], // 21 waste storage (east opening)
+            [1,6,0,0,0,0,6,0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,1], // 22 waste storage
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]  // 23 outer wall
         ];
         
         // Additional map data
@@ -48,45 +58,53 @@ class GameMap {
     }
     
     initializeMapElements() {
-        // Add some collectible items
-        this.items.push({
-            x: 5.5 * this.tileSize,
-            y: 5.5 * this.tileSize,
-            type: 'health',
-            collected: false
-        });
-        
-        this.items.push({
-            x: 10.5 * this.tileSize,
-            y: 10.5 * this.tileSize,
-            type: 'ammo',
-            collected: false
-        });
-        
-        // Add diverse enemy spawn points with different AI behaviors
+        // Pickups distributed across rooms for exploration reward
+
+        // Control Room — starting supplies
+        this.items.push({ x: 4.5 * this.tileSize, y: 4.5 * this.tileSize, type: 'ammo', collected: false });
+
+        // Main corridor
+        this.items.push({ x: 8.5 * this.tileSize, y: 8.5 * this.tileSize, type: 'health', collected: false });
+
+        // Reactor Core — hazardous area reward
+        this.items.push({ x: 12.5 * this.tileSize, y: 12.5 * this.tileSize, type: 'ammo', collected: false });
+
+        // Containment Wing
+        this.items.push({ x: 19.5 * this.tileSize, y: 4.5 * this.tileSize, type: 'health', collected: false });
+
+        // South-east rooms
+        this.items.push({ x: 20.5 * this.tileSize, y: 20.5 * this.tileSize, type: 'ammo', collected: false });
+
+        // Waste Storage — dead-end exploration bonus
+        this.items.push({ x: 3.5 * this.tileSize, y: 21.5 * this.tileSize, type: 'health', collected: false });
+
+        // Enemies spread across the facility
+
+        // Main corridor guards
         this.enemies.push(new Enemy(8 * this.tileSize, 8 * this.tileSize, 'guard'));
-        this.enemies.push(new Enemy(6 * this.tileSize, 6 * this.tileSize, 'imp'));
-        this.enemies.push(new Enemy(12 * this.tileSize, 10 * this.tileSize, 'demon'));
-        this.enemies.push(new Enemy(4 * this.tileSize, 12 * this.tileSize, 'soldier'));
-        
-        // Add one more imp for swarm behavior testing
-        this.enemies.push(new Enemy(5 * this.tileSize, 7 * this.tileSize, 'imp'));
+        this.enemies.push(new Enemy(5 * this.tileSize, 8.5 * this.tileSize, 'imp'));
 
-        // New enemy types from Issue #24
-        this.enemies.push(new Enemy(10 * this.tileSize, 5 * this.tileSize, 'berserker'));
-        this.enemies.push(new Enemy(3 * this.tileSize, 8 * this.tileSize, 'spitter'));
-        this.enemies.push(new Enemy(11 * this.tileSize, 12 * this.tileSize, 'shield_guard'));
+        // Reactor Core — heavy resistance
+        this.enemies.push(new Enemy(12 * this.tileSize, 11 * this.tileSize, 'demon'));
+        this.enemies.push(new Enemy(11 * this.tileSize, 13 * this.tileSize, 'berserker'));
+        this.enemies.push(new Enemy(14 * this.tileSize, 11 * this.tileSize, 'imp'));
 
-        // Boss encounter in the far corner of the map
-        this.enemies.push(new Enemy(13 * this.tileSize, 13 * this.tileSize, 'boss'));
+        // Containment Wing — tactical enemies
+        this.enemies.push(new Enemy(20 * this.tileSize, 4 * this.tileSize, 'soldier'));
+        this.enemies.push(new Enemy(20 * this.tileSize, 11 * this.tileSize, 'spitter'));
+        this.enemies.push(new Enemy(20 * this.tileSize, 20 * this.tileSize, 'shield_guard'));
+
+        // Boss in the south-east wing
+        this.enemies.push(new Enemy(21 * this.tileSize, 21 * this.tileSize, 'boss'));
     }
 
     initializeDoors() {
-        // Add doors to the map at strategic locations
-        // Doors use wall type 9 when closed, become 0 when open
-        this.addDoor(5, 3, 'none');    // Door into red room area
-        this.addDoor(10, 3, 'none');   // Door into blue room area
-        this.addDoor(6, 9, 'red');     // Red key door into inner room
+        // Doors at strategic chokepoints between areas
+        this.addDoor(4, 7, 'none');     // Control Room south exit
+        this.addDoor(12, 10, 'none');   // Reactor Core north entrance
+        this.addDoor(12, 15, 'none');   // Reactor Core south entrance
+        this.addDoor(20, 7, 'none');    // Containment Wing south exit
+        this.addDoor(12, 18, 'red');    // Red key door to south section
     }
 
     addDoor(mapX, mapY, keyRequired) {
@@ -313,7 +331,7 @@ class GameMap {
 
         const closedSet = new Set();
         let iterations = 0;
-        const maxIterations = 200; // Prevent infinite loops
+        const maxIterations = 500; // Prevent infinite loops
 
         while (openSet.length > 0 && iterations < maxIterations) {
             iterations++;
