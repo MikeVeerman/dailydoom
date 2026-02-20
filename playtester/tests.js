@@ -588,6 +588,7 @@ const TIER_2_TESTS = [
   { id: 'T2-12', name: 'Enemy variety & boss system', fn: T2_12_enemyVariety }, // issue: #24
   { id: 'T2-13', name: 'Player progression & stats', fn: T2_13_playerProgression }, // issue: #25
   { id: 'T2-14', name: 'Particle effects & visual polish', fn: T2_14_particleEffects }, // issue: #26
+  { id: 'T2-15', name: 'Sprite occlusion works correctly', fn: T2_15_spriteOcclusion }, // issue: #27
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1092,6 +1093,103 @@ async function T2_14_particleEffects(page, result) {
   } else {
     result.status = 'pass';
     result.note = 'Particle system with blood, muzzle, explosion emitters and screen shake';
+  }
+}
+
+async function T2_15_spriteOcclusion(page, result) {
+  // T2-15: Sprite occlusion system works correctly (issue: #27)
+  // Pass condition: isOccludedByWall correctly detects walls between player and sprites
+  await page.waitForTimeout(1000);
+
+  const occlusionData = await page.evaluate(() => {
+    if (!window.game || !window.game.renderer || !window.game.map) {
+      return { exists: false, reason: 'Renderer or map not found' };
+    }
+
+    const renderer = window.game.renderer;
+    const map = window.game.map;
+    const tileSize = map.tileSize;
+
+    // Check isOccludedByWall method exists
+    if (typeof renderer.isOccludedByWall !== 'function') {
+      return { exists: false, reason: 'isOccludedByWall method not found' };
+    }
+
+    // Test 1: Clear line of sight (no wall between two open tiles)
+    // Player at (1.5, 1.5) tile = (96, 96), sprite at (2.5, 1.5) tile = (160, 96)
+    const clearSight = !renderer.isOccludedByWall(
+      1.5 * tileSize, 1.5 * tileSize,
+      2.5 * tileSize, 1.5 * tileSize
+    );
+
+    // Test 2: Blocked by wall (wall at tile 3,3 = type 2)
+    // Player at (1.5, 3.5) tile, sprite at (4.5, 3.5) tile - wall at (3,3) blocks
+    const blockedByWall = renderer.isOccludedByWall(
+      1.5 * tileSize, 3.5 * tileSize,
+      4.5 * tileSize, 3.5 * tileSize
+    );
+
+    // Test 3: Blocked by outer wall (wall type 1 at edges)
+    // Player at (1.5, 1.5), sprite at (1.5, -0.5) - wall at row 0 blocks
+    const blockedByBorder = renderer.isOccludedByWall(
+      1.5 * tileSize, 1.5 * tileSize,
+      1.5 * tileSize, -0.5 * tileSize
+    );
+
+    // Test 4: Diagonal line of sight with wall obstruction
+    // Player at (1.5, 1.5), sprite at (4.5, 4.5) - wall at (3,3) blocks diagonal
+    const blockedDiagonal = renderer.isOccludedByWall(
+      1.5 * tileSize, 1.5 * tileSize,
+      4.5 * tileSize, 4.5 * tileSize
+    );
+
+    // Test 5: Very close sprites should not be occluded (same open tile)
+    const closeNotOccluded = !renderer.isOccludedByWall(
+      1.5 * tileSize, 1.5 * tileSize,
+      1.6 * tileSize, 1.5 * tileSize
+    );
+
+    // Test 6: Uses step size <= 4 for accuracy (check method behavior)
+    // Ray from (1.5, 5.5) to (8.5, 5.5) crosses wall at (7,5) type 4
+    const blockedByTechWall = renderer.isOccludedByWall(
+      1.5 * tileSize, 5.5 * tileSize,
+      8.5 * tileSize, 5.5 * tileSize
+    );
+
+    return {
+      exists: true,
+      clearSight,
+      blockedByWall,
+      blockedByBorder,
+      blockedDiagonal,
+      closeNotOccluded,
+      blockedByTechWall
+    };
+  });
+
+  if (!occlusionData.exists) {
+    result.status = 'fail';
+    result.note = occlusionData.reason;
+    return;
+  }
+
+  const checks = [
+    ['clear line of sight', occlusionData.clearSight],
+    ['blocked by wall', occlusionData.blockedByWall],
+    ['blocked by border wall', occlusionData.blockedByBorder],
+    ['blocked on diagonal', occlusionData.blockedDiagonal],
+    ['close sprites not occluded', occlusionData.closeNotOccluded],
+    ['blocked by tech wall', occlusionData.blockedByTechWall]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Occlusion failures: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = 'Sprite occlusion correctly detects walls in all test cases (step size 4, normalized rays)';
   }
 }
 

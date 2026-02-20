@@ -487,25 +487,29 @@ class Renderer {
         const dx = spriteX - playerX;
         const dy = spriteY - playerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        // Step size for ray marching (smaller = more accurate)
-        const stepSize = 8; // 8 units per step
-        const steps = Math.floor(distance / stepSize);
-        
-        const stepX = dx / steps;
-        const stepY = dy / steps;
-        
+
+        if (distance < 1) return false;
+
+        // Normalize direction for consistent step sizes
+        const dirX = dx / distance;
+        const dirY = dy / distance;
+
+        // Step size for ray marching - 4 units for accurate wall detection
+        const stepSize = 4;
+        // Stop short of the sprite position to avoid false positives
+        const checkDistance = distance - 16;
+
         // March along the ray checking for walls
-        for (let i = 1; i < steps; i++) { // Skip first step (player position)
-            const checkX = playerX + stepX * i;
-            const checkY = playerY + stepY * i;
-            
+        for (let t = stepSize; t < checkDistance; t += stepSize) {
+            const checkX = playerX + dirX * t;
+            const checkY = playerY + dirY * t;
+
             // Check if this position intersects a wall
             if (this.map.isWallAtPosition(checkX, checkY)) {
                 return true; // Sprite is occluded
             }
         }
-        
+
         return false; // Clear line of sight
     }
 
