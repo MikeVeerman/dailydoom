@@ -31,7 +31,7 @@ class InputManager {
             // Movement
             'KeyW': 'forward',
             'KeyS': 'backward', 
-            'KeyA': ['strafeLeft', 'fire'],
+            'KeyA': 'strafeLeft',
             'KeyD': 'strafeRight',
             
             // Alternative movement
@@ -48,6 +48,7 @@ class InputManager {
             'ControlRight': 'crouch',
             
             // Weapon/interaction
+            'KeyX': 'fire',
             'KeyE': 'use',
             'KeyR': 'reload',
             'KeyQ': 'weapon1',
