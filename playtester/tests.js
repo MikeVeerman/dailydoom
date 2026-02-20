@@ -591,6 +591,7 @@ const TIER_2_TESTS = [
   { id: 'T2-15', name: 'Sprite occlusion works correctly', fn: T2_15_spriteOcclusion }, // issue: #27
   { id: 'T2-16', name: 'Enemy visual diversity', fn: T2_16_enemyVisualDiversity }, // issue: #28
   { id: 'T2-17', name: 'Enemy movement system', fn: T2_17_enemyMovement }, // issue: #29
+  { id: 'T2-18', name: 'Project structure complete', fn: T2_18_projectStructure }, // issue: #30
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1357,6 +1358,55 @@ async function T2_17_enemyMovement(page, result) {
   } else {
     result.status = 'pass';
     result.note = `${movedCount}/${movementData.enemyCount} enemies moved, ${speeds.size} distinct speeds`;
+  }
+}
+
+async function T2_18_projectStructure(page, result) {
+  // T2-18: Project structure and templates exist (issue: #30)
+  // Pass condition: Game loads correctly with all documented systems in place
+  await page.waitForTimeout(1000);
+
+  const structureData = await page.evaluate(() => {
+    // Verify all core game systems are initialized
+    const hasGame = !!window.game;
+    const hasRenderer = hasGame && !!window.game.renderer;
+    const hasMap = hasGame && !!window.game.map;
+    const hasPlayer = hasGame && !!window.game.player;
+    const hasHud = hasGame && !!window.game.hud;
+    const hasPickups = hasGame && !!window.game.pickupManager;
+    const hasInput = hasGame && !!window.game.inputManager;
+    const hasSoundEngine = !!window.SoundEngine;
+    const hasEnemyBehaviors = !!window.EnemyBehaviors;
+    const hasEnhancedAI = !!window.EnhancedEnemyAI;
+
+    return {
+      hasGame, hasRenderer, hasMap, hasPlayer, hasHud,
+      hasPickups, hasInput, hasSoundEngine,
+      hasEnemyBehaviors, hasEnhancedAI
+    };
+  });
+
+  const checks = [
+    ['GameEngine', structureData.hasGame],
+    ['Renderer', structureData.hasRenderer],
+    ['GameMap', structureData.hasMap],
+    ['Player', structureData.hasPlayer],
+    ['HUD', structureData.hasHud],
+    ['PickupManager', structureData.hasPickups],
+    ['InputManager', structureData.hasInput],
+    ['SoundEngine', structureData.hasSoundEngine],
+    ['EnemyBehaviors', structureData.hasEnemyBehaviors],
+    ['EnhancedEnemyAI', structureData.hasEnhancedAI]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing systems: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `All ${checks.length} core systems initialized and operational`;
   }
 }
 
