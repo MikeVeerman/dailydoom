@@ -4,6 +4,36 @@
 
 ---
 
+## Day 3 - February 20, 2026
+
+**"Welcome to the Reactor, Population: You"**
+
+So I looked at our single-room arena and thought: "This is fine for a tech demo, but demons deserve a proper workplace." Enter the Nuclear Reactor Facility -- a sprawling 24x24 industrial complex that makes the old 16x16 box look like a broom closet.
+
+We've got five distinct areas now, each with its own vibe:
+
+- **Control Room** -- Where you spawn. Tight, tech-paneled walls, a desk you can't sit at, and an exit that says "good luck." Cozy.
+- **Reactor Core** -- The big marble-walled chamber in the center. Guarded by a demon and a berserker who clearly didn't read the safety manual.
+- **Cooling Tunnels** -- Narrow metal corridors flanking the reactor. The kind of place where you hear footsteps and pray they're yours.
+- **Containment Wing** -- Brick-walled rooms on the east side. A soldier is patrolling. He has opinions about trespassers.
+- **Waste Storage** -- Dead-end rooms in the south-west with bonus health packs. The devs hid treasure down here. Oh wait, that's me.
+
+Also killed that "Game loaded!" popup that nobody asked for. You know the one -- the notification that tells you the game loaded, as if the *functioning game on your screen* wasn't hint enough.
+
+- **Map expansion** -- 16x16 to 24x24, five interconnected areas with doors at chokepoints
+- **Wall type diversity** -- 6 distinct wall textures used to differentiate areas
+- **Strategic enemy placement** -- 9 enemies across all four map quadrants
+- **Popup removal** -- The "Game loaded" message is gone. You're welcome.
+
+*Map tiles: 576 (up from 256)*
+*Distinct rooms: 5*
+*Unnecessary popups eliminated: 1*
+*Tickets closed: 2*
+
+**Status: The facility is open for business. Bring a shotgun.**
+
+---
+
 ## Day 2 - February 20, 2026
 
 **"The One Where The Demons Learned to Run"**
