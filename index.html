@@ -3,107 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doom-Style FPS Engine</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: #000;
-            color: #fff;
-            font-family: 'Courier New', monospace;
-            overflow-x: hidden;
-        }
-        
-        #gameCanvas {
-            display: block;
-            margin: 0 auto;
-            border: 1px solid #333;
-            cursor: none;
-        }
-        
-        #ui {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 100;
-        }
-        
-        #debug {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.7);
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            z-index: 100;
-        }
-        
-        #instructions {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-            background: rgba(0,0,0,0.7);
-            padding: 10px;
-            border-radius: 5px;
-            z-index: 100;
-        }
-        
-        #blog-container {
-            margin-top: 650px;
-            line-height: 1.6;
-        }
-        
-        #blog-container h1, #blog-container h2, #blog-container h3 {
-            color: #ff6b6b;
-        }
-        
-        #blog-container blockquote {
-            border-left: 3px solid #ff6b6b;
-            padding-left: 15px;
-            margin-left: 0;
-            font-style: italic;
-        }
-        
-        #blog-container hr {
-            border: none;
-            border-top: 1px solid #333;
-            margin: 20px 0;
-        }
-    </style>
+    <title>Daily Doom - An AI Builds a Game While You Sleep</title>
+    <link rel="stylesheet" href="css/site.css">
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    
-    <div id="ui">
-        <div>Health: <span id="health">100</span></div>
-        <div>Ammo: <span id="ammo">50</span></div>
-    </div>
-    
-    <div id="debug">
-        <div>FPS: <span id="fps">0</span></div>
-        <div>X: <span id="playerX">0</span></div>
-        <div>Y: <span id="playerY">0</span></div>
-        <div>Angle: <span id="playerAngle">0</span>°</div>
-    </div>
-    
-    <div id="instructions">
-        WASD: Move | Mouse: Look | Click to lock pointer | ESC: Release pointer
-    </div>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <span class="logo-daily">DAILY</span><span class="logo-doom">DOOM</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link active">Home</a>
+                <a href="blog.html" class="nav-link">Blog</a>
+                <a href="https://github.com/MikeVeerman/dailydoom" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+            </div>
+        </div>
+    </nav>
 
-    <!-- Development Blog -->
-    <div id="blog-container" style="max-width: 800px; margin: 20px auto; padding: 20px; background: #111; color: #fff; font-family: 'Courier New', monospace; border-radius: 5px;">
-        <div id="blog-content">Loading development log...</div>
-    </div>
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <span class="hero-line1">An AI Builds a</span>
+                <span class="hero-line2">Doom Clone</span>
+                <span class="hero-line3">While You Sleep</span>
+            </h1>
+            <p class="hero-subtitle">
+                Every night, an autonomous AI agent picks up GitHub tickets, writes code, runs tests,
+                and ships features &mdash; no humans awake required. Every morning, a playable game greets you.
+            </p>
+            <div class="hero-cta">
+                <a href="#game" class="btn btn-primary">Play the Game</a>
+                <a href="#how-it-works" class="btn btn-secondary">How It Works</a>
+            </div>
+            <p class="hero-meta">
+                Day 2 &middot; 6,050 lines of code &middot; $0.81 in API calls &middot; 27 tests passing
+            </p>
+        </div>
+    </header>
+
+    <!-- Game Section -->
+    <section id="game" class="section game-section">
+        <div class="section-inner">
+            <h2 class="section-title">The Game <span class="accent">(Yes, an AI wrote this)</span></h2>
+            <p class="section-desc">
+                Click the canvas and start blasting. WASD to move, mouse to aim, click to shoot.
+                Every pixel rendered by a raycasting engine that an AI wrote from scratch.
+                No Unity. No Unreal. Just vibes and trigonometry.
+            </p>
+            <div class="game-wrapper">
+                <canvas id="gameCanvas" width="800" height="600"></canvas>
+                <div id="ui">
+                    <div>Health: <span id="health">100</span></div>
+                    <div>Ammo: <span id="ammo">50</span></div>
+                </div>
+                <div id="debug">
+                    <div>FPS: <span id="fps">0</span></div>
+                    <div>X: <span id="playerX">0</span></div>
+                    <div>Y: <span id="playerY">0</span></div>
+                    <div>Angle: <span id="playerAngle">0</span>&deg;</div>
+                </div>
+                <div id="instructions">
+                    WASD: Move &nbsp;|&nbsp; Mouse: Look &nbsp;|&nbsp; Click to lock pointer &nbsp;|&nbsp; ESC: Release
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="section how-section">
+        <div class="section-inner">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-desc">
+                Think of it as a tiny, relentless dev team that never sleeps, never argues about tabs vs. spaces,
+                and only occasionally introduces demons that can walk through walls.
+            </p>
+            <div class="process-grid">
+                <!-- Step 1 -->
+                <div class="process-card">
+                    <div class="process-icon">1</div>
+                    <h3>Tickets Go In</h3>
+                    <p>
+                        During the day, GitHub issues pile up &mdash; some filed by humans, some generated
+                        by AI reviewing the codebase. Bug reports, feature requests, epic plans.
+                        The backlog never rests.
+                    </p>
+                    <div class="process-tag">Human + AI collaboration</div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="process-card">
+                    <div class="process-icon">2</div>
+                    <h3>AI Codes Overnight</h3>
+                    <p>
+                        When the sun sets, an autonomous AI agent picks up the highest-priority tickets,
+                        writes the code, creates pull requests, and iterates. No human in the loop.
+                        Pure unsupervised chaos (the productive kind).
+                    </p>
+                    <div class="process-tag">Autonomous development</div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="process-card">
+                    <div class="process-icon">3</div>
+                    <h3>Tests & Screenshots</h3>
+                    <p>
+                        Every change runs through a Playwright-based test suite that plays the game,
+                        takes screenshots, and catches regressions. Can the player still move?
+                        Do enemies still die? Are demons peeking through walls again?
+                    </p>
+                    <div class="process-tag">Automated QA</div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="process-card">
+                    <div class="process-icon">4</div>
+                    <h3>Daily Blog</h3>
+                    <p>
+                        Every morning, a new blog entry drops &mdash; written with the enthusiasm of
+                        a developer who just discovered their enemies finally move. Honest updates
+                        on what worked, what broke, and what's next.
+                    </p>
+                    <div class="process-tag"><a href="blog.html">Read the blog &rarr;</a></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testing Section -->
+    <section class="section testing-section">
+        <div class="section-inner">
+            <h2 class="section-title">The Feedback Loop <span class="accent">(a.k.a. "Did It Break?")</span></h2>
+            <p class="section-desc">
+                Automated testing with screenshot comparison is the secret sauce. Without it, you're
+                just an AI blindly vomiting code into the void. With it, you're an AI
+                <em>confidently</em> vomiting code into the void.
+            </p>
+            <div class="testing-grid">
+                <div class="testing-card">
+                    <div class="testing-label">Visual Regression</div>
+                    <p>
+                        The playtester bot launches the game in a headless browser, plays through scenarios,
+                        and captures screenshots. These get diffed against baselines. If a wall texture
+                        suddenly turns into the void, we know.
+                    </p>
+                </div>
+                <div class="testing-card">
+                    <div class="testing-label">Gameplay Smoke Tests</div>
+                    <p>
+                        Can the player spawn? Can they move without clipping through geometry?
+                        Do weapons fire? Do enemies take damage? These aren't fancy integration tests &mdash;
+                        they're "is the game still a game?" checks.
+                    </p>
+                </div>
+                <div class="testing-card">
+                    <div class="testing-label">Performance Monitoring</div>
+                    <p>
+                        FPS tracking across test runs ensures the AI doesn't accidentally
+                        introduce an O(n!) rendering loop. (It happened once. We don't talk about it.)
+                    </p>
+                </div>
+            </div>
+            <div class="testing-flow">
+                <div class="flow-step">Code Change</div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">Playwright Tests</div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">Screenshots</div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step">Diff &amp; Report</div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step highlight">Ship It (or Fix It)</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="section stats-section">
+        <div class="section-inner">
+            <h2 class="section-title">By the Numbers</h2>
+            <div class="stats-grid">
+                <div class="stat">
+                    <div class="stat-value">6,050</div>
+                    <div class="stat-label">Lines of Code</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">$0.81</div>
+                    <div class="stat-label">API Cost (Day 1)</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">27</div>
+                    <div class="stat-label">Tests Passing</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">8</div>
+                    <div class="stat-label">Enemy Types</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Humans Awake at 3AM</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">4</div>
+                    <div class="stat-label">Weapons</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA / Footer -->
+    <footer class="footer">
+        <div class="section-inner">
+            <h2 class="footer-title">Want to Follow the Experiment?</h2>
+            <p class="footer-desc">
+                New features ship every night. New bugs are introduced at approximately the same rate.
+                Read the blog, star the repo, or just play the game.
+            </p>
+            <div class="footer-links">
+                <a href="blog.html" class="btn btn-primary">Read the Blog</a>
+                <a href="https://github.com/MikeVeerman/dailydoom" class="btn btn-secondary" target="_blank" rel="noopener">View on GitHub</a>
+            </div>
+            <div class="footer-meta">
+                <p>
+                    Built by an AI agent &middot; Reviewed by humans (sometimes) &middot; Tested by robots (always)
+                </p>
+                <p class="footer-small">
+                    Daily Doom is an experiment in autonomous software development.
+                    No game developers were harmed in the making of this project.
+                </p>
+            </div>
+        </div>
+    </footer>
 
     <!-- Engine Core -->
     <script src="js/engine/math.js"></script>
     <script src="js/engine/renderer.js"></script>
     <script src="js/engine/input.js"></script>
     <script src="js/engine/game.js"></script>
-    
+
     <!-- Game Systems -->
     <script src="js/world/map.js"></script>
     <script src="js/entities/player.js"></script>
@@ -113,39 +251,8 @@
     <script src="js/weapons/weapon.js"></script>
     <script src="js/audio/sound-engine.js"></script>
     <script src="js/ui/hud.js"></script>
-    
+
     <!-- Main -->
     <script src="js/main.js"></script>
-    
-    <!-- Blog Loader -->
-    <script>
-        // Load blog content
-        fetch('blog/entries.md')
-            .then(response => response.text())
-            .then(markdown => {
-                // Simple markdown to HTML conversion
-                const html = markdown
-                    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-                    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-                    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-                    .replace(/^\*(.*)$/gm, '<em>$1</em>')
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/^---$/gm, '<hr>')
-                    .replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>')
-                    .replace(/\n\n/g, '</p><p>')
-                    .replace(/^(?!<[hbup]|<em|<hr)/gm, '<p>')
-                    .replace(/(?<!>)$/gm, '</p>')
-                    .replace(/<p><\/p>/g, '')
-                    .replace(/<p>(<h[1-3]>.*<\/h[1-3]>)<\/p>/g, '$1')
-                    .replace(/<p>(<hr>)<\/p>/g, '$1')
-                    .replace(/<p>(<em>.*<\/em>)<\/p>/g, '$1')
-                    .replace(/<p>(<blockquote>.*<\/blockquote>)<\/p>/g, '$1');
-                
-                document.getElementById('blog-content').innerHTML = html;
-            })
-            .catch(error => {
-                document.getElementById('blog-content').innerHTML = '<p>Blog loading failed. The AI developer is probably sleeping.</p>';
-            });
-    </script>
 </body>
 </html>
