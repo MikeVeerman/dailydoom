@@ -589,6 +589,7 @@ const TIER_2_TESTS = [
   { id: 'T2-13', name: 'Player progression & stats', fn: T2_13_playerProgression }, // issue: #25
   { id: 'T2-14', name: 'Particle effects & visual polish', fn: T2_14_particleEffects }, // issue: #26
   { id: 'T2-15', name: 'Sprite occlusion works correctly', fn: T2_15_spriteOcclusion }, // issue: #27
+  { id: 'T2-16', name: 'Enemy visual diversity', fn: T2_16_enemyVisualDiversity }, // issue: #28
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1190,6 +1191,89 @@ async function T2_15_spriteOcclusion(page, result) {
   } else {
     result.status = 'pass';
     result.note = 'Sprite occlusion correctly detects walls in all test cases (step size 4, normalized rays)';
+  }
+}
+
+async function T2_16_enemyVisualDiversity(page, result) {
+  // T2-16: Enemy visual diversity - different sprites per type (issue: #28)
+  // Pass condition: Tinted sprites generated for all enemy types, scale factors defined
+  await page.waitForTimeout(2000);
+
+  const visualData = await page.evaluate(() => {
+    if (!window.game || !window.game.renderer) {
+      return { exists: false, reason: 'Renderer not found' };
+    }
+
+    const renderer = window.game.renderer;
+
+    // Check tinted sprites exist
+    const hasTintedSprites = renderer.tintedSprites && typeof renderer.tintedSprites === 'object';
+    const tintedTypes = hasTintedSprites ? Object.keys(renderer.tintedSprites) : [];
+
+    // Check enemy tint definitions
+    const hasTints = renderer.enemyTints && typeof renderer.enemyTints === 'object';
+    const tintTypes = hasTints ? Object.keys(renderer.enemyTints) : [];
+
+    // Check scale factors
+    const hasScales = renderer.enemyScales && typeof renderer.enemyScales === 'object';
+    const scaleTypes = hasScales ? Object.keys(renderer.enemyScales) : [];
+
+    // Required enemy types
+    const requiredTypes = ['imp', 'guard', 'soldier', 'demon', 'berserker', 'spitter', 'shield_guard', 'boss'];
+    const missingTints = requiredTypes.filter(t => !tintedTypes.includes(t));
+    const missingScales = requiredTypes.filter(t => !scaleTypes.includes(t));
+
+    // Check boss is larger than imp
+    const bossLarger = hasScales && renderer.enemyScales.boss > renderer.enemyScales.imp;
+
+    // Check each tinted sprite is a valid canvas
+    const validCanvases = tintedTypes.filter(t => {
+      const s = renderer.tintedSprites[t];
+      return s && s.width > 0 && s.height > 0;
+    });
+
+    // Check helper methods exist
+    const hasRgbToHsl = typeof renderer.rgbToHsl === 'function';
+    const hasHslToRgb = typeof renderer.hslToRgb === 'function';
+
+    return {
+      exists: true,
+      hasTintedSprites,
+      tintedTypes,
+      missingTints,
+      missingScales,
+      bossLarger,
+      validCanvases: validCanvases.length,
+      totalRequired: requiredTypes.length,
+      hasRgbToHsl,
+      hasHslToRgb
+    };
+  });
+
+  if (!visualData.exists) {
+    result.status = 'fail';
+    result.note = visualData.reason;
+    return;
+  }
+
+  const checks = [
+    ['tinted sprites object', visualData.hasTintedSprites],
+    ['all types have tints', visualData.missingTints.length === 0],
+    ['all types have scales', visualData.missingScales.length === 0],
+    ['boss larger than imp', visualData.bossLarger],
+    ['valid sprite canvases', visualData.validCanvases === visualData.totalRequired],
+    ['rgbToHsl helper', visualData.hasRgbToHsl],
+    ['hslToRgb helper', visualData.hasHslToRgb]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}${visualData.missingTints.length > 0 ? ` (missing tints: ${visualData.missingTints.join(', ')})` : ''}`;
+  } else {
+    result.status = 'pass';
+    result.note = `${visualData.tintedTypes.length} enemy types with unique color tints and scale factors`;
   }
 }
 

@@ -353,11 +353,33 @@ class Renderer {
     
     loadSprites() {
         console.log('Loading sprites...');
-        
+
+        // Enemy type color tints (hue shift in degrees, saturation multiplier, brightness multiplier)
+        this.enemyTints = {
+            imp:          { hue: 0,   sat: 1.0, bright: 1.0 },  // Red (original)
+            guard:        { hue: 180, sat: 0.9, bright: 1.1 },  // Blue/teal
+            soldier:      { hue: 100, sat: 0.8, bright: 0.9 },  // Green/brown
+            demon:        { hue: 280, sat: 1.2, bright: 0.8 },  // Dark purple
+            berserker:    { hue: 30,  sat: 1.3, bright: 1.1 },  // Orange
+            spitter:      { hue: 120, sat: 1.1, bright: 1.0 },  // Green
+            shield_guard: { hue: 200, sat: 0.9, bright: 1.2 },  // Cyan
+            boss:         { hue: 50,  sat: 0.7, bright: 1.3 }   // Gold
+        };
+
+        // Enemy type scale factors
+        this.enemyScales = {
+            imp: 0.6, guard: 0.7, soldier: 0.65, demon: 0.8,
+            berserker: 0.7, spitter: 0.55, shield_guard: 0.75, boss: 1.0
+        };
+
+        // Tinted sprite canvases (generated after base sprite loads)
+        this.tintedSprites = {};
+
         // Load imp sprite (transparent version)
         this.sprites.imp = new Image();
         this.sprites.imp.onload = () => {
             console.log('Transparent imp sprite loaded successfully');
+            this.generateTintedSprites();
         };
         this.sprites.imp.onerror = () => {
             console.error('Failed to load transparent imp sprite');
@@ -365,6 +387,99 @@ class Renderer {
             this.sprites.imp.src = 'assets/sprites/imp.png';
         };
         this.sprites.imp.src = 'assets/sprites/imp_fixed_transparent.png';
+    }
+
+    generateTintedSprites() {
+        const baseSprite = this.sprites.imp;
+        if (!baseSprite || !baseSprite.complete) return;
+
+        // Create a canvas to read the base sprite pixels
+        const srcCanvas = document.createElement('canvas');
+        srcCanvas.width = baseSprite.width;
+        srcCanvas.height = baseSprite.height;
+        const srcCtx = srcCanvas.getContext('2d');
+        srcCtx.drawImage(baseSprite, 0, 0);
+        const srcData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+
+        for (const [type, tint] of Object.entries(this.enemyTints)) {
+            const canvas = document.createElement('canvas');
+            canvas.width = baseSprite.width;
+            canvas.height = baseSprite.height;
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.createImageData(srcCanvas.width, srcCanvas.height);
+
+            for (let i = 0; i < srcData.data.length; i += 4) {
+                const r = srcData.data[i];
+                const g = srcData.data[i + 1];
+                const b = srcData.data[i + 2];
+                const a = srcData.data[i + 3];
+
+                if (a === 0) {
+                    imgData.data[i + 3] = 0;
+                    continue;
+                }
+
+                // Convert RGB to HSL
+                const hsl = this.rgbToHsl(r, g, b);
+                // Apply tint: shift hue, adjust saturation and brightness
+                hsl[0] = (hsl[0] + tint.hue / 360) % 1;
+                hsl[1] = Math.min(1, hsl[1] * tint.sat);
+                hsl[2] = Math.min(1, hsl[2] * tint.bright);
+                // Convert back to RGB
+                const rgb = this.hslToRgb(hsl[0], hsl[1], hsl[2]);
+
+                imgData.data[i] = rgb[0];
+                imgData.data[i + 1] = rgb[1];
+                imgData.data[i + 2] = rgb[2];
+                imgData.data[i + 3] = a;
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+            this.tintedSprites[type] = canvas;
+        }
+
+        console.log('Generated tinted sprites for enemy types:', Object.keys(this.tintedSprites).join(', '));
+    }
+
+    rgbToHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+
+        if (max === min) {
+            h = s = 0;
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                case g: h = ((b - r) / d + 2) / 6; break;
+                case b: h = ((r - g) / d + 4) / 6; break;
+            }
+        }
+        return [h, s, l];
+    }
+
+    hslToRgb(h, s, l) {
+        let r, g, b;
+        if (s === 0) {
+            r = g = b = l;
+        } else {
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+        }
+        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
     }
     
     loadTextures() {
@@ -515,17 +630,23 @@ class Renderer {
 
     renderSprite(spriteData, player) {
         const { entity, entityType, distance, angleDiff } = spriteData;
-        
+
         // Calculate screen position
         const screenX = this.width / 2 + (angleDiff / this.fov) * this.width;
-        
+
         if (entityType === 'enemy') {
-            // Render enemy sprite
-            const sprite = this.sprites.imp; // Use imp sprite for all enemies for now
-            if (!sprite || !sprite.complete) return;
-            
-            // Calculate sprite size based on distance
-            const spriteSize = (this.wallHeight * this.projectionDistance) / distance * 0.6;
+            // Get the tinted sprite for this enemy type, fall back to base imp
+            const enemyType = entity.type || 'imp';
+            const sprite = this.tintedSprites[enemyType] || this.sprites.imp;
+            if (!sprite) return;
+            // For Image objects check .complete; canvas elements are always ready
+            if (sprite instanceof Image && !sprite.complete) return;
+
+            // Scale factor per enemy type (boss is significantly larger)
+            const scaleFactor = this.enemyScales[enemyType] || 0.6;
+
+            // Calculate sprite size based on distance and type scale
+            const spriteSize = (this.wallHeight * this.projectionDistance) / distance * scaleFactor;
 
             // Calculate floor position at this distance (bottom of wall)
             const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
