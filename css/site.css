@@ -221,6 +221,83 @@ a:hover {
     color: #ff9b9b;
 }
 
+/* --- Difficulty Selection Overlay --- */
+.difficulty-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    border-radius: 2px;
+}
+
+.difficulty-overlay.hidden {
+    display: none;
+}
+
+.difficulty-title {
+    font-size: 1.8rem;
+    color: #ff6b6b;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    text-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+}
+
+.difficulty-options {
+    display: flex;
+    gap: 16px;
+}
+
+.difficulty-btn {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 24px 20px;
+    width: 200px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+}
+
+.difficulty-btn:hover {
+    border-color: #ff6b6b;
+    background: #1a1a1a;
+    transform: translateY(-2px);
+}
+
+.difficulty-name {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.difficulty-easy .difficulty-name { color: #4ecdc4; }
+.difficulty-normal .difficulty-name { color: #ff6b6b; }
+.difficulty-nightmare .difficulty-name { color: #ff2222; }
+
+.difficulty-easy:hover { border-color: #4ecdc4; }
+.difficulty-normal:hover { border-color: #ff6b6b; }
+.difficulty-nightmare:hover { border-color: #ff2222; }
+
+.difficulty-desc {
+    display: block;
+    color: #666;
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
 /* --- Game Section --- */
 .game-section {
     background: #080808;
@@ -711,6 +788,20 @@ a:hover {
 
     .game-wrapper {
         width: 100%;
+    }
+
+    .difficulty-options {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .difficulty-btn {
+        width: 100%;
+        max-width: 280px;
+    }
+
+    .difficulty-title {
+        font-size: 1.3rem;
     }
 
     .testing-flow {

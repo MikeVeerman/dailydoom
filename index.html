@@ -64,6 +64,24 @@
             </p>
             <div class="game-wrapper">
                 <canvas id="gameCanvas" width="800" height="600"></canvas>
+                <!-- Difficulty Selection Overlay -->
+                <div id="difficultyOverlay" class="difficulty-overlay">
+                    <div class="difficulty-title">Choose Your Fate</div>
+                    <div class="difficulty-options">
+                        <button class="difficulty-btn difficulty-easy" data-difficulty="easy">
+                            <span class="difficulty-name">Easy</span>
+                            <span class="difficulty-desc">For a casual stroll through the reactor. Enemies are weaker, you are tougher.</span>
+                        </button>
+                        <button class="difficulty-btn difficulty-normal" data-difficulty="normal">
+                            <span class="difficulty-name">Normal</span>
+                            <span class="difficulty-desc">The intended experience. Fair fights, balanced odds.</span>
+                        </button>
+                        <button class="difficulty-btn difficulty-nightmare" data-difficulty="nightmare">
+                            <span class="difficulty-name">Nightmare</span>
+                            <span class="difficulty-desc">More enemies. They hit harder. They move faster. Good luck.</span>
+                        </button>
+                    </div>
+                </div>
                 <div id="ui">
                     <div>Health: <span id="health">100</span></div>
                     <div>Ammo: <span id="ammo">50</span></div>

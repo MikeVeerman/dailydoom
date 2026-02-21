@@ -66,6 +66,12 @@ async function main() {
     process.exit(1);
   }
 
+  // Click difficulty selection (Normal) to start the game
+  const difficultyBtn = await page.$('.difficulty-btn[data-difficulty="normal"]');
+  if (difficultyBtn) {
+    await difficultyBtn.click();
+  }
+
   // Wait for the game to initialize
   await page.waitForTimeout(2000);
 
