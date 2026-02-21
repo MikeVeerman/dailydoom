@@ -21,6 +21,11 @@ async function T1_01_noConsoleErrors(page, result) {
   });
 
   await page.reload({ waitUntil: 'networkidle' });
+
+  // Click difficulty selection to start the game
+  const diffBtn = await page.$('.difficulty-btn[data-difficulty="normal"]');
+  if (diffBtn) await diffBtn.click();
+
   await page.waitForTimeout(2000);
 
   if (errors.length > 0) {
@@ -595,6 +600,7 @@ const TIER_2_TESTS = [
   { id: 'T2-19', name: 'No Game loaded popup on start', fn: T2_19_noGameLoadedPopup }, // issue: #31
   { id: 'T2-20', name: 'Multi-room reactor map', fn: T2_20_multiRoomMap }, // issue: #33
   { id: 'T2-21', name: 'Minimap system', fn: T2_21_minimapSystem }, // issue: #34
+  { id: 'T2-22', name: 'Difficulty selection system', fn: T2_22_difficultySelection }, // issue: #35
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1494,6 +1500,11 @@ async function T2_19_noGameLoadedPopup(page, result) {
   // T2-19: No "Game loaded" popup on start (issue: #31)
   // Pass condition: No overlay/popup with "Game loaded" text appears after page load
   await page.reload({ waitUntil: 'networkidle' });
+
+  // Click difficulty selection to start the game
+  const diffBtn = await page.$('.difficulty-btn[data-difficulty="normal"]');
+  if (diffBtn) await diffBtn.click();
+
   await page.waitForTimeout(3000);
 
   const popupFound = await page.evaluate(() => {
@@ -1590,6 +1601,84 @@ async function T2_20_multiRoomMap(page, result) {
     result.status = 'fail';
     result.note = `Map checks: expanded=${mapData.isExpanded}, wallTypes=${mapData.wallTypeCount}, quadrants=${mapData.quadrantsCovered}, pickups=${mapData.hasPickups}`;
   }
+}
+
+async function T2_22_difficultySelection(page, result) {
+  // T2-22: Difficulty selection system (issue: #35)
+  // Pass condition: Difficulty overlay exists, CONFIG has difficulty settings, game applies them
+  // Reload to get fresh difficulty screen
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(1000);
+
+  // Check overlay is visible
+  const overlayData = await page.evaluate(() => {
+    const overlay = document.getElementById('difficultyOverlay');
+    if (!overlay) return { exists: false, reason: 'Overlay not found' };
+
+    const buttons = overlay.querySelectorAll('.difficulty-btn');
+    const labels = Array.from(buttons).map(b => b.getAttribute('data-difficulty'));
+    const isVisible = !overlay.classList.contains('hidden');
+
+    return {
+      exists: true,
+      isVisible,
+      buttonCount: buttons.length,
+      difficulties: labels,
+      hasDifficultyConfig: typeof window.DIFFICULTY !== 'undefined',
+      configKeys: typeof window.DIFFICULTY !== 'undefined' ? Object.keys(window.DIFFICULTY) : []
+    };
+  });
+
+  if (!overlayData.exists) {
+    result.status = 'fail';
+    result.note = overlayData.reason;
+    return;
+  }
+
+  // Click Easy to test difficulty application
+  const easyBtn = await page.$('.difficulty-btn[data-difficulty="easy"]');
+  if (easyBtn) await easyBtn.click();
+  await page.waitForTimeout(2000);
+
+  const gameData = await page.evaluate(() => {
+    if (!window.game || !window.game.player) return { started: false };
+
+    return {
+      started: true,
+      difficulty: window.CONFIG.difficulty,
+      playerHealth: window.game.player.maxHealth,
+      overlayHidden: document.getElementById('difficultyOverlay').classList.contains('hidden')
+    };
+  });
+
+  const checks = [
+    ['overlay visible before selection', overlayData.isVisible],
+    ['3 difficulty buttons', overlayData.buttonCount === 3],
+    ['has easy option', overlayData.difficulties.includes('easy')],
+    ['has normal option', overlayData.difficulties.includes('normal')],
+    ['has nightmare option', overlayData.difficulties.includes('nightmare')],
+    ['difficulty config exists', overlayData.hasDifficultyConfig],
+    ['game started after selection', gameData.started],
+    ['difficulty stored in config', gameData.difficulty === 'easy'],
+    ['overlay hidden after selection', gameData.overlayHidden],
+    ['easy gives more health', gameData.playerHealth > 100]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Difficulty selection works: ${overlayData.buttonCount} options, Easy gives ${gameData.playerHealth} HP`;
+  }
+
+  // Re-select Normal for remaining tests
+  await page.reload({ waitUntil: 'networkidle' });
+  const normalBtn = await page.$('.difficulty-btn[data-difficulty="normal"]');
+  if (normalBtn) await normalBtn.click();
+  await page.waitForTimeout(2000);
 }
 
 async function T2_21_minimapSystem(page, result) {

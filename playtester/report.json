@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-02-18T18:58:54.376Z",
-  "passed": 23,
+  "timestamp": "2026-02-21T23:27:33.530Z",
+  "passed": 31,
   "failed": 0,
   "skipped": 3,
   "results": [
@@ -12,7 +12,7 @@
     {
       "id": "T1-02",
       "status": "pass",
-      "note": "Canvas size: 802x602"
+      "note": "Canvas size: 800x600"
     },
     {
       "id": "T1-03",
@@ -27,12 +27,12 @@
     {
       "id": "T1-05",
       "status": "pass",
-      "note": "FPS: 26"
+      "note": "FPS: 28"
     },
     {
       "id": "T1-06",
       "status": "pass",
-      "note": "Moved from (160, 160) to (388, 160)"
+      "note": "Moved from (160, 160) to (385, 160)"
     },
     {
       "id": "T1-07",
@@ -47,7 +47,7 @@
     {
       "id": "T1-09",
       "status": "pass",
-      "note": "FPS: 33 (threshold: 20)"
+      "note": "FPS: 32 (threshold: 20)"
     },
     {
       "id": "T2-01",
@@ -92,7 +92,7 @@
     {
       "id": "T2-09",
       "status": "pass",
-      "note": "A* pathfinding works (6 waypoints), 9 enemies with varied speeds"
+      "note": "A* pathfinding works (12 waypoints), 9 enemies with varied speeds"
     },
     {
       "id": "T2-10",
@@ -107,7 +107,7 @@
     {
       "id": "T2-12",
       "status": "pass",
-      "note": "8 enemy types (guard, imp, demon, soldier, berserker, spitter, shield_guard, boss), boss with high HP, 9 total enemies"
+      "note": "8 enemy types (guard, imp, demon, berserker, soldier, spitter, shield_guard, boss), boss with high HP, 9 total enemies"
     },
     {
       "id": "T2-13",
@@ -118,6 +118,46 @@
       "id": "T2-14",
       "status": "pass",
       "note": "Particle system with blood, muzzle, explosion emitters and screen shake"
+    },
+    {
+      "id": "T2-15",
+      "status": "pass",
+      "note": "Sprite occlusion correctly detects walls in all test cases (step size 4, normalized rays)"
+    },
+    {
+      "id": "T2-16",
+      "status": "pass",
+      "note": "8 enemy types with unique color tints and scale factors"
+    },
+    {
+      "id": "T2-17",
+      "status": "pass",
+      "note": "7/9 enemies moved, 8 distinct speeds"
+    },
+    {
+      "id": "T2-18",
+      "status": "pass",
+      "note": "All 10 core systems initialized and operational"
+    },
+    {
+      "id": "T2-19",
+      "status": "pass",
+      "note": "No \"Game loaded\" popup detected on page load"
+    },
+    {
+      "id": "T2-20",
+      "status": "pass",
+      "note": "24x24 map, 7 wall types [1,2,3,4,5,6,9], 9 enemies in 4 quadrants, 6 pickups"
+    },
+    {
+      "id": "T2-21",
+      "status": "pass",
+      "note": "Minimap system functional with M key toggle"
+    },
+    {
+      "id": "T2-22",
+      "status": "pass",
+      "note": "Difficulty selection works: 3 options, Easy gives 150 HP"
     },
     {
       "id": "T3-01",

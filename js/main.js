@@ -24,46 +24,158 @@ const CONFIG = {
         targetFPS: 60,
         showFPS: true,
         enableProfiling: false
+    },
+    difficulty: 'normal'
+};
+
+// Difficulty presets
+const DIFFICULTY = {
+    easy: {
+        label: 'Easy',
+        enemyHealthMultiplier: 0.6,
+        enemyDamageMultiplier: 0.5,
+        enemySpeedMultiplier: 0.8,
+        playerHealth: 150,
+        extraEnemies: 0
+    },
+    normal: {
+        label: 'Normal',
+        enemyHealthMultiplier: 1.0,
+        enemyDamageMultiplier: 1.0,
+        enemySpeedMultiplier: 1.0,
+        playerHealth: 100,
+        extraEnemies: 0
+    },
+    nightmare: {
+        label: 'Nightmare',
+        enemyHealthMultiplier: 1.5,
+        enemyDamageMultiplier: 1.5,
+        enemySpeedMultiplier: 1.3,
+        playerHealth: 75,
+        extraEnemies: 4
     }
 };
 
 // Initialization
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, initializing game...');
-    
+    console.log('DOM loaded, waiting for difficulty selection...');
+
     // Get canvas element
     const canvas = document.getElementById(CONFIG.canvas.id);
     if (!canvas) {
         console.error('Canvas element not found!');
         return;
     }
-    
+
     // Setup canvas
     setupCanvas(canvas);
-    
-    // Create and start game
+
+    // Setup resize handling
+    setupResizeHandling(canvas);
+
+    // Setup difficulty selection
+    setupDifficultySelection(canvas);
+});
+
+function setupDifficultySelection(canvas) {
+    const overlay = document.getElementById('difficultyOverlay');
+    if (!overlay) {
+        // No overlay found, start with default difficulty
+        startGame(canvas, 'normal');
+        return;
+    }
+
+    const buttons = overlay.querySelectorAll('.difficulty-btn');
+    buttons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const difficulty = btn.getAttribute('data-difficulty');
+            overlay.classList.add('hidden');
+            startGame(canvas, difficulty);
+        });
+    });
+}
+
+function startGame(canvas, difficulty) {
+    CONFIG.difficulty = difficulty;
+    console.log('Starting game with difficulty:', difficulty);
+
     try {
         game = new GameEngine(canvas);
-        
+
         // Expose game instance globally for cross-system access
         window.game = game;
-        
+
+        // Apply difficulty settings
+        applyDifficulty(difficulty);
+
         // Setup event listeners
         setupEventListeners();
-        
-        // Setup resize handling
-        setupResizeHandling(canvas);
-        
+
         // Start the game
         game.start();
-        
+
         console.log('Game started successfully!');
-        
+
     } catch (error) {
         console.error('Failed to initialize game:', error);
         showError('Failed to load game. Please refresh the page.');
     }
-});
+}
+
+function applyDifficulty(difficulty) {
+    const settings = DIFFICULTY[difficulty];
+    if (!settings || !game) return;
+
+    console.log('Applying difficulty:', settings.label);
+
+    // Scale player health
+    game.player.maxHealth = settings.playerHealth;
+    game.player.health = settings.playerHealth;
+
+    // Scale all enemies
+    game.map.enemies.forEach(function(enemy) {
+        enemy.health = Math.round(enemy.health * settings.enemyHealthMultiplier);
+        enemy.maxHealth = Math.round(enemy.maxHealth * settings.enemyHealthMultiplier);
+        enemy.speed = Math.round(enemy.speed * settings.enemySpeedMultiplier);
+
+        if (enemy.enhancedAI) {
+            enemy.enhancedAI.behavior.damage = Math.round(
+                enemy.enhancedAI.behavior.damage * settings.enemyDamageMultiplier
+            );
+            enemy.enhancedAI.behavior.speed = Math.round(
+                enemy.enhancedAI.behavior.speed * settings.enemySpeedMultiplier
+            );
+        }
+    });
+
+    // Nightmare: spawn extra enemies
+    if (settings.extraEnemies > 0) {
+        var extraTypes = ['imp', 'guard', 'soldier', 'berserker'];
+        var tileSize = game.map.tileSize;
+        for (var i = 0; i < settings.extraEnemies; i++) {
+            // Spawn in open corridor areas
+            var spawnPoints = [
+                { x: 14 * tileSize, y: 8 * tileSize },
+                { x: 4 * tileSize, y: 16 * tileSize },
+                { x: 12 * tileSize, y: 16 * tileSize },
+                { x: 8 * tileSize, y: 12 * tileSize }
+            ];
+            var sp = spawnPoints[i % spawnPoints.length];
+            var enemyType = extraTypes[i % extraTypes.length];
+            var extra = new Enemy(sp.x, sp.y, enemyType);
+            extra.health = Math.round(extra.health * settings.enemyHealthMultiplier);
+            extra.maxHealth = Math.round(extra.maxHealth * settings.enemyHealthMultiplier);
+            extra.speed = Math.round(extra.speed * settings.enemySpeedMultiplier);
+            if (extra.enhancedAI) {
+                extra.enhancedAI.behavior.damage = Math.round(
+                    extra.enhancedAI.behavior.damage * settings.enemyDamageMultiplier
+                );
+            }
+            game.map.enemies.push(extra);
+            console.log('Spawned extra ' + enemyType + ' for Nightmare mode');
+        }
+    }
+}
 
 function setupCanvas(canvas) {
     const ctx = canvas.getContext('2d');
@@ -292,3 +404,4 @@ if (CONFIG.performance.enableProfiling) {
 
 // Export for global access
 window.CONFIG = CONFIG;
+window.DIFFICULTY = DIFFICULTY;
