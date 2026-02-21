@@ -298,6 +298,11 @@ class GameEngine {
                     this.hud.toggleWeaponSprite();
                     console.log('Weapon Sprite:', this.hud.showWeaponSprite ? 'ON' : 'OFF');
                     break;
+
+                case 'm':
+                    this.hud.toggleMinimap();
+                    console.log('Minimap:', this.hud.showMinimap ? 'ON' : 'OFF');
+                    break;
             }
         });
     }

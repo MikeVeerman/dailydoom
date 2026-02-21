@@ -22,6 +22,7 @@ class HUD {
         this.showDebugInfo = false;
         this.showCrosshair = true;
         this.showWeaponSprite = true;
+        this.showMinimap = true;
         
         // Animation
         this.lastDamageTime = 0;
@@ -96,6 +97,11 @@ class HUD {
 
             // Render XP bar and level
             this.renderProgressionHUD(player);
+
+            // Render minimap
+            if (this.showMinimap && gameEngine && gameEngine.map) {
+                this.renderMinimap(player, gameEngine);
+            }
 
             // Render floating damage numbers and impact effects
             this.renderDamageNumbers(player, gameEngine);
@@ -771,7 +777,87 @@ class HUD {
         }
     }
     
+    renderMinimap(player, gameEngine) {
+        const map = gameEngine.map;
+        const size = 150;
+        const padding = 10;
+        const mapX = this.canvas.width - size - padding;
+        const mapY = padding;
+
+        // Semi-transparent background
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        this.ctx.fillRect(mapX, mapY, size, size);
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        this.ctx.strokeRect(mapX, mapY, size, size);
+
+        const cellW = size / map.width;
+        const cellH = size / map.height;
+
+        // Draw walls
+        for (let gy = 0; gy < map.height; gy++) {
+            for (let gx = 0; gx < map.width; gx++) {
+                if (map.grid[gy][gx] > 0) {
+                    const wallType = map.grid[gy][gx];
+                    switch (wallType) {
+                        case 1: this.ctx.fillStyle = '#555555'; break;
+                        case 2: this.ctx.fillStyle = '#884444'; break;
+                        case 3: this.ctx.fillStyle = '#448888'; break;
+                        case 4: this.ctx.fillStyle = '#446688'; break;
+                        case 5: this.ctx.fillStyle = '#888866'; break;
+                        case 6: this.ctx.fillStyle = '#666644'; break;
+                        case 9: this.ctx.fillStyle = '#886600'; break;
+                        default: this.ctx.fillStyle = '#444444'; break;
+                    }
+                    this.ctx.fillRect(
+                        mapX + gx * cellW,
+                        mapY + gy * cellH,
+                        Math.ceil(cellW),
+                        Math.ceil(cellH)
+                    );
+                }
+            }
+        }
+
+        // Draw enemies
+        const enemies = map.enemies;
+        for (const enemy of enemies) {
+            if (!enemy.active) continue;
+            const ex = mapX + (enemy.x / map.tileSize) * cellW;
+            const ey = mapY + (enemy.y / map.tileSize) * cellH;
+            this.ctx.fillStyle = enemy.type === 'boss' ? '#FFD700' : '#FF4444';
+            this.ctx.beginPath();
+            this.ctx.arc(ex, ey, Math.max(cellW * 0.6, 2), 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+
+        // Draw player position and facing direction
+        const px = mapX + (player.x / map.tileSize) * cellW;
+        const py = mapY + (player.y / map.tileSize) * cellH;
+
+        // Player direction line
+        const dirLen = 8;
+        this.ctx.strokeStyle = '#00FF00';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(px, py);
+        this.ctx.lineTo(px + Math.cos(player.angle) * dirLen, py + Math.sin(player.angle) * dirLen);
+        this.ctx.stroke();
+
+        // Player dot
+        this.ctx.fillStyle = '#00FF00';
+        this.ctx.beginPath();
+        this.ctx.arc(px, py, 3, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Reset line width
+        this.ctx.lineWidth = 1;
+    }
+
     // Toggle functions
+    toggleMinimap() {
+        this.showMinimap = !this.showMinimap;
+    }
+
     toggleFPS() {
         this.showFPS = !this.showFPS;
     }
