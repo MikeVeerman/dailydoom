@@ -26,7 +26,7 @@ class HUD {
         
         // Animation
         this.lastDamageTime = 0;
-        this.damageFlashDuration = 300;
+        this.damageFlashDuration = 200;
 
         // Floating damage numbers
         this.damageNumbers = [];
@@ -480,12 +480,49 @@ class HUD {
     
     renderDamageFlash(player) {
         const now = Date.now();
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Damage flash: brief red overlay on hit (~200ms)
         const timeSinceDamage = now - this.lastDamageTime;
-        
         if (timeSinceDamage < this.damageFlashDuration) {
             const alpha = 1 - (timeSinceDamage / this.damageFlashDuration);
-            this.ctx.fillStyle = `rgba(255, 0, 0, ${alpha * 0.3})`;
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.fillStyle = `rgba(255, 0, 0, ${alpha * 0.4})`;
+            this.ctx.fillRect(0, 0, w, h);
+        }
+
+        // Low-health pulse: vignette red border when health < 25%
+        if (player.health > 0 && player.health < player.maxHealth * 0.25) {
+            const pulseAlpha = (Math.sin(now * 0.005) * 0.5 + 0.5) * 0.35;
+            const edgeSize = 80;
+
+            // Top edge
+            const gradTop = this.ctx.createLinearGradient(0, 0, 0, edgeSize);
+            gradTop.addColorStop(0, `rgba(255, 0, 0, ${pulseAlpha})`);
+            gradTop.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            this.ctx.fillStyle = gradTop;
+            this.ctx.fillRect(0, 0, w, edgeSize);
+
+            // Bottom edge
+            const gradBottom = this.ctx.createLinearGradient(0, h, 0, h - edgeSize);
+            gradBottom.addColorStop(0, `rgba(255, 0, 0, ${pulseAlpha})`);
+            gradBottom.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            this.ctx.fillStyle = gradBottom;
+            this.ctx.fillRect(0, h - edgeSize, w, edgeSize);
+
+            // Left edge
+            const gradLeft = this.ctx.createLinearGradient(0, 0, edgeSize, 0);
+            gradLeft.addColorStop(0, `rgba(255, 0, 0, ${pulseAlpha})`);
+            gradLeft.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            this.ctx.fillStyle = gradLeft;
+            this.ctx.fillRect(0, 0, edgeSize, h);
+
+            // Right edge
+            const gradRight = this.ctx.createLinearGradient(w, 0, w - edgeSize, 0);
+            gradRight.addColorStop(0, `rgba(255, 0, 0, ${pulseAlpha})`);
+            gradRight.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            this.ctx.fillStyle = gradRight;
+            this.ctx.fillRect(w - edgeSize, 0, edgeSize, h);
         }
     }
     
