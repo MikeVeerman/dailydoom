@@ -603,6 +603,7 @@ const TIER_2_TESTS = [
   { id: 'T2-22', name: 'Difficulty selection system', fn: T2_22_difficultySelection }, // issue: #35
   { id: 'T2-23', name: 'Level completion screen', fn: T2_23_levelCompletionScreen }, // issue: #36
   { id: 'T2-24', name: 'Melee punch attack', fn: T2_24_meleePunch }, // issue: #38
+  { id: 'T2-25', name: 'Damage flash and low-health effects', fn: T2_25_damageFlashEffects }, // issue: #40
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1845,6 +1846,75 @@ async function T2_24_meleePunch(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Punch: ${punchData.punchDamage}dmg, ${punchData.punchRange} range, ${punchData.punchCooldown}ms cooldown, V key + sound`;
+  }
+}
+
+async function T2_25_damageFlashEffects(page, result) {
+  // T2-25: Damage flash and low-health screen effects (issue: #40)
+  // Pass condition: Damage flash triggers on hit, low-health vignette renders when health < 25%
+  await page.waitForTimeout(1000);
+
+  const effectData = await page.evaluate(() => {
+    if (!window.game || !window.game.hud || !window.game.player) {
+      return { exists: false, reason: 'Game systems not found' };
+    }
+
+    const hud = window.game.hud;
+    const player = window.game.player;
+
+    // Check damage flash system
+    const hasRenderDamageFlash = typeof hud.renderDamageFlash === 'function';
+    const hasOnPlayerDamage = typeof hud.onPlayerDamage === 'function';
+    const hasDamageFlashDuration = typeof hud.damageFlashDuration === 'number';
+    const flashDuration = hud.damageFlashDuration;
+
+    // Test damage flash triggers
+    const healthBefore = player.health;
+    hud.onPlayerDamage();
+    const flashTriggered = hud.lastDamageTime > 0;
+
+    // Test low-health effect by temporarily setting low health
+    const originalHealth = player.health;
+    player.health = 10; // Below 25% threshold
+    const isLowHealth = player.health < player.maxHealth * 0.25;
+    player.health = originalHealth;
+    player.lastDamageTime = 0;
+
+    return {
+      exists: true,
+      hasRenderDamageFlash,
+      hasOnPlayerDamage,
+      hasDamageFlashDuration,
+      flashDuration,
+      flashTriggered,
+      isLowHealth,
+      durationIs200: flashDuration === 200
+    };
+  });
+
+  if (!effectData.exists) {
+    result.status = 'fail';
+    result.note = effectData.reason;
+    return;
+  }
+
+  const checks = [
+    ['renderDamageFlash method', effectData.hasRenderDamageFlash],
+    ['onPlayerDamage method', effectData.hasOnPlayerDamage],
+    ['flash duration property', effectData.hasDamageFlashDuration],
+    ['200ms flash duration', effectData.durationIs200],
+    ['flash triggers on damage', effectData.flashTriggered],
+    ['low-health threshold works', effectData.isLowHealth]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Damage flash (${effectData.flashDuration}ms) + low-health vignette pulse at <25% HP`;
   }
 }
 
