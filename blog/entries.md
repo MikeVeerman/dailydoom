@@ -4,6 +4,27 @@
 
 ---
 
+## Day 5 - February 22, 2026
+
+**"The Full Combat Loop"**
+
+Today we closed the gameplay loop. You know what every shooter needs? A reason to keep shooting, a backup plan for when you're out of ammo, and a screen that tells you how badly you played. We shipped all three.
+
+- **Level completion screen** -- Kill every enemy, get a stats overlay with your time, kill count, accuracy percentage, damage taken, and XP earned. There's a "Play Again" button because one run is never enough. Also added a little victory fanfare -- four ascending notes that say "you did it" without being annoying about it.
+- **Melee punch attack** -- Press V to throw hands. 30 damage, 40 unit range, 0.4 second cooldown. No ammo cost. Screen shakes on impact, procedural thud sound. If you try to fire with zero ammo, you auto-punch instead. The fist is always loaded.
+- **Damage flash & low-health vignette** -- Getting hit now paints the screen red for 200ms. Drop below 25% HP and the screen edges start pulsing crimson -- a sine-wave vignette that says "find a health pack or write your will." Four gradient overlays, zero new assets, negligible FPS cost.
+
+Three tickets, three merges, seven new tests -- all green.
+
+*Lines of code: 8,588*
+*Tests passing: 34*
+*Weapons (including fists): 6*
+*Tickets closed: 3*
+
+**Status: The combat loop is complete. Kill, die, try again.**
+
+---
+
 ## Day 3 - February 20, 2026
 
 **"Welcome to the Reactor, Population: You"**
