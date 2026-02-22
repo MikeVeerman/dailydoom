@@ -60,7 +60,13 @@ class Player {
 
         // Weapon system
         this.weaponManager = new WeaponManager();
-        
+
+        // Melee punch system
+        this.punchDamage = 30;
+        this.punchRange = 40;
+        this.punchCooldown = 400; // ms
+        this.lastPunchTime = 0;
+
         // Power-up effects
         this.speedBoostEndTime = 0;
         this.damageBoostEndTime = 0;
@@ -186,12 +192,22 @@ class Player {
         if (inputManager.isUsingItem()) {
             this.useItem();
         }
-        
-        // Shooting
-        if (inputManager.isShooting()) {
-            this.shoot(map);
+
+        // Punching (V key)
+        if (inputManager.isPunching()) {
+            this.punch(map);
         }
-        
+
+        // Shooting — auto-punch if all ammo depleted
+        if (inputManager.isShooting()) {
+            const weapon = this.weaponManager.getCurrentWeapon();
+            if (weapon.ammo <= 0 && weapon.maxAmmo <= 0 && !weapon.isReloading) {
+                this.punch(map);
+            } else {
+                this.shoot(map);
+            }
+        }
+
         // Reload
         if (inputManager.isKeyPressed('reload')) {
             this.reload();
@@ -374,6 +390,84 @@ class Player {
         }
     }
     
+    punch(map) {
+        const now = Date.now();
+        if (now - this.lastPunchTime < this.punchCooldown) return;
+        this.lastPunchTime = now;
+
+        // Track shot for stats
+        if (this.stats) this.stats.shotsFired++;
+
+        // Play punch sound
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playPunch();
+        }
+
+        // Screen shake + forward lunge effect
+        if (window.game && window.game.hud) {
+            window.game.hud.triggerScreenShake(4);
+        }
+
+        // Check for enemies within melee range
+        let closestEnemy = null;
+        let closestDist = this.punchRange;
+
+        if (map && map.enemies) {
+            for (const enemy of map.enemies) {
+                if (!enemy.active) continue;
+                const dx = enemy.x - this.x;
+                const dy = enemy.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                // Check if enemy is roughly in front of the player (within 90 degrees)
+                const angleToEnemy = Math.atan2(dy, dx);
+                let angleDiff = angleToEnemy - this.angle;
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+                if (dist < closestDist && Math.abs(angleDiff) < Math.PI / 2) {
+                    closestEnemy = enemy;
+                    closestDist = dist;
+                }
+            }
+        }
+
+        if (closestEnemy) {
+            let damage = this.punchDamage;
+
+            // Apply damage boost
+            if (this.hasDamageBoost && this.hasDamageBoost()) {
+                damage = Math.round(damage * 1.5);
+            }
+            if (this.levelBonuses) {
+                damage = Math.round(damage * this.levelBonuses.damageMultiplier);
+            }
+
+            if (this.stats) {
+                this.stats.shotsHit++;
+                this.stats.damageDealt += damage;
+            }
+
+            const wasAlive = closestEnemy.active;
+            closestEnemy.takeDamage(damage);
+
+            if (wasAlive && !closestEnemy.active) {
+                if (this.stats) this.stats.enemiesKilled++;
+                const xpTable = { imp: 15, guard: 20, soldier: 30, demon: 40, berserker: 35, spitter: 25, shield_guard: 45, boss: 200 };
+                if (this.addXP) this.addXP(xpTable[closestEnemy.type] || 20);
+            }
+
+            // Visual feedback
+            closestEnemy.hitFlashTime = Date.now();
+            if (window.game && window.game.hud) {
+                window.game.hud.emitBloodParticles(closestEnemy.x, closestEnemy.y, wasAlive && !closestEnemy.active ? 12 : 5);
+                window.game.hud.addDamageNumber(closestEnemy.x, closestEnemy.y, damage, false);
+            }
+
+            console.log(`Punch hit ${closestEnemy.type} for ${damage} damage!`);
+        }
+    }
+
     reload() {
         const success = this.weaponManager.reload();
         if (success) {

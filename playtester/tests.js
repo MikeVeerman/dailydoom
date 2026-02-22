@@ -602,6 +602,7 @@ const TIER_2_TESTS = [
   { id: 'T2-21', name: 'Minimap system', fn: T2_21_minimapSystem }, // issue: #34
   { id: 'T2-22', name: 'Difficulty selection system', fn: T2_22_difficultySelection }, // issue: #35
   { id: 'T2-23', name: 'Level completion screen', fn: T2_23_levelCompletionScreen }, // issue: #36
+  { id: 'T2-24', name: 'Melee punch attack', fn: T2_24_meleePunch }, // issue: #38
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1793,6 +1794,57 @@ async function T2_23_levelCompletionScreen(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Level completion system: ${completionData.totalEnemies} enemies tracked, stats + restart + victory sound`;
+  }
+}
+
+async function T2_24_meleePunch(page, result) {
+  // T2-24: Melee punch attack (issue: #38)
+  // Pass condition: Punch system exists with correct damage, range, cooldown, sound
+  await page.waitForTimeout(1000);
+
+  const punchData = await page.evaluate(() => {
+    if (!window.game || !window.game.player) {
+      return { exists: false, reason: 'Player not found' };
+    }
+
+    const p = window.game.player;
+
+    return {
+      exists: true,
+      hasPunchMethod: typeof p.punch === 'function',
+      punchDamage: p.punchDamage,
+      punchRange: p.punchRange,
+      punchCooldown: p.punchCooldown,
+      hasPunchSound: window.soundEngine && typeof window.soundEngine.playPunch === 'function',
+      hasVKey: window.game.inputManager && window.game.inputManager.keyMap['KeyV'] === 'punch',
+      hasIsPunching: typeof window.game.inputManager.isPunching === 'function'
+    };
+  });
+
+  if (!punchData.exists) {
+    result.status = 'fail';
+    result.note = punchData.reason;
+    return;
+  }
+
+  const checks = [
+    ['punch method', punchData.hasPunchMethod],
+    ['30 damage', punchData.punchDamage === 30],
+    ['40 range', punchData.punchRange === 40],
+    ['400ms cooldown', punchData.punchCooldown === 400],
+    ['punch sound', punchData.hasPunchSound],
+    ['V key binding', punchData.hasVKey],
+    ['isPunching query', punchData.hasIsPunching]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Punch: ${punchData.punchDamage}dmg, ${punchData.punchRange} range, ${punchData.punchCooldown}ms cooldown, V key + sound`;
   }
 }
 

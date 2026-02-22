@@ -49,6 +49,7 @@ class InputManager {
             
             // Weapon/interaction
             'KeyX': 'fire',
+            'KeyV': 'punch',
             'KeyE': 'use',
             'KeyR': 'reload',
             'KeyQ': 'weapon1',
@@ -306,6 +307,10 @@ class InputManager {
     
     isShooting() {
         return this.mouse.leftButton || this.isKeyDown('fire');
+    }
+
+    isPunching() {
+        return this.isKeyPressed('punch');
     }
     
     // Debug
