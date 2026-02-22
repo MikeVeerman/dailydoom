@@ -601,6 +601,7 @@ const TIER_2_TESTS = [
   { id: 'T2-20', name: 'Multi-room reactor map', fn: T2_20_multiRoomMap }, // issue: #33
   { id: 'T2-21', name: 'Minimap system', fn: T2_21_minimapSystem }, // issue: #34
   { id: 'T2-22', name: 'Difficulty selection system', fn: T2_22_difficultySelection }, // issue: #35
+  { id: 'T2-23', name: 'Level completion screen', fn: T2_23_levelCompletionScreen }, // issue: #36
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1737,6 +1738,61 @@ async function T2_21_minimapSystem(page, result) {
   } else {
     result.status = 'pass';
     result.note = 'Minimap system functional with M key toggle';
+  }
+}
+
+async function T2_23_levelCompletionScreen(page, result) {
+  // T2-23: Level completion screen with stats (issue: #36)
+  // Pass condition: Completion tracking exists, stats are tracked, restart method available
+  await page.waitForTimeout(1000);
+
+  const completionData = await page.evaluate(() => {
+    if (!window.game) return { exists: false, reason: 'Game not found' };
+
+    const g = window.game;
+    const p = g.player;
+
+    return {
+      exists: true,
+      hasLevelComplete: typeof g.levelComplete === 'boolean',
+      hasTotalEnemyCount: typeof g.totalEnemyCount === 'number',
+      hasLevelStartTime: typeof g.levelStartTime === 'number',
+      hasCheckLevelComplete: typeof g.checkLevelComplete === 'function',
+      hasRestartLevel: typeof g.restartLevel === 'function',
+      hasRenderCompletionScreen: typeof g.renderCompletionScreen === 'function',
+      hasStats: p.stats && typeof p.stats.shotsFired === 'number' && typeof p.stats.shotsHit === 'number',
+      hasTimeSurvived: p.stats && typeof p.stats.timeSurvived === 'number',
+      hasVictorySound: window.soundEngine && typeof window.soundEngine.playLevelComplete === 'function',
+      totalEnemies: g.totalEnemyCount
+    };
+  });
+
+  if (!completionData.exists) {
+    result.status = 'fail';
+    result.note = completionData.reason;
+    return;
+  }
+
+  const checks = [
+    ['levelComplete flag', completionData.hasLevelComplete],
+    ['totalEnemyCount', completionData.hasTotalEnemyCount],
+    ['levelStartTime', completionData.hasLevelStartTime],
+    ['checkLevelComplete method', completionData.hasCheckLevelComplete],
+    ['restartLevel method', completionData.hasRestartLevel],
+    ['renderCompletionScreen method', completionData.hasRenderCompletionScreen],
+    ['player stats tracking', completionData.hasStats],
+    ['time survived stat', completionData.hasTimeSurvived],
+    ['victory sound', completionData.hasVictorySound]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Level completion system: ${completionData.totalEnemies} enemies tracked, stats + restart + victory sound`;
   }
 }
 

@@ -405,6 +405,37 @@ class SoundEngine {
         }
     }
 
+    // Level complete victory fanfare
+    playLevelComplete() {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Three ascending chords
+        const notes = [
+            { freq: 262, delay: 0 },    // C4
+            { freq: 330, delay: 0.15 },  // E4
+            { freq: 392, delay: 0.3 },   // G4
+            { freq: 523, delay: 0.5 }    // C5
+        ];
+
+        for (const note of notes) {
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(note.freq, now + note.delay);
+
+            gain.gain.setValueAtTime(0, now + note.delay);
+            gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.5, now + note.delay + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + note.delay + 0.6);
+
+            osc.start(now + note.delay);
+            osc.stop(now + note.delay + 0.6);
+        }
+    }
+
     // Environmental sound effect
     playDoorSound() {
         if (!this.isInitialized) return;
