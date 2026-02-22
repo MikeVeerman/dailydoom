@@ -405,6 +405,50 @@ class SoundEngine {
         }
     }
 
+    // Melee punch sound
+    playPunch() {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Low thud with noise burst
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(100, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.7, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+        osc.start(now);
+        osc.stop(now + 0.15);
+
+        // Impact noise burst
+        const noiseBuffer = this.createNoiseBuffer(0.06);
+        const noiseSource = this.audioContext.createBufferSource();
+        const noiseGain = this.audioContext.createGain();
+        const filter = this.audioContext.createBiquadFilter();
+
+        noiseSource.buffer = noiseBuffer;
+        noiseSource.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.masterGain);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(400, now);
+
+        noiseGain.gain.setValueAtTime(0, now);
+        noiseGain.gain.linearRampToValueAtTime(this.sfxVolume * 0.5, now + 0.005);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+        noiseSource.start(now);
+        noiseSource.stop(now + 0.08);
+    }
+
     // Level complete victory fanfare
     playLevelComplete() {
         if (!this.isInitialized) return;
