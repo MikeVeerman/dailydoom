@@ -405,3 +405,4 @@ if (CONFIG.performance.enableProfiling) {
 // Export for global access
 window.CONFIG = CONFIG;
 window.DIFFICULTY = DIFFICULTY;
+window.applyDifficulty = applyDifficulty;

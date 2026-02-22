@@ -31,7 +31,13 @@ class GameEngine {
         
         // Debug mode
         this.debugMode = false;
-        
+
+        // Level completion tracking
+        this.levelStartTime = 0;
+        this.totalEnemyCount = 0;
+        this.levelComplete = false;
+        this.levelCompleteTime = 0;
+
         // Initialize systems
         this.initialize();
     }
@@ -75,11 +81,13 @@ class GameEngine {
     
     start() {
         if (this.running) return;
-        
+
         console.log('Starting game engine...');
         this.running = true;
         this.lastTime = performance.now();
-        
+        this.levelStartTime = performance.now();
+        this.totalEnemyCount = this.map.enemies.length;
+
         // Start the game loop
         this.gameLoop();
     }
@@ -140,8 +148,8 @@ class GameEngine {
     }
     
     update(deltaTime) {
-        // Skip updates while player is dead
-        if (this.player.isDead) return;
+        // Skip updates while player is dead or level is complete
+        if (this.player.isDead || this.levelComplete) return;
 
         // Update game systems
         this.player.update(deltaTime, this.map);
@@ -161,6 +169,60 @@ class GameEngine {
         if (window.soundEngine && window.soundEngine.isInitialized) {
             window.soundEngine.updateMusicState(this.player, this.map.enemies);
         }
+
+        // Check level completion
+        this.checkLevelComplete();
+    }
+
+    checkLevelComplete() {
+        if (this.levelComplete) return;
+
+        const activeEnemies = this.map.enemies.filter(e => e.active);
+        if (activeEnemies.length === 0 && this.totalEnemyCount > 0) {
+            this.levelComplete = true;
+            this.levelCompleteTime = performance.now();
+            console.log('Level complete! All enemies eliminated.');
+
+            // Play victory sound
+            if (window.soundEngine && window.soundEngine.isInitialized) {
+                window.soundEngine.playLevelComplete();
+            }
+        }
+    }
+
+    restartLevel() {
+        console.log('Restarting level...');
+        this.levelComplete = false;
+
+        // Re-initialize map and enemies
+        this.map = new GameMap();
+        this.player.x = this.map.spawnX;
+        this.player.y = this.map.spawnY;
+        this.player.angle = this.map.spawnAngle;
+        this.player.health = this.player.maxHealth;
+        this.player.armor = 0;
+        this.player.isDead = false;
+        this.player.stats = {
+            enemiesKilled: 0, shotsFired: 0, shotsHit: 0,
+            damageTaken: 0, damageDealt: 0, itemsCollected: 0,
+            deaths: 0, timeSurvived: 0
+        };
+        this.player.weaponManager = new WeaponManager();
+
+        // Re-initialize pickups
+        this.pickupManager = new PickupManager();
+        this.pickupManager.spawnRandomPickups(this.map, 6);
+
+        // Re-apply difficulty
+        if (window.CONFIG && window.CONFIG.difficulty) {
+            window.applyDifficulty(window.CONFIG.difficulty);
+        }
+
+        // Update renderer with new map
+        this.renderer.map = this.map;
+
+        this.totalEnemyCount = this.map.enemies.length;
+        this.levelStartTime = performance.now();
     }
     
     render() {
@@ -179,9 +241,120 @@ class GameEngine {
         // This ensures it cannot be overwritten by putImageData or other world rendering
         this.hud.render(this.player, this);
 
+        // Render level completion screen
+        if (this.levelComplete) {
+            this.renderCompletionScreen();
+        }
+
         // Render debug information if enabled (last layer)
         if (this.debugMode) {
             this.renderDebugInfo();
+        }
+    }
+
+    renderCompletionScreen() {
+        const ctx = this.canvas.getContext('2d');
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Semi-transparent dark overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(0, 0, w, h);
+
+        // Title
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 36px monospace';
+        ctx.fillText('LEVEL COMPLETE', w / 2, h * 0.15);
+
+        // Calculate stats
+        const elapsed = (this.levelCompleteTime - this.levelStartTime) / 1000;
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = Math.floor(elapsed % 60);
+        const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        const stats = this.player.stats;
+        const killed = stats.enemiesKilled;
+        const total = this.totalEnemyCount;
+        const accuracy = stats.shotsFired > 0
+            ? Math.round((stats.shotsHit / stats.shotsFired) * 100)
+            : 0;
+        const damageTaken = Math.round(stats.damageTaken);
+        const xpGained = this.player.xp + (this.player.level - 1) * 100; // approximate
+
+        // Stats panel background
+        const panelX = w * 0.25;
+        const panelY = h * 0.22;
+        const panelW = w * 0.5;
+        const panelH = h * 0.48;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(panelX, panelY, panelW, panelH);
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(panelX, panelY, panelW, panelH);
+
+        // Stats lines
+        ctx.font = '18px monospace';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'left';
+        const startX = panelX + 30;
+        let y = panelY + 40;
+        const lineH = 36;
+
+        const statLines = [
+            ['Time', timeStr],
+            ['Enemies Killed', `${killed} / ${total}`],
+            ['Accuracy', `${accuracy}%`],
+            ['Damage Taken', `${damageTaken}`],
+            ['Player Level', `${this.player.level}`],
+            ['XP Gained', `${xpGained}`]
+        ];
+
+        for (const [label, value] of statLines) {
+            ctx.fillStyle = '#AAAAAA';
+            ctx.textAlign = 'left';
+            ctx.fillText(label, startX, y);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'right';
+            ctx.fillText(value, panelX + panelW - 30, y);
+            y += lineH;
+        }
+
+        // Play Again button
+        const btnW = 200;
+        const btnH = 45;
+        const btnX = (w - btnW) / 2;
+        const btnY = panelY + panelH + 20;
+
+        ctx.fillStyle = '#CC3300';
+        ctx.fillRect(btnX, btnY, btnW, btnH);
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(btnX, btnY, btnW, btnH);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 20px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('PLAY AGAIN', w / 2, btnY + 30);
+
+        // Store button bounds for click handling
+        this._playAgainBtn = { x: btnX, y: btnY, w: btnW, h: btnH };
+
+        // Attach click handler once
+        if (!this._completionClickBound) {
+            this._completionClickBound = true;
+            this.canvas.addEventListener('click', (e) => {
+                if (!this.levelComplete || !this._playAgainBtn) return;
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                const mx = (e.clientX - rect.left) * scaleX;
+                const my = (e.clientY - rect.top) * scaleY;
+                const btn = this._playAgainBtn;
+                if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+                    this.restartLevel();
+                }
+            });
         }
     }
     
