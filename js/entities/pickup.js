@@ -291,7 +291,13 @@ class Pickup {
             
             // Show collection message
             this.showCollectionMessage(props.message);
-            
+
+            // Kill feed message for pickups
+            if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
+                const color = this.type.startsWith('weapon_') ? '#00FF00' : '#00CC00';
+                window.game.hud.addKillFeedMessage(props.message, color);
+            }
+
             console.log(`Player collected ${this.type}: ${props.message}`);
         }
     }

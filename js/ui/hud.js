@@ -42,6 +42,11 @@ class HUD {
         this.shakeIntensity = 0;
         this.shakeDecay = 0.9;
 
+        // Kill feed
+        this.killFeed = [];
+        this.killFeedMax = 4;
+        this.killFeedDuration = 3000; // 3 seconds
+
         console.log('HUD system initialized');
     }
     
@@ -102,6 +107,9 @@ class HUD {
             if (this.showMinimap && gameEngine && gameEngine.map) {
                 this.renderMinimap(player, gameEngine);
             }
+
+            // Render kill feed
+            this.renderKillFeed();
 
             // Render floating damage numbers and impact effects
             this.renderDamageNumbers(player, gameEngine);
@@ -711,6 +719,50 @@ class HUD {
         const kills = player.stats ? player.stats.enemiesKilled : 0;
         this.ctx.fillStyle = '#FF8888';
         this.ctx.fillText(`K:${kills}`, x + barWidth - 30, y + 10);
+    }
+
+    // Kill feed system
+    addKillFeedMessage(text, color = '#FF4444') {
+        this.killFeed.unshift({
+            text,
+            color,
+            time: Date.now()
+        });
+        // Keep only max messages
+        if (this.killFeed.length > this.killFeedMax * 2) {
+            this.killFeed.length = this.killFeedMax * 2;
+        }
+    }
+
+    renderKillFeed() {
+        const now = Date.now();
+        // Remove expired messages
+        this.killFeed = this.killFeed.filter(m => now - m.time < this.killFeedDuration);
+
+        const visible = this.killFeed.slice(0, this.killFeedMax);
+        if (visible.length === 0) return;
+
+        const x = this.canvas.width - 160;
+        const startY = 175; // Below minimap (which is 150+10 padding)
+
+        for (let i = 0; i < visible.length; i++) {
+            const msg = visible[i];
+            const age = now - msg.time;
+            const alpha = Math.max(0, 1 - (age / this.killFeedDuration));
+            const y = startY + i * 18;
+
+            // Background
+            this.ctx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.5})`;
+            this.ctx.fillRect(x - 5, y - 11, 170, 16);
+
+            // Text
+            this.ctx.globalAlpha = alpha;
+            this.ctx.fillStyle = msg.color;
+            this.ctx.font = this.smallFont;
+            this.ctx.textAlign = 'right';
+            this.ctx.fillText(msg.text, this.canvas.width - 15, y);
+            this.ctx.globalAlpha = 1.0;
+        }
     }
 
     // Called when player takes damage
