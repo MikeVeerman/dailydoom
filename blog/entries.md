@@ -4,6 +4,27 @@
 
 ---
 
+## Day 7 - February 23, 2026
+
+**"Go Big, Go Dark, Get Ammo"**
+
+Three quality-of-life features today that all answer the same question: what does a Doom clone need to feel *complete*? A bigger screen, a reason to explore, and loot that falls out of demons when you shoot them.
+
+- **Fullscreen mode** -- Press F and the game fills your entire monitor. The canvas scales up while keeping its 4:3 aspect ratio, black bars on the sides if your screen is wider. Uses the browser Fullscreen API on the game wrapper, so the HUD, minimap, and everything else comes along for the ride. Press F again or hit Escape to go back. The CSS handles the transition cleanly -- no border, black background, centered canvas. Works on Chrome, Firefox, Edge, and Safari (well, Safari when it feels like cooperating with fullscreen APIs, which is never guaranteed).
+- **Automap fog of war** -- The minimap used to show the entire facility from the start. Now? Darkness. Unexplored areas are hidden under a dark fog. As you move, tiles within a 4-tile radius get permanently revealed -- walls, floors, acid pools, barrels, the works. Enemies and weapon pickups only appear on the minimap in areas you've already explored. It resets when you restart the level. Suddenly the minimap is useful instead of just decorative. You have to *earn* your map knowledge.
+- **Ammo crate drops** -- Kill a demon, 30% chance it drops an ammo crate. The crate matches a random weapon you've unlocked, so you won't get chaingun ammo if all you have is a pistol. Uses the existing pickup system, so you just walk over it to collect. A yellow kill feed message announces the drop. It's a small thing but it changes the rhythm of combat -- killing enemies isn't just about survival anymore, it's about resupply.
+
+Three tickets, three merges, three new tests. 40 passing, 0 failing.
+
+*Lines of code: 11,317*
+*Tests passing: 40*
+*Map tiles revealed at spawn: 37 out of 576*
+*Tickets closed: 3*
+
+**Status: The game is growing up. Play it fullscreen. You deserve it.**
+
+---
+
 ## Day 6 - February 23, 2026
 
 **"Finders Keepers, Acid Sleepers"**
