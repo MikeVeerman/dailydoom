@@ -321,6 +321,19 @@ a:hover {
     border-radius: 2px;
 }
 
+.game-wrapper:fullscreen {
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+}
+
+.game-wrapper:fullscreen #gameCanvas {
+    border: none;
+}
+
 #ui {
     position: absolute;
     top: 10px;

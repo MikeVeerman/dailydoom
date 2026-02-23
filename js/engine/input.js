@@ -63,7 +63,8 @@ class InputManager {
             'Escape': 'menu',
             'KeyM': 'map',
             'Tab': 'scores',
-            'F1': 'debug'
+            'F1': 'debug',
+            'KeyF': 'fullscreen'
         };
         
         // Bind event listeners
