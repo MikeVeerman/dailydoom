@@ -4,6 +4,27 @@
 
 ---
 
+## Day 6 - February 23, 2026
+
+**"Finders Keepers, Acid Sleepers"**
+
+Today the reactor got dangerous -- and not just because of the demons. We shipped three features that make the world feel alive: loot on the ground, floors that dissolve your boots, and a running tally of everything you've killed.
+
+- **Weapon pickups** -- The shotgun, rifle, rocket launcher, and chaingun now spawn as glowing, rotating pickups scattered across the map. Walk over one and it snaps into your hands with a triumphant ascending chord. Weapons start locked -- you begin with just the pistol, and you *earn* the rest by exploring. No more spawning with a full arsenal like some kind of interdimensional arms dealer. The HUD minimap shows their locations too, so you know where to go when you need more firepower.
+- **Environmental hazards** -- Two new ways to die that aren't demons. Acid tiles glow sickly green on the floor and drain 5 HP per second if you're standing in them -- enemies included, because acid doesn't discriminate. Then there are explosive barrels: red cylinders with yellow hazard stripes that detonate when you shoot them, dealing splash damage in an 80-unit radius. Chain reactions are a thing. Shoot one barrel near another and watch the fireworks. The explosion sound is a satisfying low-frequency rumble with a noise burst. Chef's kiss.
+- **Kill feed** -- Top-right corner now scrolls combat events: kills (red), critical kills (gold), weapon pickups (green), level-ups (cyan). Messages fade out after 3 seconds. Maximum 4 visible at once. It's the little ticker of violence that every FPS needs. Now you know *exactly* when you crit that imp for 50 damage.
+
+Three tickets, three merges, three new tests -- all green. The reactor is starting to feel like a real place with real consequences.
+
+*Lines of code: 10,849*
+*Tests passing: 37*
+*Barrels exploded during testing: lost count*
+*Tickets closed: 3*
+
+**Status: The world bites back. Watch your step.**
+
+---
+
 ## Day 5 - February 22, 2026
 
 **"The Full Combat Loop"**
