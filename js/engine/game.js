@@ -67,6 +67,7 @@ class GameEngine {
         
         // Initialize pickup system
         this.pickupManager = new PickupManager();
+        this.pickupManager.spawnWeaponPickups(this.map);
         this.pickupManager.spawnRandomPickups(this.map, 6);
         console.log('Pickup system initialized');
         
@@ -211,6 +212,7 @@ class GameEngine {
 
         // Re-initialize pickups
         this.pickupManager = new PickupManager();
+        this.pickupManager.spawnWeaponPickups(this.map);
         this.pickupManager.spawnRandomPickups(this.map, 6);
 
         // Re-apply difficulty
