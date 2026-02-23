@@ -616,6 +616,7 @@ const TIER_2_TESTS = [
   { id: 'T2-26', name: 'Weapon pickups on map', fn: T2_26_weaponPickups }, // issue: #45
   { id: 'T2-27', name: 'Environmental hazards', fn: T2_27_environmentalHazards }, // issue: #46
   { id: 'T2-28', name: 'Kill feed system', fn: T2_28_killFeed }, // issue: #47
+  { id: 'T2-29', name: 'Fullscreen support', fn: T2_29_fullscreenSupport }, // issue: #48
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -2168,6 +2169,52 @@ async function T2_26_weaponPickups(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Weapon pickups: ${pickupData.weaponPickupCount} on map [${pickupData.weaponTypes.join(', ')}], unlock system works`;
+  }
+}
+
+async function T2_29_fullscreenSupport(page, result) {
+  // T2-29: Fullscreen support (issue: #48)
+  // Pass condition: Game engine has toggleFullscreen method, F key is mapped
+  await page.waitForTimeout(1000);
+
+  const fsData = await page.evaluate(() => {
+    if (!window.game) {
+      return { exists: false, reason: 'Game not found' };
+    }
+
+    const hasToggleMethod = typeof window.game.toggleFullscreen === 'function';
+    const hasKeyMapping = window.game.inputManager &&
+      window.game.inputManager.keyMap['KeyF'] === 'fullscreen';
+    const wrapperExists = !!window.game.canvas.parentElement;
+
+    return {
+      exists: true,
+      hasToggleMethod,
+      hasKeyMapping,
+      wrapperExists
+    };
+  });
+
+  if (!fsData.exists) {
+    result.status = 'fail';
+    result.note = fsData.reason;
+    return;
+  }
+
+  const checks = [
+    ['toggleFullscreen method', fsData.hasToggleMethod],
+    ['F key mapped to fullscreen', fsData.hasKeyMapping],
+    ['game wrapper exists', fsData.wrapperExists]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = 'Fullscreen toggle available via F key';
   }
 }
 

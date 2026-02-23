@@ -140,6 +140,11 @@ class GameEngine {
         if (this.inputManager.isKeyPressed('menu')) {
             this.pause();
         }
+
+        // Handle fullscreen toggle
+        if (this.inputManager.isKeyPressed('fullscreen')) {
+            this.toggleFullscreen();
+        }
         
         // Player input handling
         this.player.handleInput(this.inputManager, this.deltaTime, this.map);
@@ -548,6 +553,17 @@ class GameEngine {
         this.currentState = newState;
     }
     
+    toggleFullscreen() {
+        const wrapper = this.canvas.parentElement;
+        if (!document.fullscreenElement) {
+            wrapper.requestFullscreen().catch(err => {
+                console.warn('Fullscreen request failed:', err);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
     // Event handling
     onResize(width, height) {
         this.canvas.width = width;

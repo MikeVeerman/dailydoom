@@ -221,6 +221,17 @@ function setupEventListeners() {
         }
     });
     
+    // Fullscreen change handling
+    document.addEventListener('fullscreenchange', function() {
+        const canvas = document.getElementById(CONFIG.canvas.id);
+        if (canvas) {
+            // Small delay to let the browser settle fullscreen dimensions
+            setTimeout(function() {
+                handleResize(canvas);
+            }, 100);
+        }
+    });
+
     // Error handling
     window.addEventListener('error', function(event) {
         console.error('Global error:', event.error);
@@ -244,31 +255,43 @@ function setupResizeHandling(canvas) {
 }
 
 function handleResize(canvas) {
+    const isFullscreen = !!document.fullscreenElement;
     const container = canvas.parentElement;
-    const maxWidth = container.clientWidth;
-    const maxHeight = container.clientHeight;
-    
+    const maxWidth = isFullscreen ? window.innerWidth : container.clientWidth;
+    const maxHeight = isFullscreen ? window.innerHeight : container.clientHeight;
+
     // Maintain aspect ratio
     const aspectRatio = CONFIG.canvas.defaultWidth / CONFIG.canvas.defaultHeight;
     let newWidth, newHeight;
-    
-    if (maxWidth / maxHeight > aspectRatio) {
-        newHeight = Math.min(maxHeight, CONFIG.canvas.defaultHeight);
-        newWidth = newHeight * aspectRatio;
+
+    if (isFullscreen) {
+        // In fullscreen, fill as much space as possible while keeping aspect ratio
+        if (maxWidth / maxHeight > aspectRatio) {
+            newHeight = maxHeight;
+            newWidth = newHeight * aspectRatio;
+        } else {
+            newWidth = maxWidth;
+            newHeight = newWidth / aspectRatio;
+        }
     } else {
-        newWidth = Math.min(maxWidth, CONFIG.canvas.defaultWidth);
-        newHeight = newWidth / aspectRatio;
+        if (maxWidth / maxHeight > aspectRatio) {
+            newHeight = Math.min(maxHeight, CONFIG.canvas.defaultHeight);
+            newWidth = newHeight * aspectRatio;
+        } else {
+            newWidth = Math.min(maxWidth, CONFIG.canvas.defaultWidth);
+            newHeight = newWidth / aspectRatio;
+        }
     }
-    
+
     // Update canvas size
     canvas.style.width = newWidth + 'px';
     canvas.style.height = newHeight + 'px';
-    
+
     // Update game engine
     if (game) {
         game.onResize(newWidth, newHeight);
     }
-    
+
     console.log(`Canvas resized to ${newWidth}x${newHeight}`);
 }
 
