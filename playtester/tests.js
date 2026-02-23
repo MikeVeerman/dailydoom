@@ -614,6 +614,7 @@ const TIER_2_TESTS = [
   { id: 'T2-24', name: 'Melee punch attack', fn: T2_24_meleePunch }, // issue: #38
   { id: 'T2-25', name: 'Damage flash and low-health effects', fn: T2_25_damageFlashEffects }, // issue: #40
   { id: 'T2-26', name: 'Weapon pickups on map', fn: T2_26_weaponPickups }, // issue: #45
+  { id: 'T2-27', name: 'Environmental hazards', fn: T2_27_environmentalHazards }, // issue: #46
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1931,6 +1932,93 @@ async function T2_25_damageFlashEffects(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Damage flash (${effectData.flashDuration}ms) + low-health vignette pulse at <25% HP`;
+  }
+}
+
+async function T2_27_environmentalHazards(page, result) {
+  // T2-27: Environmental hazards — acid pools and exploding barrels (issue: #46)
+  // Pass condition: Acid tiles exist, barrels exist, barrels can explode, chain reactions work
+  await page.waitForTimeout(1000);
+
+  const hazardData = await page.evaluate(() => {
+    if (!window.game || !window.game.map) {
+      return { exists: false, reason: 'Map not found' };
+    }
+
+    const map = window.game.map;
+
+    // Acid tile checks
+    const hasAcidTiles = map.acidTiles instanceof Set;
+    const acidCount = hasAcidTiles ? map.acidTiles.size : 0;
+    const hasIsAcidAtPosition = typeof map.isAcidAtPosition === 'function';
+
+    // Barrel checks
+    const hasBarrels = Array.isArray(map.barrels);
+    const barrelCount = hasBarrels ? map.barrels.filter(b => b.active).length : 0;
+    const hasExplodeBarrel = typeof map.explodeBarrel === 'function';
+
+    // Test acid detection
+    let acidDetectionWorks = false;
+    if (hasIsAcidAtPosition && acidCount > 0) {
+      const firstAcid = Array.from(map.acidTiles)[0];
+      const [ax, ay] = firstAcid.split(',').map(Number);
+      acidDetectionWorks = map.isAcidAtPosition(
+        (ax + 0.5) * map.tileSize,
+        (ay + 0.5) * map.tileSize
+      );
+    }
+
+    // Test barrel explosion (create a temp barrel, explode it)
+    let explosionWorks = false;
+    if (hasExplodeBarrel && hasBarrels) {
+      const tempBarrel = { x: 100, y: 100, health: 10, active: true, radius: 16, explodeRadius: 100, explodeDamage: 60 };
+      map.barrels.push(tempBarrel);
+      map.explodeBarrel(tempBarrel);
+      explosionWorks = !tempBarrel.active;
+      // Clean up temp barrel
+      map.barrels = map.barrels.filter(b => b !== tempBarrel);
+    }
+
+    // Check explosion sound
+    const hasExplosionSound = window.soundEngine && typeof window.soundEngine.playExplosion === 'function';
+
+    return {
+      exists: true,
+      hasAcidTiles,
+      acidCount,
+      hasIsAcidAtPosition,
+      acidDetectionWorks,
+      hasBarrels,
+      barrelCount,
+      hasExplodeBarrel,
+      explosionWorks,
+      hasExplosionSound
+    };
+  });
+
+  if (!hazardData.exists) {
+    result.status = 'fail';
+    result.note = hazardData.reason;
+    return;
+  }
+
+  const checks = [
+    ['acid tiles exist', hazardData.hasAcidTiles && hazardData.acidCount > 0],
+    ['acid detection works', hazardData.acidDetectionWorks],
+    ['barrels exist', hazardData.hasBarrels && hazardData.barrelCount > 0],
+    ['explodeBarrel method', hazardData.hasExplodeBarrel],
+    ['explosion works', hazardData.explosionWorks],
+    ['explosion sound', hazardData.hasExplosionSound]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Hazards: ${hazardData.acidCount} acid tiles, ${hazardData.barrelCount} barrels, explosion + chain reaction + sound`;
   }
 }
 

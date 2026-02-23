@@ -855,6 +855,33 @@ class HUD {
             }
         }
 
+        // Draw acid tiles
+        if (map.acidTiles) {
+            this.ctx.fillStyle = 'rgba(0, 255, 0, 0.4)';
+            for (const key of map.acidTiles) {
+                const [ax, ay] = key.split(',').map(Number);
+                this.ctx.fillRect(
+                    mapX + ax * cellW,
+                    mapY + ay * cellH,
+                    Math.ceil(cellW),
+                    Math.ceil(cellH)
+                );
+            }
+        }
+
+        // Draw barrels
+        if (map.barrels) {
+            for (const barrel of map.barrels) {
+                if (!barrel.active) continue;
+                const bx = mapX + (barrel.x / map.tileSize) * cellW;
+                const by = mapY + (barrel.y / map.tileSize) * cellH;
+                this.ctx.fillStyle = '#CC4400';
+                this.ctx.beginPath();
+                this.ctx.arc(bx, by, Math.max(cellW * 0.5, 2), 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        }
+
         // Draw weapon pickups
         if (gameEngine.pickupManager) {
             const pickups = gameEngine.pickupManager.getActivePickups();
