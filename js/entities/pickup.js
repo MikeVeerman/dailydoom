@@ -506,6 +506,28 @@ class PickupManager {
         }
     }
 
+    // Spawn an ammo crate at a given position for a random unlocked weapon
+    spawnAmmoCrate(x, y) {
+        if (!window.game || !window.game.player) return null;
+
+        const wm = window.game.player.weaponManager;
+        const unlocked = Array.from(wm.unlockedWeapons);
+        if (unlocked.length === 0) return null;
+
+        const weaponType = unlocked[Math.floor(Math.random() * unlocked.length)];
+        const ammoType = 'ammo_' + weaponType;
+
+        const pickup = this.addPickup(x, y, ammoType);
+        console.log(`Ammo crate dropped: ${ammoType} at (${Math.round(x)}, ${Math.round(y)})`);
+
+        // Kill feed message
+        if (window.game.hud && window.game.hud.addKillFeedMessage) {
+            window.game.hud.addKillFeedMessage('Ammo crate dropped!', '#FFFF00');
+        }
+
+        return pickup;
+    }
+
     // Spawn random pickups around the map
     spawnRandomPickups(map, count = 5) {
         const pickupTypes = ['health', 'ammo_pistol', 'ammo_shotgun', 'ammo_rifle', 'ammo_rocket', 'ammo_chaingun', 'armor'];
