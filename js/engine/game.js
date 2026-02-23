@@ -243,6 +243,11 @@ class GameEngine {
             window.applyDifficulty(window.CONFIG.difficulty);
         }
 
+        // Reset fog of war
+        if (this.hud) {
+            this.hud.resetFog();
+        }
+
         // Update renderer with new map
         this.renderer.map = this.map;
 
