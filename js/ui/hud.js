@@ -47,6 +47,10 @@ class HUD {
         this.killFeedMax = 4;
         this.killFeedDuration = 3000; // 3 seconds
 
+        // Fog of war
+        this.revealedTiles = new Set();
+        this.fogRevealRadius = 4; // tiles
+
         console.log('HUD system initialized');
     }
     
@@ -866,12 +870,41 @@ class HUD {
         }
     }
     
+    updateFogOfWar(player, map) {
+        const tileX = Math.floor(player.x / map.tileSize);
+        const tileY = Math.floor(player.y / map.tileSize);
+        const r = this.fogRevealRadius;
+
+        for (let dy = -r; dy <= r; dy++) {
+            for (let dx = -r; dx <= r; dx++) {
+                if (dx * dx + dy * dy <= r * r) {
+                    const gx = tileX + dx;
+                    const gy = tileY + dy;
+                    if (gx >= 0 && gx < map.width && gy >= 0 && gy < map.height) {
+                        this.revealedTiles.add(gx + ',' + gy);
+                    }
+                }
+            }
+        }
+    }
+
+    resetFog() {
+        this.revealedTiles = new Set();
+    }
+
+    isTileRevealed(gx, gy) {
+        return this.revealedTiles.has(gx + ',' + gy);
+    }
+
     renderMinimap(player, gameEngine) {
         const map = gameEngine.map;
         const size = 150;
         const padding = 10;
         const mapX = this.canvas.width - size - padding;
         const mapY = padding;
+
+        // Update fog of war
+        this.updateFogOfWar(player, map);
 
         // Semi-transparent background
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
@@ -882,9 +915,20 @@ class HUD {
         const cellW = size / map.width;
         const cellH = size / map.height;
 
-        // Draw walls
+        // Draw walls and floors (only revealed tiles)
         for (let gy = 0; gy < map.height; gy++) {
             for (let gx = 0; gx < map.width; gx++) {
+                if (!this.isTileRevealed(gx, gy)) {
+                    // Fog: dark tile
+                    this.ctx.fillStyle = 'rgba(10, 10, 10, 0.8)';
+                    this.ctx.fillRect(
+                        mapX + gx * cellW,
+                        mapY + gy * cellH,
+                        Math.ceil(cellW),
+                        Math.ceil(cellH)
+                    );
+                    continue;
+                }
                 if (map.grid[gy][gx] > 0) {
                     const wallType = map.grid[gy][gx];
                     switch (wallType) {
@@ -907,11 +951,12 @@ class HUD {
             }
         }
 
-        // Draw acid tiles
+        // Draw acid tiles (only in revealed areas)
         if (map.acidTiles) {
             this.ctx.fillStyle = 'rgba(0, 255, 0, 0.4)';
             for (const key of map.acidTiles) {
                 const [ax, ay] = key.split(',').map(Number);
+                if (!this.isTileRevealed(ax, ay)) continue;
                 this.ctx.fillRect(
                     mapX + ax * cellW,
                     mapY + ay * cellH,
@@ -921,10 +966,13 @@ class HUD {
             }
         }
 
-        // Draw barrels
+        // Draw barrels (only in revealed areas)
         if (map.barrels) {
             for (const barrel of map.barrels) {
                 if (!barrel.active) continue;
+                const bgx = Math.floor(barrel.x / map.tileSize);
+                const bgy = Math.floor(barrel.y / map.tileSize);
+                if (!this.isTileRevealed(bgx, bgy)) continue;
                 const bx = mapX + (barrel.x / map.tileSize) * cellW;
                 const by = mapY + (barrel.y / map.tileSize) * cellH;
                 this.ctx.fillStyle = '#CC4400';
@@ -934,11 +982,14 @@ class HUD {
             }
         }
 
-        // Draw weapon pickups
+        // Draw weapon pickups (only in revealed areas)
         if (gameEngine.pickupManager) {
             const pickups = gameEngine.pickupManager.getActivePickups();
             for (const pickup of pickups) {
                 if (!pickup.type.startsWith('weapon_')) continue;
+                const pgx = Math.floor(pickup.x / map.tileSize);
+                const pgy = Math.floor(pickup.y / map.tileSize);
+                if (!this.isTileRevealed(pgx, pgy)) continue;
                 const wx = mapX + (pickup.x / map.tileSize) * cellW;
                 const wy = mapY + (pickup.y / map.tileSize) * cellH;
                 this.ctx.fillStyle = pickup.properties.color;
@@ -948,10 +999,13 @@ class HUD {
             }
         }
 
-        // Draw enemies
+        // Draw enemies (only in revealed areas)
         const enemies = map.enemies;
         for (const enemy of enemies) {
             if (!enemy.active) continue;
+            const egx = Math.floor(enemy.x / map.tileSize);
+            const egy = Math.floor(enemy.y / map.tileSize);
+            if (!this.isTileRevealed(egx, egy)) continue;
             const ex = mapX + (enemy.x / map.tileSize) * cellW;
             const ey = mapY + (enemy.y / map.tileSize) * cellH;
             this.ctx.fillStyle = enemy.type === 'boss' ? '#FFD700' : '#FF4444';

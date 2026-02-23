@@ -617,6 +617,7 @@ const TIER_2_TESTS = [
   { id: 'T2-27', name: 'Environmental hazards', fn: T2_27_environmentalHazards }, // issue: #46
   { id: 'T2-28', name: 'Kill feed system', fn: T2_28_killFeed }, // issue: #47
   { id: 'T2-29', name: 'Fullscreen support', fn: T2_29_fullscreenSupport }, // issue: #48
+  { id: 'T2-30', name: 'Automap fog of war', fn: T2_30_automapFogOfWar }, // issue: #52
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -2215,6 +2216,89 @@ async function T2_29_fullscreenSupport(page, result) {
   } else {
     result.status = 'pass';
     result.note = 'Fullscreen toggle available via F key';
+  }
+}
+
+async function T2_30_automapFogOfWar(page, result) {
+  // T2-30: Automap fog of war (issue: #52)
+  // Pass condition: revealedTiles set exists, fog methods present, tiles near player are revealed
+  await page.waitForTimeout(1000);
+
+  const fogData = await page.evaluate(() => {
+    if (!window.game || !window.game.hud) {
+      return { exists: false, reason: 'HUD not found' };
+    }
+
+    const hud = window.game.hud;
+    const map = window.game.map;
+    const player = window.game.player;
+
+    const hasRevealedTiles = hud.revealedTiles instanceof Set;
+    const hasUpdateFog = typeof hud.updateFogOfWar === 'function';
+    const hasResetFog = typeof hud.resetFog === 'function';
+    const hasIsTileRevealed = typeof hud.isTileRevealed === 'function';
+    const hasRevealRadius = typeof hud.fogRevealRadius === 'number' && hud.fogRevealRadius >= 3;
+
+    // Check player's current tile is revealed
+    const playerTileX = Math.floor(player.x / map.tileSize);
+    const playerTileY = Math.floor(player.y / map.tileSize);
+    const playerTileRevealed = hasIsTileRevealed && hud.isTileRevealed(playerTileX, playerTileY);
+
+    // Count revealed vs total
+    const revealedCount = hasRevealedTiles ? hud.revealedTiles.size : 0;
+    const totalTiles = map.width * map.height;
+    const notFullyRevealed = revealedCount < totalTiles;
+
+    // Test reset
+    let resetWorks = false;
+    if (hasResetFog && hasRevealedTiles) {
+      const before = hud.revealedTiles.size;
+      hud.resetFog();
+      resetWorks = hud.revealedTiles.size === 0;
+      // Re-update to restore state
+      if (hasUpdateFog) hud.updateFogOfWar(player, map);
+    }
+
+    return {
+      exists: true,
+      hasRevealedTiles,
+      hasUpdateFog,
+      hasResetFog,
+      hasIsTileRevealed,
+      hasRevealRadius,
+      playerTileRevealed,
+      revealedCount,
+      totalTiles,
+      notFullyRevealed,
+      resetWorks
+    };
+  });
+
+  if (!fogData.exists) {
+    result.status = 'fail';
+    result.note = fogData.reason;
+    return;
+  }
+
+  const checks = [
+    ['revealedTiles set', fogData.hasRevealedTiles],
+    ['updateFogOfWar method', fogData.hasUpdateFog],
+    ['resetFog method', fogData.hasResetFog],
+    ['isTileRevealed method', fogData.hasIsTileRevealed],
+    ['reveal radius >= 3', fogData.hasRevealRadius],
+    ['player tile revealed', fogData.playerTileRevealed],
+    ['not fully revealed', fogData.notFullyRevealed],
+    ['reset clears tiles', fogData.resetWorks]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Fog of war: ${fogData.revealedCount}/${fogData.totalTiles} tiles revealed, radius ${fogData.hasRevealRadius ? '4' : '?'}`;
   }
 }
 
