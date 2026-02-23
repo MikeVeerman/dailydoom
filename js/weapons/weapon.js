@@ -359,16 +359,32 @@ class WeaponManager {
             rocket: new Weapon('rocket'),
             chaingun: new Weapon('chaingun')
         };
-        
+
         this.currentWeapon = 'pistol';
+
+        // Only pistol is unlocked at start; others must be picked up
+        this.unlockedWeapons = new Set(['pistol']);
     }
-    
+
     getCurrentWeapon() {
         return this.weapons[this.currentWeapon];
     }
-    
-    switchWeapon(weaponType) {
+
+    isUnlocked(weaponType) {
+        return this.unlockedWeapons.has(weaponType);
+    }
+
+    unlockWeapon(weaponType) {
         if (this.weapons[weaponType]) {
+            this.unlockedWeapons.add(weaponType);
+            console.log(`Unlocked weapon: ${weaponType}`);
+            return true;
+        }
+        return false;
+    }
+
+    switchWeapon(weaponType) {
+        if (this.weapons[weaponType] && this.unlockedWeapons.has(weaponType)) {
             this.currentWeapon = weaponType;
             console.log(`Switched to ${weaponType}`);
             return true;

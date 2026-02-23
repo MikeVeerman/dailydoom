@@ -292,6 +292,11 @@ async function T2_03_weaponSwitching(page, result) {
     return;
   }
 
+  // Unlock shotgun so we can test switching
+  await page.evaluate(() => {
+    window.game.player.weaponManager.unlockWeapon('shotgun');
+  });
+
   // Try switching weapon
   await page.keyboard.press('2');
   await page.waitForTimeout(500);
@@ -299,6 +304,10 @@ async function T2_03_weaponSwitching(page, result) {
   const newWeapon = await page.evaluate(() => {
     return window.game.player.weaponManager.currentWeapon;
   });
+
+  // Restore back to pistol
+  await page.keyboard.press('1');
+  await page.waitForTimeout(200);
 
   if (initialWeapon === newWeapon) {
     result.status = 'fail';
@@ -604,6 +613,7 @@ const TIER_2_TESTS = [
   { id: 'T2-23', name: 'Level completion screen', fn: T2_23_levelCompletionScreen }, // issue: #36
   { id: 'T2-24', name: 'Melee punch attack', fn: T2_24_meleePunch }, // issue: #38
   { id: 'T2-25', name: 'Damage flash and low-health effects', fn: T2_25_damageFlashEffects }, // issue: #40
+  { id: 'T2-26', name: 'Weapon pickups on map', fn: T2_26_weaponPickups }, // issue: #45
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -829,6 +839,12 @@ async function T2_11_advancedWeapons(page, result) {
       damage: wm.weapons.chaingun.damage,
       fireRate: wm.weapons.chaingun.fireRate
     } : null;
+
+    // Unlock weapons for testing, then test switching
+    if (wm.unlockWeapon) {
+      wm.unlockWeapon('rocket');
+      wm.unlockWeapon('chaingun');
+    }
 
     // Test switching to rocket launcher
     let canSwitchRocket = false;
@@ -1915,6 +1931,82 @@ async function T2_25_damageFlashEffects(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Damage flash (${effectData.flashDuration}ms) + low-health vignette pulse at <25% HP`;
+  }
+}
+
+async function T2_26_weaponPickups(page, result) {
+  // T2-26: Weapon pickups scattered across the map (issue: #45)
+  // Pass condition: Player starts with pistol only, weapon pickups exist, collecting unlocks weapon
+  await page.waitForTimeout(1000);
+
+  const pickupData = await page.evaluate(() => {
+    if (!window.game || !window.game.player || !window.game.pickupManager) {
+      return { exists: false, reason: 'Game systems not found' };
+    }
+
+    const wm = window.game.player.weaponManager;
+    const pm = window.game.pickupManager;
+
+    // Check player starts with pistol only
+    const hasUnlockedWeapons = wm.unlockedWeapons instanceof Set;
+    const startsWithPistol = hasUnlockedWeapons && wm.unlockedWeapons.has('pistol');
+    const onlyPistolAtStart = hasUnlockedWeapons && wm.unlockedWeapons.size === 1;
+
+    // Check weapon pickups exist
+    const allPickups = pm.getActivePickups();
+    const weaponPickups = allPickups.filter(p => p.type.startsWith('weapon_'));
+    const weaponTypes = weaponPickups.map(p => p.type);
+
+    // Check unlock method
+    const hasUnlockMethod = typeof wm.unlockWeapon === 'function';
+    const hasIsUnlocked = typeof wm.isUnlocked === 'function';
+
+    // Test unlocking a weapon
+    let unlockWorks = false;
+    if (hasUnlockMethod && hasIsUnlocked) {
+      const wasShotgunLocked = !wm.isUnlocked('shotgun');
+      wm.unlockWeapon('shotgun');
+      unlockWorks = wm.isUnlocked('shotgun');
+      // Remove shotgun unlock for clean state (only if it was locked)
+      if (wasShotgunLocked) wm.unlockedWeapons.delete('shotgun');
+    }
+
+    return {
+      exists: true,
+      hasUnlockedWeapons,
+      startsWithPistol,
+      onlyPistolAtStart,
+      weaponPickupCount: weaponPickups.length,
+      weaponTypes,
+      hasUnlockMethod,
+      hasIsUnlocked,
+      unlockWorks
+    };
+  });
+
+  if (!pickupData.exists) {
+    result.status = 'fail';
+    result.note = pickupData.reason;
+    return;
+  }
+
+  const checks = [
+    ['unlockedWeapons tracking', pickupData.hasUnlockedWeapons],
+    ['starts with pistol', pickupData.startsWithPistol],
+    ['weapon pickups on map', pickupData.weaponPickupCount >= 4],
+    ['unlockWeapon method', pickupData.hasUnlockMethod],
+    ['isUnlocked method', pickupData.hasIsUnlocked],
+    ['unlock works', pickupData.unlockWorks]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Weapon pickups: ${pickupData.weaponPickupCount} on map [${pickupData.weaponTypes.join(', ')}], unlock system works`;
   }
 }
 

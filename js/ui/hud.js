@@ -855,6 +855,20 @@ class HUD {
             }
         }
 
+        // Draw weapon pickups
+        if (gameEngine.pickupManager) {
+            const pickups = gameEngine.pickupManager.getActivePickups();
+            for (const pickup of pickups) {
+                if (!pickup.type.startsWith('weapon_')) continue;
+                const wx = mapX + (pickup.x / map.tileSize) * cellW;
+                const wy = mapY + (pickup.y / map.tileSize) * cellH;
+                this.ctx.fillStyle = pickup.properties.color;
+                this.ctx.beginPath();
+                this.ctx.arc(wx, wy, Math.max(cellW * 0.5, 2), 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        }
+
         // Draw enemies
         const enemies = map.enemies;
         for (const enemy of enemies) {

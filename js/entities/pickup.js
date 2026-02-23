@@ -121,6 +121,34 @@ class Pickup {
                 maxValue: 0,
                 sound: 'powerup',
                 message: 'Health Regen!'
+            },
+            weapon_shotgun: {
+                value: 0,
+                color: '#FF8800',
+                maxValue: 0,
+                sound: 'weapon',
+                message: 'Shotgun Acquired!'
+            },
+            weapon_rifle: {
+                value: 0,
+                color: '#AA8800',
+                maxValue: 0,
+                sound: 'weapon',
+                message: 'Rifle Acquired!'
+            },
+            weapon_rocket: {
+                value: 0,
+                color: '#FF4444',
+                maxValue: 0,
+                sound: 'weapon',
+                message: 'Rocket Launcher Acquired!'
+            },
+            weapon_chaingun: {
+                value: 0,
+                color: '#CCCC00',
+                maxValue: 0,
+                sound: 'weapon',
+                message: 'Chaingun Acquired!'
             }
         };
         
@@ -137,8 +165,8 @@ class Pickup {
         // Animate bobbing
         this.bobOffset += this.bobSpeed * deltaTime;
         
-        // Animate rotation for power-ups
-        if (this.type.includes('boost')) {
+        // Animate rotation for power-ups and weapon pickups
+        if (this.type.includes('boost') || this.type.startsWith('weapon_')) {
             this.rotation += this.rotationSpeed * deltaTime;
         }
         
@@ -239,6 +267,19 @@ class Pickup {
                 player.applyHealthRegen(props.value);
                 canCollect = true;
                 break;
+
+            case 'weapon_shotgun':
+            case 'weapon_rifle':
+            case 'weapon_rocket':
+            case 'weapon_chaingun': {
+                const weaponName = this.type.replace('weapon_', '');
+                if (!player.weaponManager.isUnlocked(weaponName)) {
+                    player.weaponManager.unlockWeapon(weaponName);
+                    player.weaponManager.switchWeapon(weaponName);
+                    canCollect = true;
+                }
+                break;
+            }
         }
         
         if (canCollect) {
@@ -269,6 +310,8 @@ class Pickup {
             this.playArmorSound();
         } else if (soundType === 'powerup') {
             this.playPowerupSound();
+        } else if (soundType === 'weapon') {
+            this.playWeaponPickupSound();
         }
     }
     
@@ -364,6 +407,31 @@ class Pickup {
         });
     }
     
+    playWeaponPickupSound() {
+        const now = window.soundEngine.audioContext.currentTime;
+
+        // Dramatic ascending chord for weapon pickup
+        const frequencies = [330, 415, 523, 660]; // E major chord ascending
+        frequencies.forEach((freq, i) => {
+            const oscillator = window.soundEngine.audioContext.createOscillator();
+            const gainNode = window.soundEngine.audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(window.soundEngine.masterGain);
+
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(freq, now + i * 0.06);
+
+            const startDelay = i * 0.06;
+            gainNode.gain.setValueAtTime(0, now + startDelay);
+            gainNode.gain.linearRampToValueAtTime(0.2, now + startDelay + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + startDelay + 0.6);
+
+            oscillator.start(now + startDelay);
+            oscillator.stop(now + startDelay + 0.6);
+        });
+    }
+
     showCollectionMessage(message) {
         // This would integrate with a message system or HUD
         // For now, just console log
@@ -415,6 +483,23 @@ class PickupManager {
         this.pickups = [];
     }
     
+    // Spawn weapon pickups at fixed map locations
+    spawnWeaponPickups(map) {
+        const tileSize = map.tileSize;
+        const weaponLocations = [
+            { type: 'weapon_shotgun',  x: 5.5  * tileSize, y: 5.5  * tileSize }, // Control Room area
+            { type: 'weapon_rifle',    x: 1.5  * tileSize, y: 12.5 * tileSize }, // Cooling tunnel west
+            { type: 'weapon_rocket',   x: 12.5 * tileSize, y: 14.5 * tileSize }, // Reactor Core south
+            { type: 'weapon_chaingun', x: 20.5 * tileSize, y: 11.5 * tileSize }  // Containment Wing east
+        ];
+
+        for (const loc of weaponLocations) {
+            if (!map.isWallAtPosition(loc.x, loc.y)) {
+                this.addPickup(loc.x, loc.y, loc.type);
+            }
+        }
+    }
+
     // Spawn random pickups around the map
     spawnRandomPickups(map, count = 5) {
         const pickupTypes = ['health', 'ammo_pistol', 'ammo_shotgun', 'ammo_rifle', 'ammo_rocket', 'ammo_chaingun', 'armor'];
