@@ -166,6 +166,24 @@ class GameEngine {
         // Update doors
         this.map.updateDoors();
 
+        // Acid pool damage (5 HP/sec for player and enemies)
+        if (this.map.isAcidAtPosition(this.player.x, this.player.y)) {
+            if (!this._lastAcidTick || Date.now() - this._lastAcidTick > 500) {
+                this.player.takeDamage(2.5); // 2.5 per tick = 5/sec
+                if (this.hud) this.hud.onPlayerDamage();
+                this._lastAcidTick = Date.now();
+            }
+        }
+        this.map.enemies.forEach(enemy => {
+            if (!enemy.active) return;
+            if (this.map.isAcidAtPosition(enemy.x, enemy.y)) {
+                if (!enemy._lastAcidTick || Date.now() - enemy._lastAcidTick > 500) {
+                    enemy.takeDamage(2.5);
+                    enemy._lastAcidTick = Date.now();
+                }
+            }
+        });
+
         // Update adaptive music
         if (window.soundEngine && window.soundEngine.isInitialized) {
             window.soundEngine.updateMusicState(this.player, this.map.enemies);

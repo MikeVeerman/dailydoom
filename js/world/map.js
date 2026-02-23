@@ -47,6 +47,8 @@ class GameMap {
         this.items = []; // Collectible items
         this.enemies = []; // Enemy spawn points
         this.doors = []; // Interactive doors
+        this.barrels = []; // Exploding barrels
+        this.acidTiles = new Set(); // Floor tiles that deal acid damage
 
         // Door system
         this.initializeDoors();
@@ -96,6 +98,34 @@ class GameMap {
 
         // Boss in the south-east wing
         this.enemies.push(new Enemy(21 * this.tileSize, 21 * this.tileSize, 'boss'));
+
+        // --- Environmental Hazards ---
+
+        // Acid pools — green-tinted floor tiles that deal 5 HP/sec
+        // Reactor Core acid spill
+        this.addAcidTile(11, 12);
+        this.addAcidTile(12, 11);
+        this.addAcidTile(13, 12);
+        // Waste Storage toxic puddles
+        this.addAcidTile(3, 20);
+        this.addAcidTile(4, 20);
+        this.addAcidTile(3, 21);
+        // Cooling tunnel leak
+        this.addAcidTile(2, 11);
+        this.addAcidTile(4, 14);
+
+        // Exploding barrels — shoot to detonate (60 dmg, 100 unit radius)
+        // Main corridor
+        this.addBarrel(6.5 * this.tileSize, 9.5 * this.tileSize);
+        // Near reactor entrance
+        this.addBarrel(8.5 * this.tileSize, 12.5 * this.tileSize);
+        // Containment wing — chain reaction pair
+        this.addBarrel(17.5 * this.tileSize, 5.5 * this.tileSize);
+        this.addBarrel(17.5 * this.tileSize, 6.5 * this.tileSize);
+        // South corridor
+        this.addBarrel(5.5 * this.tileSize, 16.5 * this.tileSize);
+        // Near boss room
+        this.addBarrel(17.5 * this.tileSize, 20.5 * this.tileSize);
     }
 
     initializeDoors() {
@@ -171,6 +201,89 @@ class GameMap {
 
     getDoorAt(mapX, mapY) {
         return this.doors.find(d => d.mapX === mapX && d.mapY === mapY);
+    }
+
+    // --- Hazard methods ---
+
+    addAcidTile(mapX, mapY) {
+        this.acidTiles.add(mapX + ',' + mapY);
+    }
+
+    isAcidTile(mapX, mapY) {
+        return this.acidTiles.has(mapX + ',' + mapY);
+    }
+
+    isAcidAtPosition(worldX, worldY) {
+        const mapX = Math.floor(worldX / this.tileSize);
+        const mapY = Math.floor(worldY / this.tileSize);
+        return this.isAcidTile(mapX, mapY);
+    }
+
+    addBarrel(x, y) {
+        this.barrels.push({
+            x, y,
+            health: 30,
+            active: true,
+            radius: 16, // collision radius
+            explodeRadius: 100,
+            explodeDamage: 60
+        });
+    }
+
+    explodeBarrel(barrel) {
+        if (!barrel.active) return;
+        barrel.active = false;
+
+        // Play explosion sound + particles
+        if (window.game && window.game.hud) {
+            window.game.hud.emitExplosionParticles(barrel.x, barrel.y, 20);
+            window.game.hud.triggerScreenShake(8);
+        }
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playExplosion();
+        }
+
+        // Damage player
+        if (window.game && window.game.player) {
+            const player = window.game.player;
+            const dx = player.x - barrel.x;
+            const dy = player.y - barrel.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < barrel.explodeRadius) {
+                const falloff = 1 - (dist / barrel.explodeRadius);
+                const dmg = Math.round(barrel.explodeDamage * falloff);
+                player.takeDamage(dmg);
+                if (window.game.hud) window.game.hud.onPlayerDamage();
+            }
+        }
+
+        // Damage enemies
+        this.enemies.forEach(enemy => {
+            if (!enemy.active) return;
+            const dx = enemy.x - barrel.x;
+            const dy = enemy.y - barrel.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < barrel.explodeRadius) {
+                const falloff = 1 - (dist / barrel.explodeRadius);
+                const dmg = Math.round(barrel.explodeDamage * falloff);
+                enemy.takeDamage(dmg);
+                if (window.game && window.game.hud) {
+                    window.game.hud.addDamageNumber(enemy.x, enemy.y, dmg, false);
+                }
+            }
+        });
+
+        // Chain reaction — detonate nearby barrels
+        this.barrels.forEach(other => {
+            if (!other.active || other === barrel) return;
+            const dx = other.x - barrel.x;
+            const dy = other.y - barrel.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < barrel.explodeRadius) {
+                // Delay chain reaction slightly for visual effect
+                setTimeout(() => this.explodeBarrel(other), 150);
+            }
+        });
     }
 
     // Check if a coordinate contains a wall

@@ -502,6 +502,41 @@ class SoundEngine {
         osc.stop(now + 0.4);
     }
     
+    // Barrel explosion
+    playExplosion() {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Low rumble
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(80, now);
+        osc.frequency.exponentialRampToValueAtTime(20, now + 0.5);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.6, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+
+        // Noise burst
+        const noiseBuffer = this.createNoiseBuffer(0.3);
+        if (noiseBuffer) {
+            const noise = this.audioContext.createBufferSource();
+            noise.buffer = noiseBuffer;
+            const noiseGain = this.audioContext.createGain();
+            noise.connect(noiseGain);
+            noiseGain.connect(this.masterGain);
+            noiseGain.gain.setValueAtTime(0, now);
+            noiseGain.gain.linearRampToValueAtTime(this.sfxVolume * 0.5, now + 0.01);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            noise.start(now);
+            noise.stop(now + 0.3);
+        }
+    }
+
     // Utility: Create noise buffer for sound effects
     createNoiseBuffer(duration) {
         if (!this.audioContext) return null;

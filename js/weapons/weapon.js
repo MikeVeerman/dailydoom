@@ -176,7 +176,17 @@ class Weapon {
             }
 
             console.log(`${isCritical ? 'CRITICAL! ' : ''}Hit enemy for ${actualDamage} damage! Enemy health: ${hit.enemy.health}`);
-        } else if (hit.hitWall) {
+        }
+
+        // Barrel hit — damage barrel, explode if destroyed
+        if (hit.barrel && hit.barrel.active) {
+            hit.barrel.health -= this.damage;
+            if (hit.barrel.health <= 0) {
+                map.explodeBarrel(hit.barrel);
+            }
+        }
+
+        if (!hit.enemy && !hit.barrel && hit.hitWall) {
             // Wall impact effect
             if (window.game && window.game.hud) {
                 window.game.hud.addImpactSpark(hit.hitPoint.x, hit.hitPoint.y);
@@ -281,8 +291,32 @@ class Weapon {
             });
         }
         
+        // Check for barrel collisions
+        let closestBarrel = null;
+        let closestBarrelDistance = this.range;
+        if (map.barrels) {
+            let bCheckX = rayX, bCheckY = rayY, bDist = 0;
+            const bStepSize = 2;
+            while (bDist < this.range) {
+                bCheckX += rayDirX * bStepSize;
+                bCheckY += rayDirY * bStepSize;
+                bDist += bStepSize;
+                if (map.isWallAtPosition(bCheckX, bCheckY)) break;
+                for (const barrel of map.barrels) {
+                    if (!barrel.active) continue;
+                    const bdx = barrel.x - bCheckX;
+                    const bdy = barrel.y - bCheckY;
+                    if (Math.sqrt(bdx * bdx + bdy * bdy) < barrel.radius && bDist < closestBarrelDistance) {
+                        closestBarrel = barrel;
+                        closestBarrelDistance = bDist;
+                    }
+                }
+            }
+        }
+
         return {
             enemy: closestEnemy,
+            barrel: closestBarrel,
             distance: closestDistance,
             hitPoint: { x: currentX, y: currentY },
             hitWall: !closestEnemy && map.isWallAtPosition(currentX, currentY)

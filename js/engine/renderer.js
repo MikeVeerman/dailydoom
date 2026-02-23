@@ -588,6 +588,33 @@ class Renderer {
             });
         });
         
+        // Add barrels to rendering queue
+        if (this.map.barrels) {
+            this.map.barrels.forEach(barrel => {
+                if (!barrel.active) return;
+                const dx = barrel.x - player.x;
+                const dy = barrel.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > this.maxRenderDistance) return;
+
+                let barrelAngle = Math.atan2(dy, dx);
+                let angleDiff = barrelAngle - player.angle;
+                while (angleDiff > Math.PI) angleDiff -= MathUtils.PI2;
+                while (angleDiff < -Math.PI) angleDiff += MathUtils.PI2;
+                if (Math.abs(angleDiff) > this.fov / 2) return;
+                if (this.isOccludedByWall(player.x, player.y, barrel.x, barrel.y)) return;
+
+                spritesToRender.push({
+                    entity: barrel,
+                    entityType: 'barrel',
+                    distance: distance,
+                    angleDiff: angleDiff,
+                    x: barrel.x,
+                    y: barrel.y
+                });
+            });
+        }
+
         // Sort sprites by distance (furthest first)
         spritesToRender.sort((a, b) => b.distance - a.distance);
         
@@ -681,6 +708,28 @@ class Renderer {
             this.ctx.strokeStyle = '#FFFFFF';
             this.ctx.lineWidth = 2;
             this.ctx.stroke();
+        } else if (entityType === 'barrel') {
+            // Render barrel as a red-brown cylinder
+            const size = (this.wallHeight * this.projectionDistance) / distance * 0.35;
+            const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
+            const floorY = this.halfHeight + wallScreenHeight / 2;
+            const barrelX = screenX - size / 2;
+            const barrelY = floorY - size;
+
+            // Barrel body (dark red)
+            this.ctx.fillStyle = '#8B2500';
+            this.ctx.fillRect(barrelX, barrelY, size, size);
+            // Metal bands
+            this.ctx.fillStyle = '#555555';
+            this.ctx.fillRect(barrelX, barrelY + size * 0.15, size, size * 0.1);
+            this.ctx.fillRect(barrelX, barrelY + size * 0.75, size, size * 0.1);
+            // Hazard stripe
+            this.ctx.fillStyle = '#FFCC00';
+            this.ctx.fillRect(barrelX + size * 0.2, barrelY + size * 0.35, size * 0.6, size * 0.3);
+            // Border
+            this.ctx.strokeStyle = '#333333';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(barrelX, barrelY, size, size);
         }
     }
 }
