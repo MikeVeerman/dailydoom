@@ -454,7 +454,14 @@ class Player {
             if (wasAlive && !closestEnemy.active) {
                 if (this.stats) this.stats.enemiesKilled++;
                 const xpTable = { imp: 15, guard: 20, soldier: 30, demon: 40, berserker: 35, spitter: 25, shield_guard: 45, boss: 200 };
-                if (this.addXP) this.addXP(xpTable[closestEnemy.type] || 20);
+                const xpReward = xpTable[closestEnemy.type] || 20;
+                if (this.addXP) this.addXP(xpReward);
+
+                // Kill feed message for punch kills
+                if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
+                    const typeName = (closestEnemy.type || 'enemy').charAt(0).toUpperCase() + (closestEnemy.type || 'enemy').slice(1);
+                    window.game.hud.addKillFeedMessage(`Punched ${typeName} +${xpReward} XP`, '#FF4444');
+                }
             }
 
             // Visual feedback
@@ -658,6 +665,11 @@ class Player {
         this.health = Math.min(this.health + 20, this.maxHealth); // Heal 20 on level up
         this.baseSpeed = 200 + this.levelBonuses.speedBonus;
         this.speed = this.baseSpeed;
+
+        // Kill feed message for level up
+        if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
+            window.game.hud.addKillFeedMessage(`LEVEL UP! Now Level ${this.level}`, '#FFD700');
+        }
 
         console.log(`Level up! Now level ${this.level}. Max HP: ${this.maxHealth}, DMG: ${(this.levelBonuses.damageMultiplier * 100).toFixed(0)}%`);
     }

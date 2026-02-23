@@ -615,6 +615,7 @@ const TIER_2_TESTS = [
   { id: 'T2-25', name: 'Damage flash and low-health effects', fn: T2_25_damageFlashEffects }, // issue: #40
   { id: 'T2-26', name: 'Weapon pickups on map', fn: T2_26_weaponPickups }, // issue: #45
   { id: 'T2-27', name: 'Environmental hazards', fn: T2_27_environmentalHazards }, // issue: #46
+  { id: 'T2-28', name: 'Kill feed system', fn: T2_28_killFeed }, // issue: #47
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1932,6 +1933,78 @@ async function T2_25_damageFlashEffects(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Damage flash (${effectData.flashDuration}ms) + low-health vignette pulse at <25% HP`;
+  }
+}
+
+async function T2_28_killFeed(page, result) {
+  // T2-28: Kill feed system (issue: #47)
+  // Pass condition: Kill feed renders in top-right, messages auto-fade, max 4 visible
+  await page.waitForTimeout(1000);
+
+  const feedData = await page.evaluate(() => {
+    if (!window.game || !window.game.hud) {
+      return { exists: false, reason: 'HUD not found' };
+    }
+
+    const hud = window.game.hud;
+
+    // Check kill feed system
+    const hasKillFeed = Array.isArray(hud.killFeed);
+    const hasAddMethod = typeof hud.addKillFeedMessage === 'function';
+    const hasRenderMethod = typeof hud.renderKillFeed === 'function';
+    const hasMax = typeof hud.killFeedMax === 'number';
+    const hasDuration = typeof hud.killFeedDuration === 'number';
+    const maxIs4 = hud.killFeedMax === 4;
+    const durationIs3000 = hud.killFeedDuration === 3000;
+
+    // Test adding messages
+    let addWorks = false;
+    if (hasAddMethod) {
+      const before = hud.killFeed.length;
+      hud.addKillFeedMessage('Killed Guard +20 XP', '#FF4444');
+      hud.addKillFeedMessage('CRITICAL! Killed Imp +30 XP', '#FFD700');
+      hud.addKillFeedMessage('Shotgun Acquired!', '#00FF00');
+      addWorks = hud.killFeed.length === before + 3;
+      // Clean up
+      hud.killFeed.splice(before);
+    }
+
+    return {
+      exists: true,
+      hasKillFeed,
+      hasAddMethod,
+      hasRenderMethod,
+      hasMax,
+      hasDuration,
+      maxIs4,
+      durationIs3000,
+      addWorks
+    };
+  });
+
+  if (!feedData.exists) {
+    result.status = 'fail';
+    result.note = feedData.reason;
+    return;
+  }
+
+  const checks = [
+    ['killFeed array', feedData.hasKillFeed],
+    ['addKillFeedMessage method', feedData.hasAddMethod],
+    ['renderKillFeed method', feedData.hasRenderMethod],
+    ['max 4 messages', feedData.maxIs4],
+    ['3s fade duration', feedData.durationIs3000],
+    ['adding messages works', feedData.addWorks]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Kill feed: max ${feedData.maxIs4 ? 4 : '?'} msgs, ${feedData.durationIs3000 ? '3s' : '?'} fade, color-coded`;
   }
 }
 

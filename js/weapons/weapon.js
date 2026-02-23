@@ -162,6 +162,14 @@ class Weapon {
                 // Grant XP based on enemy type
                 const xpReward = this.getKillXP(hit.enemy);
                 if (player.addXP) player.addXP(xpReward);
+
+                // Kill feed message
+                if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
+                    const typeName = (hit.enemy.type || 'enemy').charAt(0).toUpperCase() + (hit.enemy.type || 'enemy').slice(1);
+                    const prefix = isCritical ? 'CRITICAL! Killed' : 'Killed';
+                    const color = isCritical ? '#FFD700' : '#FF4444';
+                    window.game.hud.addKillFeedMessage(`${prefix} ${typeName} +${xpReward} XP`, color);
+                }
             }
 
             // Trigger enemy hit flash and blood particles
