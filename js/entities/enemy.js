@@ -283,6 +283,11 @@ class Enemy {
             if (window.soundEngine && window.soundEngine.isInitialized) {
                 window.soundEngine.playEnemyDeath();
             }
+
+            // 30% chance to drop an ammo crate
+            if (Math.random() < 0.3 && window.game && window.game.pickupManager) {
+                window.game.pickupManager.spawnAmmoCrate(this.x, this.y);
+            }
         }
 
         return actualDamage;

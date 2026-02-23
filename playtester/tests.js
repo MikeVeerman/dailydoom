@@ -618,6 +618,7 @@ const TIER_2_TESTS = [
   { id: 'T2-28', name: 'Kill feed system', fn: T2_28_killFeed }, // issue: #47
   { id: 'T2-29', name: 'Fullscreen support', fn: T2_29_fullscreenSupport }, // issue: #48
   { id: 'T2-30', name: 'Automap fog of war', fn: T2_30_automapFogOfWar }, // issue: #52
+  { id: 'T2-31', name: 'Ammo crate drops', fn: T2_31_ammoCrateDrops }, // issue: #53
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -2299,6 +2300,80 @@ async function T2_30_automapFogOfWar(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Fog of war: ${fogData.revealedCount}/${fogData.totalTiles} tiles revealed, radius ${fogData.hasRevealRadius ? '4' : '?'}`;
+  }
+}
+
+async function T2_31_ammoCrateDrops(page, result) {
+  // T2-31: Ammo crate drops from enemies (issue: #53)
+  // Pass condition: PickupManager has spawnAmmoCrate, enemies can trigger drops, crate spawns at position
+  await page.waitForTimeout(1000);
+
+  const dropData = await page.evaluate(() => {
+    if (!window.game || !window.game.pickupManager) {
+      return { exists: false, reason: 'Pickup manager not found' };
+    }
+
+    const pm = window.game.pickupManager;
+    const player = window.game.player;
+
+    const hasSpawnMethod = typeof pm.spawnAmmoCrate === 'function';
+
+    // Test spawning an ammo crate
+    let spawnWorks = false;
+    let spawnedType = null;
+    if (hasSpawnMethod) {
+      const before = pm.pickups.length;
+      const crate = pm.spawnAmmoCrate(200, 200);
+      if (crate && pm.pickups.length === before + 1) {
+        spawnWorks = true;
+        spawnedType = crate.type;
+        // Clean up
+        crate.active = false;
+        pm.pickups = pm.pickups.filter(p => p.active);
+      }
+    }
+
+    // Check enemy drop code exists (enemy has takeDamage that can drop)
+    const enemies = window.game.map.enemies;
+    const hasEnemies = enemies.length > 0;
+    let enemyDropCodeExists = false;
+    if (hasEnemies) {
+      const enemy = enemies[0];
+      const src = enemy.takeDamage.toString();
+      enemyDropCodeExists = src.includes('spawnAmmoCrate') || src.includes('ammoCrate');
+    }
+
+    return {
+      exists: true,
+      hasSpawnMethod,
+      spawnWorks,
+      spawnedType,
+      hasEnemies,
+      enemyDropCodeExists
+    };
+  });
+
+  if (!dropData.exists) {
+    result.status = 'fail';
+    result.note = dropData.reason;
+    return;
+  }
+
+  const checks = [
+    ['spawnAmmoCrate method', dropData.hasSpawnMethod],
+    ['crate spawns correctly', dropData.spawnWorks],
+    ['spawned ammo type', dropData.spawnedType && dropData.spawnedType.startsWith('ammo_')],
+    ['enemy drop code exists', dropData.enemyDropCodeExists]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Ammo drops: spawn works (${dropData.spawnedType}), 30% chance on enemy death`;
   }
 }
 
