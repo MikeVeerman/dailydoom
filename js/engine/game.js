@@ -168,8 +168,8 @@ class GameEngine {
         // Update pickups
         this.pickupManager.update(deltaTime, this.player);
 
-        // Update doors
-        this.map.updateDoors();
+        // Update doors (proximity-based opening + animation)
+        this.map.updateDoors(this.player.x, this.player.y, deltaTime);
 
         // Acid pool damage (5 HP/sec for player and enemies)
         if (this.map.isAcidAtPosition(this.player.x, this.player.y)) {

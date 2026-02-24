@@ -146,7 +146,7 @@ class Renderer {
             const mapX = Math.floor(rayX / this.wallHeight);
             const mapY = Math.floor(rayY / this.wallHeight);
             
-            if (this.map.isWall(mapX, mapY)) {
+            if (this.map.isRayWall(mapX, mapY)) {
                 hitWall = true;
                 wallType = this.map.getWallType(mapX, mapY);
                 
@@ -185,18 +185,35 @@ class Renderer {
         
         // Calculate wall height on screen
         const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
-        const wallTop = this.halfHeight - wallScreenHeight / 2;
-        const wallBottom = this.halfHeight + wallScreenHeight / 2;
-        
+        let wallTop = this.halfHeight - wallScreenHeight / 2;
+        let wallBottom = this.halfHeight + wallScreenHeight / 2;
+
+        // Door animation: slide door upward based on progress
+        let doorProgress = 0;
+        if (wallType === 9) {
+            const doorMapX = Math.floor(hitX / this.wallHeight);
+            const doorMapY = Math.floor(hitY / this.wallHeight);
+            const door = this.map.getDoorAt(doorMapX, doorMapY);
+            if (door) doorProgress = door.progress;
+        }
+
+        // For doors: shrink the visible wall from bottom (door slides up)
+        let doorWallTop = wallTop;
+        let doorWallBottom = wallBottom;
+        if (doorProgress > 0) {
+            doorWallBottom = wallBottom - wallScreenHeight * doorProgress;
+            doorWallTop = wallTop; // Top stays; door goes up into ceiling
+        }
+
         // Get texture for this wall type
         const textureName = this.wallTypeTextures[wallType] || 'stone';
         const texture = this.textures[textureName];
-        
+
         // Apply shading based on distance and wall side
         const shadingFactor = Math.max(0.2, 1 - (distance / this.maxRenderDistance));
         const sideFactor = hitSide === 0 ? 1.0 : 0.7; // Darken horizontal walls
         const totalShading = shadingFactor * sideFactor;
-        
+
         // Calculate texture U coordinate (horizontal position on texture)
         let textureU;
         if (hitSide === 0) {
@@ -206,33 +223,37 @@ class Renderer {
             // Horizontal wall - use X coordinate
             textureU = (hitX % this.wallHeight) / this.wallHeight;
         }
-        
-        // Render floor
+
+        // Render ceiling (above wall on screen)
         for (let y = 0; y < wallTop && y < this.height; y++) {
             this.setPixel(x, Math.floor(y), this.hexToRgb(this.floorColor));
         }
-        
-        // Render textured wall
+
+        // Render textured wall (use door-adjusted bounds for doors)
+        const renderTop = doorProgress > 0 ? doorWallTop : wallTop;
+        const renderBottom = doorProgress > 0 ? doorWallBottom : wallBottom;
+
         if (texture && texture.complete) {
-            this.renderTexturedWallSlice(x, wallTop, wallBottom, textureU, texture, totalShading);
+            this.renderTexturedWallSlice(x, renderTop, renderBottom, textureU, texture, totalShading);
         } else {
             // Fallback to solid color if texture not loaded
             let wallColor = this.wallColors[wallType] || '#FFFFFF';
             const color = this.applyShading(wallColor, totalShading);
-            
-            for (let y = Math.max(0, wallTop); y < Math.min(this.height, wallBottom); y++) {
+
+            for (let y = Math.max(0, renderTop); y < Math.min(this.height, renderBottom); y++) {
                 this.setPixel(x, Math.floor(y), color);
             }
         }
         
-        // Render floor (below wall on screen)
+        // Render floor (below wall on screen, or below door gap)
+        const floorStartY = doorProgress > 0 ? Math.ceil(doorWallBottom) : Math.ceil(wallBottom);
         if (this._acidTileCount > 0) {
             const rayAngle = rayResult.angle;
             const cosAngle = Math.cos(rayAngle);
             const sinAngle = Math.sin(rayAngle);
             const cosCorrection = Math.cos(rayAngle - player.angle);
             const baseFloorColor = this.hexToRgb(this.ceilingColor);
-            for (let y = Math.max(0, Math.ceil(wallBottom)); y < this.height; y++) {
+            for (let y = Math.max(0, floorStartY); y < this.height; y++) {
                 const rowDist = (this.halfHeight * this.wallHeight) / (y - this.halfHeight);
                 const actualDist = rowDist / cosCorrection;
                 const floorWorldX = player.x + actualDist * cosAngle;
@@ -252,7 +273,7 @@ class Renderer {
                 }
             }
         } else {
-            for (let y = Math.max(0, Math.ceil(wallBottom)); y < this.height; y++) {
+            for (let y = Math.max(0, floorStartY); y < this.height; y++) {
                 this.setPixel(x, Math.floor(y), this.hexToRgb(this.ceilingColor));
             }
         }
