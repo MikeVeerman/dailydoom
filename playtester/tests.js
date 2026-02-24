@@ -619,6 +619,7 @@ const TIER_2_TESTS = [
   { id: 'T2-29', name: 'Fullscreen support', fn: T2_29_fullscreenSupport }, // issue: #48
   { id: 'T2-30', name: 'Automap fog of war', fn: T2_30_automapFogOfWar }, // issue: #52
   { id: 'T2-31', name: 'Ammo crate drops', fn: T2_31_ammoCrateDrops }, // issue: #53
+  { id: 'T2-32', name: 'Door animation system', fn: T2_32_doorAnimation }, // issue: #58
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -2374,6 +2375,111 @@ async function T2_31_ammoCrateDrops(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Ammo drops: spawn works (${dropData.spawnedType}), 30% chance on enemy death`;
+  }
+}
+
+async function T2_32_doorAnimation(page, result) {
+  // T2-32: Door opening/closing animation (issue: #58)
+  // Pass condition: Doors have state machine, proximity detection, animation progress
+  await page.waitForTimeout(1000);
+
+  const doorData = await page.evaluate(() => {
+    if (!window.game || !window.game.map) {
+      return { exists: false, reason: 'Game map not found' };
+    }
+
+    const map = window.game.map;
+    const doors = map.doors;
+
+    if (!doors || doors.length === 0) {
+      return { exists: false, reason: 'No doors found' };
+    }
+
+    // Check door data structure
+    const door = doors[0];
+    const hasState = 'state' in door;
+    const hasProgress = 'progress' in door;
+    const hasAnimDuration = 'animDuration' in door;
+    const hasAutoCloseDelay = 'autoCloseDelay' in door;
+
+    // Check methods
+    const hasUpdateDoors = typeof map.updateDoors === 'function';
+    const hasIsRayWall = typeof map.isRayWall === 'function';
+    const hasGetDoorAt = typeof map.getDoorAt === 'function';
+
+    // Test proximity-based opening: move player near a door
+    const testDoor = doors.find(d => d.keyRequired === 'none');
+    let proximityWorks = false;
+    if (testDoor && hasUpdateDoors) {
+      const doorWorldX = testDoor.mapX * map.tileSize + map.tileSize / 2;
+      const doorWorldY = testDoor.mapY * map.tileSize + map.tileSize / 2;
+
+      // Simulate being near the door
+      testDoor.state = 'closed';
+      testDoor.progress = 0;
+      map.grid[testDoor.mapY][testDoor.mapX] = 9;
+      map.updateDoors(doorWorldX, doorWorldY - map.tileSize, 0.016);
+      proximityWorks = testDoor.state === 'opening';
+
+      // Reset
+      testDoor.state = 'closed';
+      testDoor.progress = 0;
+      map.grid[testDoor.mapY][testDoor.mapX] = 9;
+    }
+
+    // Test animation progress
+    let animWorks = false;
+    if (testDoor) {
+      testDoor.state = 'opening';
+      testDoor.progress = 0;
+      map.updateDoors(0, 0, 0.5); // Far from door, 0.5s delta
+      animWorks = testDoor.progress > 0;
+
+      // Reset
+      testDoor.state = 'closed';
+      testDoor.progress = 0;
+      map.grid[testDoor.mapY][testDoor.mapX] = 9;
+    }
+
+    return {
+      exists: true,
+      doorCount: doors.length,
+      hasState,
+      hasProgress,
+      hasAnimDuration,
+      hasAutoCloseDelay,
+      hasUpdateDoors,
+      hasIsRayWall,
+      hasGetDoorAt,
+      proximityWorks,
+      animWorks
+    };
+  });
+
+  if (!doorData.exists) {
+    result.status = 'fail';
+    result.note = doorData.reason;
+    return;
+  }
+
+  const checks = [
+    ['door state field', doorData.hasState],
+    ['door progress field', doorData.hasProgress],
+    ['animation duration', doorData.hasAnimDuration],
+    ['updateDoors method', doorData.hasUpdateDoors],
+    ['isRayWall method', doorData.hasIsRayWall],
+    ['proximity opening', doorData.proximityWorks],
+    ['animation progress', doorData.animWorks]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Door animation: ${doorData.doorCount} doors, state machine + proximity + animation`;
   }
 }
 

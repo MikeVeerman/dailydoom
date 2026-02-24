@@ -143,10 +143,12 @@ class GameMap {
 
         this.doors.push({
             mapX, mapY,
-            isOpen: false,
             keyRequired, // 'none', 'red', 'blue', 'yellow'
-            openTime: 0,
-            autoCloseDelay: 5000 // Close after 5 seconds
+            state: 'closed', // closed, opening, open, closing
+            progress: 0, // 0.0 = closed, 1.0 = fully open
+            lastProximityTime: 0,
+            autoCloseDelay: 3000, // Close 3 seconds after player leaves
+            animDuration: 500 // 0.5 seconds to open/close
         });
     }
 
@@ -159,8 +161,7 @@ class GameMap {
 
         for (const door of this.doors) {
             if (door.mapX === mapPos.x && door.mapY === mapPos.y) {
-                if (door.isOpen) {
-                    // Already open
+                if (door.state === 'open' || door.state === 'opening') {
                     return { success: false, reason: 'already_open' };
                 }
 
@@ -171,10 +172,9 @@ class GameMap {
                     }
                 }
 
-                // Open the door
-                door.isOpen = true;
-                door.openTime = Date.now();
-                this.grid[door.mapY][door.mapX] = 0; // Remove wall
+                // Start opening the door
+                door.state = 'opening';
+                door.lastProximityTime = Date.now();
 
                 // Play door sound
                 if (window.soundEngine && window.soundEngine.isInitialized) {
@@ -188,15 +188,81 @@ class GameMap {
         return { success: false, reason: 'no_door' };
     }
 
-    updateDoors() {
+    updateDoors(playerX, playerY, deltaTime) {
         const now = Date.now();
+        const proximityRange = 2 * this.tileSize; // 2 tiles
+
         for (const door of this.doors) {
-            // Auto-close doors after delay
-            if (door.isOpen && now - door.openTime > door.autoCloseDelay) {
-                door.isOpen = false;
-                this.grid[door.mapY][door.mapX] = 9;
+            // Calculate distance from player to door center
+            const doorWorldX = door.mapX * this.tileSize + this.tileSize / 2;
+            const doorWorldY = door.mapY * this.tileSize + this.tileSize / 2;
+            const dx = playerX - doorWorldX;
+            const dy = playerY - doorWorldY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const playerNearby = dist < proximityRange;
+
+            if (playerNearby) {
+                door.lastProximityTime = now;
+
+                // Auto-open unlocked doors on proximity
+                if (door.state === 'closed' && door.keyRequired === 'none') {
+                    door.state = 'opening';
+                    if (window.soundEngine && window.soundEngine.isInitialized) {
+                        window.soundEngine.playDoorSound();
+                    }
+                } else if (door.state === 'closing' && door.keyRequired === 'none') {
+                    door.state = 'opening';
+                    if (window.soundEngine && window.soundEngine.isInitialized) {
+                        window.soundEngine.playDoorSound();
+                    }
+                }
+            }
+
+            // Animate door based on state
+            const animStep = (deltaTime || 0.016) / (door.animDuration / 1000);
+
+            if (door.state === 'opening') {
+                door.progress = Math.min(1.0, door.progress + animStep);
+                if (door.progress >= 1.0) {
+                    door.state = 'open';
+                    door.progress = 1.0;
+                }
+            } else if (door.state === 'closing') {
+                door.progress = Math.max(0.0, door.progress - animStep);
+                if (door.progress <= 0.0) {
+                    door.state = 'closed';
+                    door.progress = 0.0;
+                    this.grid[door.mapY][door.mapX] = 9; // Restore wall collision
+                }
+            } else if (door.state === 'open') {
+                // Auto-close after delay when player is far enough away
+                if (!playerNearby && now - door.lastProximityTime > door.autoCloseDelay) {
+                    // Check if any entity is in the door tile before closing
+                    if (!this._isEntityInTile(door.mapX, door.mapY, playerX, playerY)) {
+                        door.state = 'closing';
+                        if (window.soundEngine && window.soundEngine.isInitialized) {
+                            window.soundEngine.playDoorSound();
+                        }
+                    }
+                }
             }
         }
+    }
+
+    _isEntityInTile(mapX, mapY, playerX, playerY) {
+        // Check if player is in this tile
+        const pMapX = Math.floor(playerX / this.tileSize);
+        const pMapY = Math.floor(playerY / this.tileSize);
+        if (pMapX === mapX && pMapY === mapY) return true;
+
+        // Check if any enemy is in this tile
+        for (const enemy of this.enemies) {
+            if (!enemy.active) continue;
+            const eMapX = Math.floor(enemy.x / this.tileSize);
+            const eMapY = Math.floor(enemy.y / this.tileSize);
+            if (eMapX === mapX && eMapY === mapY) return true;
+        }
+        return false;
     }
 
     getDoorAt(mapX, mapY) {
@@ -286,12 +352,33 @@ class GameMap {
         });
     }
 
-    // Check if a coordinate contains a wall
+    // Check if a coordinate contains a wall (for entity collision)
+    // Doors that are partially open allow passage
     isWall(mapX, mapY) {
         if (mapX < 0 || mapX >= this.width || mapY < 0 || mapY >= this.height) {
             return true; // Treat out-of-bounds as walls
         }
-        return this.grid[mapY][mapX] > 0;
+        const val = this.grid[mapY][mapX];
+        if (val === 0) return false;
+        if (val === 9) {
+            const door = this.getDoorAt(mapX, mapY);
+            if (door && door.progress > 0.3) return false;
+        }
+        return true;
+    }
+
+    // Check if a coordinate blocks raycasting (doors block rays until fully open)
+    isRayWall(mapX, mapY) {
+        if (mapX < 0 || mapX >= this.width || mapY < 0 || mapY >= this.height) {
+            return true;
+        }
+        const val = this.grid[mapY][mapX];
+        if (val === 0) return false;
+        if (val === 9) {
+            const door = this.getDoorAt(mapX, mapY);
+            if (door && door.progress >= 1.0) return false;
+        }
+        return true;
     }
     
     // Get wall type at coordinate
