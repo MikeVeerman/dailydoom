@@ -47,6 +47,10 @@ class HUD {
         this.killFeedMax = 4;
         this.killFeedDuration = 3000; // 3 seconds
 
+        // Damage direction indicators
+        this.damageIndicators = [];
+        this.damageIndicatorDuration = 500; // 0.5 seconds
+
         // Fog of war
         this.revealedTiles = new Set();
         this.fogRevealRadius = 4; // tiles
@@ -124,6 +128,9 @@ class HUD {
 
             // Apply screen shake
             this.updateScreenShake();
+
+            // Render damage direction indicators
+            this.renderDamageIndicators(player);
 
             // Render damage flash effect
             this.renderDamageFlash(player);
@@ -538,6 +545,57 @@ class HUD {
         }
     }
     
+    renderDamageIndicators(player) {
+        const now = Date.now();
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const cx = w / 2;
+        const cy = h / 2;
+
+        // Remove expired indicators
+        this.damageIndicators = this.damageIndicators.filter(
+            ind => now - ind.time < this.damageIndicatorDuration
+        );
+
+        for (const ind of this.damageIndicators) {
+            const elapsed = now - ind.time;
+            const alpha = 1 - (elapsed / this.damageIndicatorDuration);
+
+            // Calculate angle from player to damage source
+            const angleToSource = Math.atan2(
+                ind.sourceY - player.y,
+                ind.sourceX - player.x
+            );
+
+            // Relative angle (accounting for player facing direction)
+            let relAngle = angleToSource - player.angle;
+            // Normalize to -PI to PI
+            while (relAngle > Math.PI) relAngle -= Math.PI * 2;
+            while (relAngle < -Math.PI) relAngle += Math.PI * 2;
+
+            // Draw a red wedge/arc on screen edge pointing toward damage source
+            const radius = Math.min(w, h) * 0.42;
+            const arcWidth = 0.4; // radians (~23 degrees)
+
+            this.ctx.save();
+            this.ctx.translate(cx, cy);
+            // Rotate so 0 = "forward" (up on screen), matching player perspective
+            // In the game, angle 0 = right. On screen, forward = up (-PI/2)
+            this.ctx.rotate(relAngle);
+
+            // Draw wedge pointing right (toward source), at edge of screen
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, radius, -arcWidth / 2, arcWidth / 2);
+            this.ctx.arc(0, 0, radius - 20, arcWidth / 2, -arcWidth / 2, true);
+            this.ctx.closePath();
+
+            this.ctx.fillStyle = `rgba(255, 30, 0, ${alpha * 0.7})`;
+            this.ctx.fill();
+
+            this.ctx.restore();
+        }
+    }
+
     renderPowerupIndicators(player) {
         if (!player.getActivePowerups) return;
 
@@ -772,6 +830,16 @@ class HUD {
     // Called when player takes damage
     onPlayerDamage() {
         this.lastDamageTime = Date.now();
+    }
+
+    // Called when player takes damage from a known source position
+    onPlayerDamageFrom(sourceX, sourceY) {
+        this.lastDamageTime = Date.now();
+        this.damageIndicators.push({
+            sourceX,
+            sourceY,
+            time: Date.now()
+        });
     }
 
     // Add a floating damage number

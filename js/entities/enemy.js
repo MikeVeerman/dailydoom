@@ -169,7 +169,7 @@ class Enemy {
             const damage = 15; // Default fallback damage
             if (player.takeDamage(damage)) {
                 if (window.game && window.game.hud) {
-                    window.game.hud.onPlayerDamage();
+                    window.game.hud.onPlayerDamageFrom(this.x, this.y);
                 }
                 if (window.soundEngine && window.soundEngine.isInitialized) {
                     window.soundEngine.playPlayerHit();

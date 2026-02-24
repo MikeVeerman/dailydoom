@@ -239,7 +239,7 @@ class Weapon {
                 if (selfDmg > 0) {
                     player.takeDamage(selfDmg);
                     if (window.game && window.game.hud) {
-                        window.game.hud.onPlayerDamage();
+                        window.game.hud.onPlayerDamageFrom(hit.hitPoint.x, hit.hitPoint.y);
                     }
                 }
             }
