@@ -60,10 +60,43 @@ class Renderer {
         }
     }
     
+    buildAcidLookup() {
+        this._acidLookup = [];
+        for (let y = 0; y < this.map.height; y++) {
+            this._acidLookup[y] = new Uint8Array(this.map.width);
+        }
+        if (this.map.acidTiles) {
+            for (const key of this.map.acidTiles) {
+                const [x, y] = key.split(',').map(Number);
+                if (y >= 0 && y < this.map.height && x >= 0 && x < this.map.width) {
+                    this._acidLookup[y][x] = 1;
+                }
+            }
+            this._acidTileCount = this.map.acidTiles.size;
+        } else {
+            this._acidTileCount = 0;
+        }
+    }
+
+    isAcidTile(mapX, mapY) {
+        if (mapY >= 0 && mapY < this.map.height && mapX >= 0 && mapX < this.map.width) {
+            return this._acidLookup[mapY][mapX] === 1;
+        }
+        return false;
+    }
+
     render(player) {
         // Clear screen
         this.clearScreen();
-        
+
+        // Build acid tile lookup (once, or when tiles change)
+        if (!this._acidLookup || (this.map.acidTiles && this.map.acidTiles.size !== this._acidTileCount)) {
+            this.buildAcidLookup();
+        }
+
+        // Cache time for acid animation
+        this._acidTime = Date.now() / 400;
+
         // Cast rays for each column
         for (let rayIndex = 0; rayIndex < this.rayCount; rayIndex++) {
             const rayResult = this.castRay(player, rayIndex);
@@ -146,7 +179,7 @@ class Renderer {
         
         if (distance >= this.maxRenderDistance) {
             // Render floor and ceiling only
-            this.renderFloorCeiling(x);
+            this.renderFloorCeiling(x, player, rayResult.angle);
             return;
         }
         
@@ -192,18 +225,71 @@ class Renderer {
             }
         }
         
-        // Render ceiling
-        for (let y = Math.max(0, wallBottom); y < this.height; y++) {
-            this.setPixel(x, Math.floor(y), this.hexToRgb(this.ceilingColor));
+        // Render floor (below wall on screen)
+        if (this._acidTileCount > 0) {
+            const rayAngle = rayResult.angle;
+            const cosAngle = Math.cos(rayAngle);
+            const sinAngle = Math.sin(rayAngle);
+            const cosCorrection = Math.cos(rayAngle - player.angle);
+            const baseFloorColor = this.hexToRgb(this.ceilingColor);
+            for (let y = Math.max(0, Math.ceil(wallBottom)); y < this.height; y++) {
+                const rowDist = (this.halfHeight * this.wallHeight) / (y - this.halfHeight);
+                const actualDist = rowDist / cosCorrection;
+                const floorWorldX = player.x + actualDist * cosAngle;
+                const floorWorldY = player.y + actualDist * sinAngle;
+                const mapX = Math.floor(floorWorldX / this.wallHeight);
+                const mapY = Math.floor(floorWorldY / this.wallHeight);
+                if (this.isAcidTile(mapX, mapY)) {
+                    const shade = Math.max(0.3, 1 - (rowDist / this.maxRenderDistance));
+                    const pulse = 0.85 + 0.15 * Math.sin(this._acidTime + mapX * 3.7 + mapY * 5.3);
+                    const s = shade * pulse;
+                    const r = Math.floor(15 * s);
+                    const g = Math.floor(180 * s);
+                    const b = Math.floor(10 * s);
+                    this.setPixel(x, y, 0xFF000000 | (b << 16) | (g << 8) | r);
+                } else {
+                    this.setPixel(x, y, baseFloorColor);
+                }
+            }
+        } else {
+            for (let y = Math.max(0, Math.ceil(wallBottom)); y < this.height; y++) {
+                this.setPixel(x, Math.floor(y), this.hexToRgb(this.ceilingColor));
+            }
         }
     }
     
-    renderFloorCeiling(x) {
+    renderFloorCeiling(x, player, rayAngle) {
         for (let y = 0; y < this.halfHeight; y++) {
             this.setPixel(x, y, this.hexToRgb(this.ceilingColor));
         }
-        for (let y = this.halfHeight; y < this.height; y++) {
-            this.setPixel(x, y, this.hexToRgb(this.floorColor));
+        if (this._acidTileCount > 0 && player && rayAngle !== undefined) {
+            const cosAngle = Math.cos(rayAngle);
+            const sinAngle = Math.sin(rayAngle);
+            const cosCorrection = Math.cos(rayAngle - player.angle);
+            const baseFloorColor = this.hexToRgb(this.floorColor);
+            for (let y = Math.ceil(this.halfHeight); y < this.height; y++) {
+                const rowDist = (this.halfHeight * this.wallHeight) / (y - this.halfHeight);
+                const actualDist = rowDist / cosCorrection;
+                const floorWorldX = player.x + actualDist * cosAngle;
+                const floorWorldY = player.y + actualDist * sinAngle;
+                const mapX = Math.floor(floorWorldX / this.wallHeight);
+                const mapY = Math.floor(floorWorldY / this.wallHeight);
+                if (this.isAcidTile(mapX, mapY)) {
+                    const shade = Math.max(0.3, 1 - (rowDist / this.maxRenderDistance));
+                    const pulse = 0.85 + 0.15 * Math.sin(this._acidTime + mapX * 3.7 + mapY * 5.3);
+                    const s = shade * pulse;
+                    const r = Math.floor(15 * s);
+                    const g = Math.floor(180 * s);
+                    const b = Math.floor(10 * s);
+                    this.setPixel(x, y, 0xFF000000 | (b << 16) | (g << 8) | r);
+                } else {
+                    this.setPixel(x, y, baseFloorColor);
+                }
+            }
+        } else {
+            for (let y = Math.ceil(this.halfHeight); y < this.height; y++) {
+                this.setPixel(x, y, this.hexToRgb(this.floorColor));
+            }
         }
     }
     
