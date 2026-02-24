@@ -620,6 +620,7 @@ const TIER_2_TESTS = [
   { id: 'T2-30', name: 'Automap fog of war', fn: T2_30_automapFogOfWar }, // issue: #52
   { id: 'T2-31', name: 'Ammo crate drops', fn: T2_31_ammoCrateDrops }, // issue: #53
   { id: 'T2-32', name: 'Door animation system', fn: T2_32_doorAnimation }, // issue: #58
+  { id: 'T2-33', name: 'Damage direction indicator', fn: T2_33_damageDirectionIndicator }, // issue: #59
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -2480,6 +2481,83 @@ async function T2_32_doorAnimation(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Door animation: ${doorData.doorCount} doors, state machine + proximity + animation`;
+  }
+}
+
+async function T2_33_damageDirectionIndicator(page, result) {
+  // T2-33: Damage direction indicator (issue: #59)
+  // Pass condition: HUD has damage indicator system, enemies trigger directional indicators
+  await page.waitForTimeout(1000);
+
+  const indicatorData = await page.evaluate(() => {
+    if (!window.game || !window.game.hud) {
+      return { exists: false, reason: 'HUD not found' };
+    }
+
+    const hud = window.game.hud;
+    const player = window.game.player;
+
+    // Check data structure
+    const hasIndicatorArray = Array.isArray(hud.damageIndicators);
+    const hasDuration = typeof hud.damageIndicatorDuration === 'number';
+    const hasOnDamageFrom = typeof hud.onPlayerDamageFrom === 'function';
+    const hasRenderMethod = typeof hud.renderDamageIndicators === 'function';
+
+    // Test adding a damage indicator
+    let indicatorWorks = false;
+    if (hasOnDamageFrom && hasIndicatorArray) {
+      const before = hud.damageIndicators.length;
+      hud.onPlayerDamageFrom(500, 500);
+      if (hud.damageIndicators.length === before + 1) {
+        const ind = hud.damageIndicators[hud.damageIndicators.length - 1];
+        indicatorWorks = ind.sourceX === 500 && ind.sourceY === 500 && typeof ind.time === 'number';
+      }
+      // Clean up
+      hud.damageIndicators.pop();
+    }
+
+    // Check that enemy attack uses directional indicator
+    const enemies = window.game.map ? window.game.map.enemies : [];
+    let enemyUsesDirectional = false;
+    if (enemies.length > 0) {
+      const src = enemies[0].attack.toString();
+      enemyUsesDirectional = src.includes('onPlayerDamageFrom');
+    }
+
+    return {
+      exists: true,
+      hasIndicatorArray,
+      hasDuration,
+      hasOnDamageFrom,
+      hasRenderMethod,
+      indicatorWorks,
+      enemyUsesDirectional,
+      duration: hud.damageIndicatorDuration
+    };
+  });
+
+  if (!indicatorData.exists) {
+    result.status = 'fail';
+    result.note = indicatorData.reason;
+    return;
+  }
+
+  const checks = [
+    ['indicator array', indicatorData.hasIndicatorArray],
+    ['onPlayerDamageFrom method', indicatorData.hasOnDamageFrom],
+    ['renderDamageIndicators method', indicatorData.hasRenderMethod],
+    ['indicator creation works', indicatorData.indicatorWorks],
+    ['enemy uses directional', indicatorData.enemyUsesDirectional]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Damage direction: ${indicatorData.duration}ms fade, directional indicators on hit`;
   }
 }
 

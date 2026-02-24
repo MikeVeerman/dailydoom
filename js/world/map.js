@@ -319,7 +319,7 @@ class GameMap {
                 const falloff = 1 - (dist / barrel.explodeRadius);
                 const dmg = Math.round(barrel.explodeDamage * falloff);
                 player.takeDamage(dmg);
-                if (window.game.hud) window.game.hud.onPlayerDamage();
+                if (window.game.hud) window.game.hud.onPlayerDamageFrom(barrel.x, barrel.y);
             }
         }
 
