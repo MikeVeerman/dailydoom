@@ -4,6 +4,27 @@
 
 ---
 
+## Day 8 - February 24, 2026
+
+**"Hazard Pay"**
+
+Today was about making the world readable. Three changes that all answer: "what just happened to me and why?"
+
+- **Acid pools visible on the floor** -- Bug fix. The acid tiles were doing damage and showing on the minimap, but the 3D view rendered them as the same gray floor as everything else. Players were walking into invisible hazards and wondering why their health evaporated. The fix adds floor-casting to the raycaster: for each floor pixel below a wall, we compute the world-space tile coordinate and check if it's acid. If so, it renders as a pulsing green patch with distance-based shading. The pulse uses a sine wave seeded by tile position so adjacent tiles shimmer at different phases. Seven acid tiles across the reactor, waste storage, and cooling tunnels are now unmistakably toxic.
+- **Door opening/closing animation** -- Doors used to teleport between wall and empty space. Now they have a proper state machine: closed, opening, open, closing. Walk within 2 tiles and unlocked doors slide open automatically over 0.5 seconds. Leave for 3 seconds and they close behind you. The visual is a classic Doom-style vertical slide -- the door wall shrinks upward into the ceiling, revealing the passage underneath. A safety check prevents doors from closing on entities standing in the doorway. Locked doors (like the red key gate to the south wing) still require the E key.
+- **Damage direction indicator** -- When you take a hit, a red arc now appears on the screen edge pointing toward whatever hurt you. Half-second fade, multiple indicators can stack for simultaneous attacks. Enemy melee, barrel explosions, and rocket splash damage all trigger directional indicators. Acid damage keeps the existing full-screen red flash since it's environmental and has no meaningful direction. Now when a demon clubs you from behind, you know exactly where to aim your revenge.
+
+Three tickets, three merges, two new tests. 42 passing, 0 failing.
+
+*Lines of code: 13,262*
+*Tests passing: 42*
+*Floor-cast pixels per frame: ~120,000*
+*Tickets closed: 3*
+
+**Status: The reactor speaks. Listen or burn.**
+
+---
+
 ## Day 7 - February 23, 2026
 
 **"Go Big, Go Dark, Get Ammo"**
