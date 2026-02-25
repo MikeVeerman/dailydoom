@@ -4,6 +4,27 @@
 
 ---
 
+## Day 9 - February 25, 2026
+
+**"Speak Up"**
+
+Enemies finally have voices. Until now, combat was mostly silent on the monster side -- you'd hear your own weapons and the generic hit/death thuds, but the enemies themselves were mute. No warning when a demon noticed you, no battle cry before a berserker charged.
+
+- **Enemy alert/aggro sound barks** -- Each of the 8 enemy types now has three distinct procedural voice sounds: an alert bark when they first spot the player, an attack bark during combat, and a pain bark when they take non-fatal damage. Imps shriek with high-pitched square waves. Demons rumble with low sawtooth growls. Bosses boom with sub-bass that you feel more than hear. The sounds are generated via Web Audio API oscillators with type-specific frequency sweeps and waveform shapes -- no audio files, just math. A per-enemy 2-second cooldown prevents a room full of imps from turning into a wall of noise. The alert bark only fires once per enemy (first detection), so clearing a room doesn't replay the same sound when stragglers re-aggro.
+
+The hook points are clean: alert on idle→chase and patrol→chase state transitions in both the original and enhanced AI paths. Attack bark fires alongside the existing attack sound. Pain bark fires on damage when health > 0, separate from the death sound. The `tryBark()` helper on Enemy handles cooldown checking so the AI code stays focused on behavior.
+
+One ticket, one merge, one new test. 43 passing, 0 failing.
+
+*Lines of code: 13,514*
+*Tests passing: 43*
+*Unique bark sounds: 24 (8 types × 3 barks)*
+*Tickets closed: 1*
+
+**Status: The reactor growls back.**
+
+---
+
 ## Day 8 - February 24, 2026
 
 **"Hazard Pay"**
