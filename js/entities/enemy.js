@@ -31,6 +31,11 @@ class Enemy {
         this.angle = 0;
         this.lastPlayerX = 0;
         this.lastPlayerY = 0;
+
+        // Sound bark tracking
+        this.lastBarkTime = 0;
+        this.barkCooldown = 2000; // Minimum 2s between barks
+        this.hasPlayedAlert = false;
         
         // Enhanced AI system
         this.enhancedAI = null;
@@ -65,6 +70,10 @@ class Enemy {
             case 'idle':
                 if (playerDistance < this.detectionRange) {
                     this.state = 'chase';
+                    if (!this.hasPlayedAlert) {
+                        this.hasPlayedAlert = true;
+                        this.tryBark('alert');
+                    }
                     console.log('Enemy detected player!');
                 } else if (now - this.lastMoveTime > this.moveInterval) {
                     this.state = 'patrol';
@@ -75,6 +84,10 @@ class Enemy {
                 this.patrol(deltaTime, map);
                 if (playerDistance < this.detectionRange) {
                     this.state = 'chase';
+                    if (!this.hasPlayedAlert) {
+                        this.hasPlayedAlert = true;
+                        this.tryBark('alert');
+                    }
                 }
                 break;
                 
@@ -166,6 +179,7 @@ class Enemy {
         if (!this.lastAttackTime) this.lastAttackTime = 0;
 
         if (now - this.lastAttackTime > 2000) { // 2 second cooldown
+            this.tryBark('attack');
             const damage = 15; // Default fallback damage
             if (player.takeDamage(damage)) {
                 if (window.game && window.game.hud) {
@@ -275,6 +289,11 @@ class Enemy {
             window.soundEngine.playEnemyHit();
         }
 
+        // Play pain bark (separate from hit/death sounds)
+        if (this.health > 0) {
+            this.tryBark('pain');
+        }
+
         if (this.health <= 0) {
             this.active = false;
             console.log(`${this.type} destroyed!`);
@@ -293,6 +312,26 @@ class Enemy {
         return actualDamage;
     }
     
+    // Try to play a bark sound, respecting cooldown
+    tryBark(barkType) {
+        const now = Date.now();
+        if (now - this.lastBarkTime < this.barkCooldown) return;
+        if (!window.soundEngine || !window.soundEngine.isInitialized) return;
+
+        this.lastBarkTime = now;
+        switch (barkType) {
+            case 'alert':
+                window.soundEngine.playEnemyAlert(this.type);
+                break;
+            case 'pain':
+                window.soundEngine.playEnemyPain(this.type);
+                break;
+            case 'attack':
+                window.soundEngine.playEnemyAttackBark(this.type);
+                break;
+        }
+    }
+
     // Get current sprite frame (for animation)
     getSpriteFrame() {
         // For now, just return single frame

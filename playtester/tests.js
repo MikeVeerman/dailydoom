@@ -621,6 +621,7 @@ const TIER_2_TESTS = [
   { id: 'T2-31', name: 'Ammo crate drops', fn: T2_31_ammoCrateDrops }, // issue: #53
   { id: 'T2-32', name: 'Door animation system', fn: T2_32_doorAnimation }, // issue: #58
   { id: 'T2-33', name: 'Damage direction indicator', fn: T2_33_damageDirectionIndicator }, // issue: #59
+  { id: 'T2-34', name: 'Enemy sound barks', fn: T2_34_enemySoundBarks }, // issue: #60
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -2558,6 +2559,83 @@ async function T2_33_damageDirectionIndicator(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Damage direction: ${indicatorData.duration}ms fade, directional indicators on hit`;
+  }
+}
+
+async function T2_34_enemySoundBarks(page, result) {
+  // T2-34: Enemy sound bark system (issue: #60)
+  // Pass condition: Enemies have bark tracking, SoundEngine has bark methods, cooldown enforced
+  await page.waitForTimeout(1000);
+
+  const barkData = await page.evaluate(() => {
+    if (!window.game || !window.game.map) {
+      return { exists: false, reason: 'Game not loaded' };
+    }
+
+    const enemies = window.game.map.enemies || [];
+    if (enemies.length === 0) {
+      return { exists: false, reason: 'No enemies found' };
+    }
+
+    const enemy = enemies[0];
+
+    // Check enemy has bark tracking fields
+    const hasBarkCooldown = typeof enemy.barkCooldown === 'number' && enemy.barkCooldown >= 2000;
+    const hasLastBarkTime = typeof enemy.lastBarkTime === 'number';
+    const hasAlertFlag = typeof enemy.hasPlayedAlert === 'boolean';
+    const hasTryBark = typeof enemy.tryBark === 'function';
+
+    // Check SoundEngine has new bark methods
+    const se = window.soundEngine;
+    const hasAlertMethod = typeof se.playEnemyAlert === 'function';
+    const hasPainMethod = typeof se.playEnemyPain === 'function';
+    const hasAttackBarkMethod = typeof se.playEnemyAttackBark === 'function';
+
+    // Verify per-enemy cooldown enforcement
+    enemy.lastBarkTime = Date.now(); // Set last bark to now
+    const beforeBark = enemy.lastBarkTime;
+    enemy.tryBark('pain'); // Should be blocked by cooldown
+    const cooldownRespected = enemy.lastBarkTime === beforeBark;
+
+    return {
+      exists: true,
+      hasBarkCooldown,
+      hasLastBarkTime,
+      hasAlertFlag,
+      hasTryBark,
+      hasAlertMethod,
+      hasPainMethod,
+      hasAttackBarkMethod,
+      cooldownRespected,
+      enemyTypes: enemies.map(e => e.type).filter((v, i, a) => a.indexOf(v) === i)
+    };
+  });
+
+  if (!barkData.exists) {
+    result.status = 'fail';
+    result.note = barkData.reason;
+    return;
+  }
+
+  const checks = [
+    ['bark cooldown >= 2s', barkData.hasBarkCooldown],
+    ['lastBarkTime tracking', barkData.hasLastBarkTime],
+    ['alert flag', barkData.hasAlertFlag],
+    ['tryBark method', barkData.hasTryBark],
+    ['playEnemyAlert', barkData.hasAlertMethod],
+    ['playEnemyPain', barkData.hasPainMethod],
+    ['playEnemyAttackBark', barkData.hasAttackBarkMethod],
+    ['cooldown enforced', barkData.cooldownRespected]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Bark system: alert/pain/attack barks, 2s cooldown, ${barkData.enemyTypes.length} enemy types`;
   }
 }
 

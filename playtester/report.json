@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-02-21T23:27:33.530Z",
-  "passed": 31,
+  "timestamp": "2026-02-25T23:36:02.667Z",
+  "passed": 43,
   "failed": 0,
   "skipped": 3,
   "results": [
@@ -27,12 +27,12 @@
     {
       "id": "T1-05",
       "status": "pass",
-      "note": "FPS: 28"
+      "note": "FPS: 33"
     },
     {
       "id": "T1-06",
       "status": "pass",
-      "note": "Moved from (160, 160) to (385, 160)"
+      "note": "Moved from (160, 160) to (386, 160)"
     },
     {
       "id": "T1-07",
@@ -47,7 +47,7 @@
     {
       "id": "T1-09",
       "status": "pass",
-      "note": "FPS: 32 (threshold: 20)"
+      "note": "FPS: 39 (threshold: 20)"
     },
     {
       "id": "T2-01",
@@ -72,7 +72,7 @@
     {
       "id": "T2-05",
       "status": "pass",
-      "note": "Pickup system active with 6 items"
+      "note": "Pickup system active with 11 items"
     },
     {
       "id": "T2-06",
@@ -82,7 +82,7 @@
     {
       "id": "T2-07",
       "status": "pass",
-      "note": "Weapon sprite system functional (SHOTGUN), F4 toggle works, HUD rendering confirmed"
+      "note": "Weapon sprite system functional (PISTOL), F4 toggle works, HUD rendering confirmed"
     },
     {
       "id": "T2-08",
@@ -132,7 +132,7 @@
     {
       "id": "T2-17",
       "status": "pass",
-      "note": "7/9 enemies moved, 8 distinct speeds"
+      "note": "5/8 enemies moved, 7 distinct speeds"
     },
     {
       "id": "T2-18",
@@ -158,6 +158,66 @@
       "id": "T2-22",
       "status": "pass",
       "note": "Difficulty selection works: 3 options, Easy gives 150 HP"
+    },
+    {
+      "id": "T2-23",
+      "status": "pass",
+      "note": "Level completion system: 9 enemies tracked, stats + restart + victory sound"
+    },
+    {
+      "id": "T2-24",
+      "status": "pass",
+      "note": "Punch: 30dmg, 40 range, 400ms cooldown, V key + sound"
+    },
+    {
+      "id": "T2-25",
+      "status": "pass",
+      "note": "Damage flash (200ms) + low-health vignette pulse at <25% HP"
+    },
+    {
+      "id": "T2-26",
+      "status": "pass",
+      "note": "Weapon pickups: 4 on map [weapon_shotgun, weapon_rifle, weapon_rocket, weapon_chaingun], unlock system works"
+    },
+    {
+      "id": "T2-27",
+      "status": "pass",
+      "note": "Hazards: 8 acid tiles, 6 barrels, explosion + chain reaction + sound"
+    },
+    {
+      "id": "T2-28",
+      "status": "pass",
+      "note": "Kill feed: max 4 msgs, 3s fade, color-coded"
+    },
+    {
+      "id": "T2-29",
+      "status": "pass",
+      "note": "Fullscreen toggle available via F key"
+    },
+    {
+      "id": "T2-30",
+      "status": "pass",
+      "note": "Fog of war: 37/576 tiles revealed, radius 4"
+    },
+    {
+      "id": "T2-31",
+      "status": "pass",
+      "note": "Ammo drops: spawn works (ammo_pistol), 30% chance on enemy death"
+    },
+    {
+      "id": "T2-32",
+      "status": "pass",
+      "note": "Door animation: 5 doors, state machine + proximity + animation"
+    },
+    {
+      "id": "T2-33",
+      "status": "pass",
+      "note": "Damage direction: 500ms fade, directional indicators on hit"
+    },
+    {
+      "id": "T2-34",
+      "status": "pass",
+      "note": "Bark system: alert/pain/attack barks, 2s cooldown, 8 enemy types"
     },
     {
       "id": "T3-01",

@@ -502,6 +502,111 @@ class SoundEngine {
         osc.stop(now + 0.4);
     }
     
+    // Enemy alert bark - played when enemy first spots the player
+    playEnemyAlert(enemyType = 'guard') {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Base parameters vary by enemy type for distinct voices
+        const params = {
+            guard:       { freq: 220, endFreq: 350, type: 'sawtooth', duration: 0.25 },
+            imp:         { freq: 400, endFreq: 600, type: 'square',   duration: 0.15 },
+            demon:       { freq: 80,  endFreq: 140, type: 'sawtooth', duration: 0.4  },
+            soldier:     { freq: 260, endFreq: 320, type: 'square',   duration: 0.2  },
+            berserker:   { freq: 120, endFreq: 250, type: 'sawtooth', duration: 0.35 },
+            spitter:     { freq: 350, endFreq: 500, type: 'triangle', duration: 0.2  },
+            shield_guard:{ freq: 180, endFreq: 280, type: 'square',   duration: 0.3  },
+            boss:        { freq: 60,  endFreq: 120, type: 'sawtooth', duration: 0.5  },
+        };
+        const p = params[enemyType] || params.guard;
+
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.type = p.type;
+        osc.frequency.setValueAtTime(p.freq, now);
+        osc.frequency.linearRampToValueAtTime(p.endFreq, now + p.duration * 0.6);
+        osc.frequency.linearRampToValueAtTime(p.freq * 0.8, now + p.duration);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.35, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + p.duration);
+
+        osc.start(now);
+        osc.stop(now + p.duration);
+    }
+
+    // Enemy pain bark - distinct from death sound, played on taking damage
+    playEnemyPain(enemyType = 'guard') {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        const params = {
+            guard:       { freq: 300, type: 'triangle', duration: 0.18 },
+            imp:         { freq: 500, type: 'square',   duration: 0.12 },
+            demon:       { freq: 150, type: 'sawtooth', duration: 0.25 },
+            soldier:     { freq: 320, type: 'triangle', duration: 0.15 },
+            berserker:   { freq: 200, type: 'sawtooth', duration: 0.2  },
+            spitter:     { freq: 420, type: 'triangle', duration: 0.14 },
+            shield_guard:{ freq: 250, type: 'triangle', duration: 0.2  },
+            boss:        { freq: 100, type: 'sawtooth', duration: 0.35 },
+        };
+        const p = params[enemyType] || params.guard;
+
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.type = p.type;
+        osc.frequency.setValueAtTime(p.freq, now);
+        osc.frequency.exponentialRampToValueAtTime(p.freq * 0.4, now + p.duration);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.4, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + p.duration);
+
+        osc.start(now);
+        osc.stop(now + p.duration);
+    }
+
+    // Enemy attack bark - short aggressive sound during combat
+    playEnemyAttackBark(enemyType = 'guard') {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        const params = {
+            guard:       { freq: 180, endFreq: 300, type: 'sawtooth', duration: 0.2  },
+            imp:         { freq: 350, endFreq: 500, type: 'square',   duration: 0.12 },
+            demon:       { freq: 100, endFreq: 200, type: 'sawtooth', duration: 0.3  },
+            soldier:     { freq: 240, endFreq: 340, type: 'square',   duration: 0.18 },
+            berserker:   { freq: 140, endFreq: 350, type: 'sawtooth', duration: 0.25 },
+            spitter:     { freq: 300, endFreq: 450, type: 'triangle', duration: 0.15 },
+            shield_guard:{ freq: 200, endFreq: 300, type: 'square',   duration: 0.22 },
+            boss:        { freq: 70,  endFreq: 180, type: 'sawtooth', duration: 0.4  },
+        };
+        const p = params[enemyType] || params.guard;
+
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.type = p.type;
+        osc.frequency.setValueAtTime(p.freq, now);
+        osc.frequency.linearRampToValueAtTime(p.endFreq, now + p.duration * 0.4);
+        osc.frequency.exponentialRampToValueAtTime(p.freq * 0.5, now + p.duration);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + p.duration);
+
+        osc.start(now);
+        osc.stop(now + p.duration);
+    }
+
     // Barrel explosion
     playExplosion() {
         if (!this.isInitialized) return;

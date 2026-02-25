@@ -235,10 +235,14 @@ class EnhancedEnemyAI {
     
     idleBehavior(player, map) {
         const distance = this.getDistanceToPlayer(player);
-        
+
         if (distance < this.enemy.detectionRange * (1 + this.alertLevel)) {
             if (this.hasLineOfSight(player, map)) {
                 this.enemy.state = 'chase';
+                if (!this.enemy.hasPlayedAlert) {
+                    this.enemy.hasPlayedAlert = true;
+                    this.enemy.tryBark('alert');
+                }
                 this.callForHelpIfNeeded(player);
             } else {
                 this.enemy.state = 'investigate';
@@ -259,6 +263,10 @@ class EnhancedEnemyAI {
         if (distance < this.enemy.detectionRange * (0.8 + this.alertLevel * 0.5)) {
             if (this.hasLineOfSight(player, map)) {
                 this.enemy.state = 'chase';
+                if (!this.enemy.hasPlayedAlert) {
+                    this.enemy.hasPlayedAlert = true;
+                    this.enemy.tryBark('alert');
+                }
                 return;
             }
         }
@@ -541,6 +549,7 @@ class EnhancedEnemyAI {
     
     performAttack(player) {
         if (this.hasLineOfSight(player, window.game.map)) {
+            this.enemy.tryBark('attack');
             let damage = this.behavior.damage;
 
             // Berserker rage: double damage when below 40% health
