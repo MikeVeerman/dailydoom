@@ -62,6 +62,7 @@ class InputManager {
             // System
             'Escape': 'menu',
             'KeyM': 'map',
+            'KeyN': 'toggleMusic',
             'Tab': 'scores',
             'F1': 'debug',
             'KeyF': 'fullscreen'
