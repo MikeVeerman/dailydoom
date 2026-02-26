@@ -145,6 +145,19 @@ class GameEngine {
         if (this.inputManager.isKeyPressed('fullscreen')) {
             this.toggleFullscreen();
         }
+
+        // Handle music toggle (N key)
+        if (this.inputManager.isKeyPressed('toggleMusic')) {
+            if (window.soundEngine && window.soundEngine.isInitialized) {
+                const musicOn = window.soundEngine.toggleMusic();
+                if (window.game && window.game.hud) {
+                    window.game.hud.addKillFeedMessage(
+                        musicOn ? 'MUSIC ON' : 'MUSIC OFF',
+                        '#88CCFF'
+                    );
+                }
+            }
+        }
         
         // Player input handling
         this.player.handleInput(this.inputManager, this.deltaTime, this.map);

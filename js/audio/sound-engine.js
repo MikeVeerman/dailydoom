@@ -283,126 +283,302 @@ class SoundEngine {
         }
     }
 
-    // Ambient drone sound
+    // ========== PROCEDURAL BACKGROUND MUSIC SYSTEM ==========
+
+    // Music state
+    musicState = 'ambient';
+    musicPlaying = false;
+    musicMuted = false;
+    combatIntensity = 0; // 0-1, smoothly interpolated
+
+    /**
+     * Start the background music system with multiple layers:
+     * - Pad layer: dark ambient chord pad (always playing)
+     * - Bass layer: rhythmic bass line (increases with combat)
+     * - Lead layer: ominous melodic phrases (combat only)
+     * - Percussion layer: rhythmic pulse (combat only)
+     */
+    startMusic() {
+        if (!this.isInitialized || this.musicPlaying) return;
+        this.musicPlaying = true;
+        const now = this.audioContext.currentTime;
+
+        // Create music bus (separate gain for music vs SFX)
+        this.musicBus = this.audioContext.createGain();
+        this.musicBus.gain.setValueAtTime(this.musicVolume, now);
+        this.musicBus.connect(this.masterGain);
+
+        // --- PAD LAYER: Dark ambient chord ---
+        this._startPadLayer(now);
+
+        // --- BASS LAYER: Rhythmic bass sequence ---
+        this._startBassLayer(now);
+
+        // --- PERCUSSION LAYER: Rhythmic pulse ---
+        this._startPercLayer(now);
+
+        // --- LEAD LAYER: Ominous melodic stabs ---
+        this._startLeadScheduler();
+
+        console.log('Procedural music system started');
+    }
+
+    _startPadLayer(now) {
+        // Dark minor chord: A2, C3, E3 (Am) with slight detuning
+        const padNotes = [55, 65.41, 82.41]; // A2, C3, E3
+        this.padOscillators = [];
+        this.padGain = this.audioContext.createGain();
+        this.padGain.gain.setValueAtTime(0.35, now);
+        const padFilter = this.audioContext.createBiquadFilter();
+        padFilter.type = 'lowpass';
+        padFilter.frequency.setValueAtTime(400, now);
+        padFilter.Q.setValueAtTime(1, now);
+        this.padFilter = padFilter;
+        this.padGain.connect(padFilter);
+        padFilter.connect(this.musicBus);
+
+        for (const freq of padNotes) {
+            // Two oscillators per note for width
+            for (let detune = -6; detune <= 6; detune += 12) {
+                const osc = this.audioContext.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now);
+                osc.detune.setValueAtTime(detune, now);
+                osc.connect(this.padGain);
+                osc.start(now);
+                this.padOscillators.push(osc);
+            }
+        }
+    }
+
+    _startBassLayer(now) {
+        // Bass sequence: repeating pattern on Am pentatonic
+        this.bassGain = this.audioContext.createGain();
+        this.bassGain.gain.setValueAtTime(0, now); // Starts silent, fades in with combat
+        this.bassGain.connect(this.musicBus);
+
+        // Bass uses a looping scheduled pattern
+        this.bassPattern = [55, 0, 55, 65.41, 0, 55, 0, 73.42]; // A2, rest, A2, C3, rest, A2, rest, D3
+        this.bassStepDuration = 0.25; // 16th notes at ~120 BPM
+        this.bassStepIndex = 0;
+        this.bassScheduler = setInterval(() => this._playBassStep(), this.bassStepDuration * 1000);
+    }
+
+    _playBassStep() {
+        if (!this.isInitialized || !this.musicPlaying) return;
+        const now = this.audioContext.currentTime;
+        const freq = this.bassPattern[this.bassStepIndex % this.bassPattern.length];
+        this.bassStepIndex++;
+
+        if (freq === 0) return; // Rest
+
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, now);
+        osc.connect(gain);
+        gain.connect(this.bassGain);
+
+        const noteDuration = this.bassStepDuration * 0.8;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.5, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + noteDuration);
+
+        osc.start(now);
+        osc.stop(now + noteDuration);
+    }
+
+    _startPercLayer(now) {
+        // Kick-like percussion pulse
+        this.percGain = this.audioContext.createGain();
+        this.percGain.gain.setValueAtTime(0, now); // Silent until combat
+        this.percGain.connect(this.musicBus);
+
+        this.percPattern = [1, 0, 0, 1, 0, 0, 1, 0]; // Simple kick pattern
+        this.percStepIndex = 0;
+        this.percScheduler = setInterval(() => this._playPercStep(), this.bassStepDuration * 1000);
+    }
+
+    _playPercStep() {
+        if (!this.isInitialized || !this.musicPlaying) return;
+        const now = this.audioContext.currentTime;
+        const hit = this.percPattern[this.percStepIndex % this.percPattern.length];
+        this.percStepIndex++;
+
+        if (!hit) return;
+
+        // Kick drum: sine sweep from 150 -> 40 Hz
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+        osc.connect(gain);
+        gain.connect(this.percGain);
+
+        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+        osc.start(now);
+        osc.stop(now + 0.15);
+    }
+
+    _startLeadScheduler() {
+        // Ominous lead phrases - play occasional notes during combat
+        // Am pentatonic: A3, C4, D4, E4, G4
+        this.leadNotes = [220, 261.63, 293.66, 329.63, 392];
+        this.leadGain = this.audioContext.createGain();
+        this.leadGain.gain.setValueAtTime(0, this.audioContext.currentTime);
+        const leadFilter = this.audioContext.createBiquadFilter();
+        leadFilter.type = 'lowpass';
+        leadFilter.frequency.setValueAtTime(800, this.audioContext.currentTime);
+        this.leadGain.connect(leadFilter);
+        leadFilter.connect(this.musicBus);
+
+        this.leadScheduler = setInterval(() => this._playLeadPhrase(), 2000);
+    }
+
+    _playLeadPhrase() {
+        if (!this.isInitialized || !this.musicPlaying) return;
+        if (this.combatIntensity < 0.3) return; // Only play during combat
+
+        const now = this.audioContext.currentTime;
+        // Pick 2-3 random notes from the scale
+        const noteCount = 2 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < noteCount; i++) {
+            const freq = this.leadNotes[Math.floor(Math.random() * this.leadNotes.length)];
+            const delay = i * 0.3;
+
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(freq, now + delay);
+            osc.connect(gain);
+            gain.connect(this.leadGain);
+
+            gain.gain.setValueAtTime(0, now + delay);
+            gain.gain.linearRampToValueAtTime(0.25, now + delay + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.5);
+
+            osc.start(now + delay);
+            osc.stop(now + delay + 0.5);
+        }
+    }
+
+    stopMusic() {
+        if (!this.musicPlaying) return;
+        this.musicPlaying = false;
+
+        // Stop schedulers
+        if (this.bassScheduler) { clearInterval(this.bassScheduler); this.bassScheduler = null; }
+        if (this.percScheduler) { clearInterval(this.percScheduler); this.percScheduler = null; }
+        if (this.leadScheduler) { clearInterval(this.leadScheduler); this.leadScheduler = null; }
+
+        // Stop pad oscillators
+        if (this.padOscillators) {
+            for (const osc of this.padOscillators) {
+                try { osc.stop(); } catch(e) {}
+            }
+            this.padOscillators = null;
+        }
+
+        // Disconnect music bus
+        if (this.musicBus) {
+            try { this.musicBus.disconnect(); } catch(e) {}
+            this.musicBus = null;
+        }
+
+        this.padGain = null;
+        this.bassGain = null;
+        this.percGain = null;
+        this.leadGain = null;
+    }
+
+    // Legacy compatibility
     playAmbientDrone() {
-        if (!this.isInitialized || this.ambientDrone) return;
-
-        const oscillator1 = this.audioContext.createOscillator();
-        const oscillator2 = this.audioContext.createOscillator();
-        const gainNode = this.audioContext.createGain();
-
-        oscillator1.connect(gainNode);
-        oscillator2.connect(gainNode);
-        gainNode.connect(this.masterGain);
-
-        // Low frequency drone
-        oscillator1.type = 'sine';
-        oscillator1.frequency.setValueAtTime(30, this.audioContext.currentTime);
-
-        oscillator2.type = 'sine';
-        oscillator2.frequency.setValueAtTime(30.5, this.audioContext.currentTime);
-
-        gainNode.gain.setValueAtTime(this.musicVolume * 0.3, this.audioContext.currentTime);
-
-        oscillator1.start();
-        oscillator2.start();
-
-        this.ambientDrone = { oscillator1, oscillator2, gainNode };
+        this.startMusic();
     }
 
     stopAmbientDrone() {
-        if (this.ambientDrone) {
-            this.ambientDrone.oscillator1.stop();
-            this.ambientDrone.oscillator2.stop();
-            this.ambientDrone = null;
-        }
+        this.stopMusic();
     }
 
-    // Adaptive music system
-    musicState = 'ambient'; // ambient, combat, victory
-
+    /**
+     * Update music intensity based on nearby enemies and player state.
+     * Called every frame from the game loop.
+     */
     updateMusicState(player, enemies) {
-        if (!this.isInitialized) return;
-
-        const nearbyEnemies = enemies ? enemies.filter(e => {
-            if (!e.active) return false;
-            const dx = e.x - player.x;
-            const dy = e.y - player.y;
-            return Math.sqrt(dx * dx + dy * dy) < 300;
-        }) : [];
-
-        const newState = nearbyEnemies.length > 0 ? 'combat' : 'ambient';
-
-        if (newState !== this.musicState) {
-            this.musicState = newState;
-            this.transitionMusic(newState);
-        }
-    }
-
-    transitionMusic(state) {
-        if (!this.isInitialized) return;
+        if (!this.isInitialized || !this.musicPlaying) return;
         const now = this.audioContext.currentTime;
 
-        // Fade ambient drone based on state
-        if (this.ambientDrone) {
-            const targetVolume = state === 'combat' ? this.musicVolume * 0.1 : this.musicVolume * 0.3;
-            this.ambientDrone.gainNode.gain.linearRampToValueAtTime(targetVolume, now + 0.5);
+        // Calculate combat intensity based on nearby enemy count and distance
+        let intensity = 0;
+        if (enemies) {
+            const nearbyEnemies = enemies.filter(e => {
+                if (!e.active) return false;
+                const dx = e.x - player.x;
+                const dy = e.y - player.y;
+                return Math.sqrt(dx * dx + dy * dy) < 400;
+            });
+            // More enemies = higher intensity, cap at 1.0
+            intensity = Math.min(1.0, nearbyEnemies.length / 4);
+            // Boost if player health is low
+            if (player.health < player.maxHealth * 0.3) {
+                intensity = Math.min(1.0, intensity + 0.2);
+            }
         }
 
-        // Start combat pulse if entering combat
-        if (state === 'combat' && !this.combatPulse) {
-            this.startCombatMusic();
-        } else if (state === 'ambient' && this.combatPulse) {
-            this.stopCombatMusic();
+        // Smooth interpolation (ease toward target)
+        this.combatIntensity += (intensity - this.combatIntensity) * 0.05;
+
+        const ci = this.combatIntensity;
+        const newState = ci > 0.15 ? 'combat' : 'ambient';
+        this.musicState = newState;
+
+        // Adjust layer volumes based on intensity
+        if (this.padGain) {
+            // Pad: always present, gets darker/louder in combat
+            const padVol = 0.2 + ci * 0.15;
+            this.padGain.gain.linearRampToValueAtTime(padVol, now + 0.1);
+        }
+        if (this.padFilter) {
+            // Open filter in combat for brighter sound
+            const filterFreq = 300 + ci * 600;
+            this.padFilter.frequency.linearRampToValueAtTime(filterFreq, now + 0.1);
+        }
+        if (this.bassGain) {
+            // Bass: fades in during combat
+            const bassVol = ci * 0.5;
+            this.bassGain.gain.linearRampToValueAtTime(bassVol, now + 0.1);
+        }
+        if (this.percGain) {
+            // Percussion: only audible during combat
+            const percVol = Math.max(0, (ci - 0.2)) * 0.6;
+            this.percGain.gain.linearRampToValueAtTime(percVol, now + 0.1);
+        }
+        if (this.leadGain) {
+            // Lead: only during moderate-high combat
+            const leadVol = Math.max(0, (ci - 0.3)) * 0.4;
+            this.leadGain.gain.linearRampToValueAtTime(leadVol, now + 0.1);
         }
     }
 
-    startCombatMusic() {
-        if (!this.isInitialized) return;
-        const now = this.audioContext.currentTime;
-
-        // Create a pulsing bass for combat
-        const osc = this.audioContext.createOscillator();
-        const gain = this.audioContext.createGain();
-        const lfo = this.audioContext.createOscillator();
-        const lfoGain = this.audioContext.createGain();
-
-        osc.connect(gain);
-        gain.connect(this.masterGain);
-
-        // LFO for pulsing effect
-        lfo.connect(lfoGain);
-        lfoGain.connect(gain.gain);
-
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(55, now); // Low A
-
-        gain.gain.setValueAtTime(this.musicVolume * 0.15, now);
-
-        lfo.type = 'sine';
-        lfo.frequency.setValueAtTime(2, now); // 2 Hz pulse (120 BPM feel)
-        lfoGain.gain.setValueAtTime(this.musicVolume * 0.1, now);
-
-        osc.start(now);
-        lfo.start(now);
-
-        this.combatPulse = { osc, gain, lfo, lfoGain };
+    /** Set music volume (0-1) */
+    setMusicVolume(volume) {
+        this.musicVolume = Math.max(0, Math.min(1, volume));
+        if (this.musicBus) {
+            this.musicBus.gain.setValueAtTime(this.musicVolume, this.audioContext.currentTime);
+        }
     }
 
-    stopCombatMusic() {
-        if (this.combatPulse) {
-            const now = this.audioContext.currentTime;
-            this.combatPulse.gain.gain.linearRampToValueAtTime(0.001, now + 1);
-            this.combatPulse.lfoGain.gain.linearRampToValueAtTime(0, now + 1);
-
-            const pulse = this.combatPulse;
-            setTimeout(() => {
-                try { pulse.osc.stop(); } catch(e) {}
-                try { pulse.lfo.stop(); } catch(e) {}
-            }, 1200);
-
-            this.combatPulse = null;
+    /** Toggle music mute */
+    toggleMusic() {
+        this.musicMuted = !this.musicMuted;
+        if (this.musicBus) {
+            const vol = this.musicMuted ? 0 : this.musicVolume;
+            this.musicBus.gain.linearRampToValueAtTime(vol, this.audioContext.currentTime + 0.1);
         }
+        return !this.musicMuted;
     }
 
     // Melee punch sound
