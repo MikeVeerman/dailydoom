@@ -38,6 +38,10 @@ class GameEngine {
         this.levelComplete = false;
         this.levelCompleteTime = 0;
 
+        // Pause menu
+        this.pauseMenuSelection = -1;
+        this._pauseMenuItems = [];
+
         // Initialize systems
         this.initialize();
     }
@@ -73,7 +77,49 @@ class GameEngine {
         
         // Bind debug toggle
         this.bindDebugToggle();
-        
+
+        // Bind pause menu click handler
+        this.canvas.addEventListener('click', (e) => {
+            if (!this.paused || this._pauseMenuItems.length === 0) return;
+            const rect = this.canvas.getBoundingClientRect();
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
+            const clickX = (e.clientX - rect.left) * scaleX;
+            const clickY = (e.clientY - rect.top) * scaleY;
+
+            for (const item of this._pauseMenuItems) {
+                if (clickX >= item.x && clickX <= item.x + item.w &&
+                    clickY >= item.y && clickY <= item.y + item.h) {
+                    switch (item.action) {
+                        case 'resume':
+                            this.resume();
+                            break;
+                        case 'restart':
+                            this.restartLevel();
+                            break;
+                        case 'toggleMusic':
+                            if (window.soundEngine && window.soundEngine.isInitialized) {
+                                window.soundEngine.toggleMusic();
+                            }
+                            break;
+                    }
+                    e.stopPropagation();
+                    e.preventDefault();
+                    break;
+                }
+            }
+        });
+
+        // Track mouse position on canvas for hover detection
+        this.canvas.addEventListener('mousemove', (e) => {
+            if (!this.paused) return;
+            const rect = this.canvas.getBoundingClientRect();
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
+            this.inputManager.mouse.x = (e.clientX - rect.left) * scaleX;
+            this.inputManager.mouse.y = (e.clientY - rect.top) * scaleY;
+        });
+
         // Initialize audio system
         this.initializeAudio();
         
@@ -100,7 +146,38 @@ class GameEngine {
     
     pause() {
         this.paused = !this.paused;
+        this.pauseMenuSelection = -1;
+        if (this.paused) {
+            // Release pointer lock so mouse can interact with menu
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+            }
+        }
         console.log(this.paused ? 'Game paused' : 'Game resumed');
+    }
+
+    resume() {
+        this.paused = false;
+        this.pauseMenuSelection = -1;
+    }
+
+    restartLevel() {
+        this.paused = false;
+        this.pauseMenuSelection = -1;
+        this.levelComplete = false;
+        this.levelCompleteTime = 0;
+
+        // Re-initialize map and player
+        this.map = new GameMap();
+        this.player = new Player(this.map.spawnX, this.map.spawnY, this.map.spawnAngle);
+        this.renderer = new Renderer(this.canvas, this.map);
+        this.pickupManager = new PickupManager();
+        this.pickupManager.spawnWeaponPickups(this.map);
+        this.pickupManager.spawnRandomPickups(this.map, 6);
+        this.hud.resetFog();
+        this.levelStartTime = performance.now();
+        this.totalEnemyCount = this.map.enemies.length;
+        console.log('Level restarted');
     }
     
     gameLoop(currentTime = performance.now()) {
@@ -114,13 +191,20 @@ class GameEngine {
         this.updateFPS();
         
         // Game loop phases
-        if (!this.paused) {
+        if (this.paused) {
+            this.handlePauseInput();
+        } else {
             this.handleInput();
             this.update(this.deltaTime);
         }
-        
+
         this.render();
         this.updateUI();
+
+        // Render pause menu overlay if paused
+        if (this.paused) {
+            this.renderPauseMenu();
+        }
         
         // Performance tracking
         this.trackPerformance(currentTime);
@@ -580,6 +664,97 @@ class GameEngine {
         } else {
             document.exitFullscreen();
         }
+    }
+
+    // ========== PAUSE MENU ==========
+
+    handlePauseInput() {
+        // Check for Escape to resume
+        if (this.inputManager.isKeyPressed('menu')) {
+            this.resume();
+        }
+        // Update input manager to clear frame states even while paused
+        this.inputManager.update();
+    }
+
+    renderPauseMenu() {
+        const ctx = this.canvas.getContext('2d');
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Dark overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, w, h);
+
+        // Menu box
+        const menuW = 300;
+        const menuH = 280;
+        const menuX = (w - menuW) / 2;
+        const menuY = (h - menuH) / 2;
+
+        ctx.fillStyle = 'rgba(20, 20, 30, 0.95)';
+        ctx.fillRect(menuX, menuY, menuW, menuH);
+        ctx.strokeStyle = '#FF4444';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(menuX, menuY, menuW, menuH);
+
+        // Title
+        ctx.fillStyle = '#FF4444';
+        ctx.font = 'bold 28px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('PAUSED', w / 2, menuY + 40);
+
+        // Menu items
+        const items = [
+            { label: 'RESUME', action: 'resume' },
+            { label: 'RESTART LEVEL', action: 'restart' },
+            { label: 'MUSIC: ' + (window.soundEngine && window.soundEngine.musicMuted ? 'OFF' : 'ON'), action: 'toggleMusic' }
+        ];
+
+        const itemH = 45;
+        const itemStartY = menuY + 70;
+        const mouseX = this.inputManager.mouse.x;
+        const mouseY = this.inputManager.mouse.y;
+
+        // Store menu item bounds for click handling
+        this._pauseMenuItems = [];
+
+        for (let i = 0; i < items.length; i++) {
+            const itemY = itemStartY + i * itemH;
+            const itemRect = {
+                x: menuX + 20,
+                y: itemY,
+                w: menuW - 40,
+                h: itemH - 8,
+                action: items[i].action
+            };
+            this._pauseMenuItems.push(itemRect);
+
+            // Hover detection
+            const hovered = mouseX >= itemRect.x && mouseX <= itemRect.x + itemRect.w &&
+                           mouseY >= itemRect.y && mouseY <= itemRect.y + itemRect.h;
+
+            // Item background
+            ctx.fillStyle = hovered ? 'rgba(255, 68, 68, 0.3)' : 'rgba(255, 255, 255, 0.08)';
+            ctx.fillRect(itemRect.x, itemRect.y, itemRect.w, itemRect.h);
+
+            // Item border
+            ctx.strokeStyle = hovered ? '#FF4444' : '#555555';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(itemRect.x, itemRect.y, itemRect.w, itemRect.h);
+
+            // Item text
+            ctx.fillStyle = hovered ? '#FFFFFF' : '#CCCCCC';
+            ctx.font = '18px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(items[i].label, w / 2, itemY + itemH / 2 - 2);
+        }
+
+        // Controls hint at bottom
+        ctx.fillStyle = '#666666';
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('ESC to resume | N to toggle music', w / 2, menuY + menuH - 15);
     }
 
     // Event handling
