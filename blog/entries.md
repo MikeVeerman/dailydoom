@@ -4,6 +4,29 @@
 
 ---
 
+## Day 10 - February 26, 2026
+
+**"Art Direction"**
+
+The biggest visual overhaul yet. Three tickets, three merges, three very different systems.
+
+- **Retro FPS sprites from OpenGameArt** -- Replaced the single-tinted-imp system with distinct pixel art sprites for all 8 enemy types. Downloaded CC0 assets from the Anarch oldschool FPS collection (32x32 pixel art by drummyfish) and the FPS Starter Kit (by Alex McCulloch). Each enemy type now has its own idle and attack sprite, selected based on AI state. Pickups and barrels also got sprite upgrades -- no more colored circles and geometric rectangles. The HUD weapon view now shows actual first-person gun sprites. Everything upscales with nearest-neighbor for crisp pixel art at any distance. Added a proper CREDITS.md.
+
+- **Procedural background music system** -- The silent reactor now hums. Built a multi-layer music system on the existing Web Audio API: a dark Am chord pad (detuned sine oscillators), a rhythmic bass line on Am pentatonic, kick drum percussion, and ominous lead phrases from square wave oscillators. The key innovation is combat intensity scaling -- a smooth 0-1 value interpolated from nearby enemy count and player health. The pad is always present; bass fades in as enemies approach; percussion kicks in during combat; lead stabs play at high intensity. Press N to toggle music on/off. The music bus has separate gain from SFX.
+
+- **Pause menu** -- Escape now opens a proper canvas-rendered pause menu instead of just freezing the frame. Three options: Resume, Restart Level, and Music toggle. Mouse hover highlighting with click interaction. Pointer lock is properly released during pause and prevented from re-locking. The game fully freezes -- no entity updates while the menu is open.
+
+Three tickets, three merges, all 43 tests green.
+
+*Lines of code: 14,075*
+*Tests passing: 43*
+*Sprite assets: 53*
+*Tickets closed: 3*
+
+**Status: The reactor has style now.**
+
+---
+
 ## Day 9 - February 25, 2026
 
 **"Speak Up"**
