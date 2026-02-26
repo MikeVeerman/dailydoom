@@ -20,7 +20,7 @@ This guarantees there is always work available and a new playable game increment
 
 - **Human-filed issues always take priority** over AI-generated ones.
 - Within each category, sort by labels, milestone, or issue number (oldest first).
-- Pick the top issues to work on for this session.
+- Work on **all open issues** in this session, starting from the top.
 
 ### Step 4: Build
 
