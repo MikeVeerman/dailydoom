@@ -461,39 +461,109 @@ class Renderer {
     loadSprites() {
         console.log('Loading sprites...');
 
-        // Enemy type color tints (hue shift in degrees, saturation multiplier, brightness multiplier)
-        this.enemyTints = {
-            imp:          { hue: 0,   sat: 1.0, bright: 1.0 },  // Red (original)
-            guard:        { hue: 180, sat: 0.9, bright: 1.1 },  // Blue/teal
-            soldier:      { hue: 100, sat: 0.8, bright: 0.9 },  // Green/brown
-            demon:        { hue: 280, sat: 1.2, bright: 0.8 },  // Dark purple
-            berserker:    { hue: 30,  sat: 1.3, bright: 1.1 },  // Orange
-            spitter:      { hue: 120, sat: 1.1, bright: 1.0 },  // Green
-            shield_guard: { hue: 200, sat: 0.9, bright: 1.2 },  // Cyan
-            boss:         { hue: 50,  sat: 0.7, bright: 1.3 }   // Gold
-        };
-
         // Enemy type scale factors
         this.enemyScales = {
             imp: 0.6, guard: 0.7, soldier: 0.65, demon: 0.8,
             berserker: 0.7, spitter: 0.55, shield_guard: 0.75, boss: 1.0
         };
 
-        // Tinted sprite canvases (generated after base sprite loads)
-        this.tintedSprites = {};
+        // Per-type enemy sprites (from Anarch oldschool FPS resources, CC0)
+        this.enemySprites = {};
+        const enemySpriteMap = {
+            guard:        { idle: 'guard_idle.png', attack: 'guard_attack.png' },
+            imp:          { idle: 'imp_idle_new.png', attack: 'imp_attack.png', walk: 'imp_walk.png' },
+            demon:        { idle: 'demon_idle_new.png', attack: 'demon_attack.png', walk: 'demon_walk.png' },
+            soldier:      { idle: 'soldier_idle.png', attack: 'soldier_attack.png' },
+            berserker:    { idle: 'berserker_idle.png', attack: 'berserker_attack.png', walk: 'berserker_walk.png' },
+            spitter:      { idle: 'spitter_idle.png', attack: 'spitter_attack.png' },
+            shield_guard: { idle: 'shield_guard_idle.png' },
+            boss:         { idle: 'boss_sheet.png' }
+        };
 
-        // Load imp sprite (transparent version)
+        for (const [type, files] of Object.entries(enemySpriteMap)) {
+            this.enemySprites[type] = {};
+            for (const [state, filename] of Object.entries(files)) {
+                const img = new Image();
+                img.src = `assets/sprites/enemies/${filename}`;
+                this.enemySprites[type][state] = img;
+            }
+        }
+
+        // Upscaled sprite cache (pixel-art nearest-neighbor upscale)
+        this.upscaledEnemySprites = {};
+
+        // Item/pickup sprites
+        this.pickupSprites = {};
+        const pickupSpriteMap = {
+            health: 'items/health.png',
+            large_health: 'items/health.png',
+            ammo_pistol: 'items/ammo_bullets.png',
+            ammo_shotgun: 'items/ammo_bullets.png',
+            ammo_rifle: 'items/ammo_bullets.png',
+            ammo_rocket: 'items/ammo_rockets.png',
+            ammo_chaingun: 'items/ammo_bullets.png',
+            armor: 'items/ammo_plasma.png',
+            weapon_shotgun: 'weapons/shotgun_pickup.png',
+            weapon_rifle: 'weapons/rifle_pickup.png',
+            weapon_rocket: 'weapons/rocket_pickup.png',
+            weapon_chaingun: 'weapons/chaingun_pickup.png'
+        };
+
+        for (const [type, path] of Object.entries(pickupSpriteMap)) {
+            const img = new Image();
+            img.src = `assets/sprites/${path}`;
+            this.pickupSprites[type] = img;
+        }
+
+        // Barrel sprite
+        this.barrelSprite = new Image();
+        this.barrelSprite.src = 'assets/sprites/items/barrel.png';
+
+        // Legacy tinted sprites (fallback)
+        this.tintedSprites = {};
+        this.enemyTints = {
+            imp:          { hue: 0,   sat: 1.0, bright: 1.0 },
+            guard:        { hue: 180, sat: 0.9, bright: 1.1 },
+            soldier:      { hue: 100, sat: 0.8, bright: 0.9 },
+            demon:        { hue: 280, sat: 1.2, bright: 0.8 },
+            berserker:    { hue: 30,  sat: 1.3, bright: 1.1 },
+            spitter:      { hue: 120, sat: 1.1, bright: 1.0 },
+            shield_guard: { hue: 200, sat: 0.9, bright: 1.2 },
+            boss:         { hue: 50,  sat: 0.7, bright: 1.3 }
+        };
+
+        // Load legacy imp sprite as fallback
         this.sprites.imp = new Image();
         this.sprites.imp.onload = () => {
-            console.log('Transparent imp sprite loaded successfully');
+            console.log('Fallback imp sprite loaded');
             this.generateTintedSprites();
         };
         this.sprites.imp.onerror = () => {
-            console.error('Failed to load transparent imp sprite');
-            // Fallback to original sprite
-            this.sprites.imp.src = 'assets/sprites/imp.png';
+            console.error('Failed to load fallback imp sprite');
         };
         this.sprites.imp.src = 'assets/sprites/imp_fixed_transparent.png';
+
+        console.log('Loading retro FPS sprites (Anarch CC0 assets)...');
+    }
+
+    /**
+     * Upscale a 32x32 pixel-art sprite to a larger canvas using nearest-neighbor
+     * for crisp rendering at game scale.
+     */
+    getUpscaledSprite(img, type, state) {
+        const key = `${type}_${state}`;
+        if (this.upscaledEnemySprites[key]) return this.upscaledEnemySprites[key];
+        if (!img || !img.complete || img.naturalWidth === 0) return null;
+
+        const scale = 4; // 32x32 -> 128x128
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth * scale;
+        canvas.height = img.naturalHeight * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        this.upscaledEnemySprites[key] = canvas;
+        return canvas;
     }
 
     generateTintedSprites() {
@@ -769,11 +839,24 @@ class Renderer {
         const screenX = this.width / 2 + (angleDiff / this.fov) * this.width;
 
         if (entityType === 'enemy') {
-            // Get the tinted sprite for this enemy type, fall back to base imp
             const enemyType = entity.type || 'imp';
-            const sprite = this.tintedSprites[enemyType] || this.sprites.imp;
+
+            // Select sprite based on enemy state (idle, attack, walk/chase)
+            let spriteState = 'idle';
+            if (entity.state === 'attack') spriteState = 'attack';
+            else if (entity.state === 'chase' || entity.state === 'patrol') spriteState = 'walk';
+
+            // Try per-type retro sprite first, fall back to tinted sprite
+            let sprite = null;
+            const typeSprites = this.enemySprites[enemyType];
+            if (typeSprites) {
+                const rawSprite = typeSprites[spriteState] || typeSprites.idle;
+                sprite = this.getUpscaledSprite(rawSprite, enemyType, spriteState);
+            }
+            if (!sprite) {
+                sprite = this.tintedSprites[enemyType] || this.sprites.imp;
+            }
             if (!sprite) return;
-            // For Image objects check .complete; canvas elements are always ready
             if (sprite instanceof Image && !sprite.complete) return;
 
             // Scale factor per enemy type (boss is significantly larger)
@@ -786,10 +869,13 @@ class Renderer {
             const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
             const floorY = this.halfHeight + wallScreenHeight / 2;
 
-            // Draw the sprite with bottom aligned to floor
+            // Draw the sprite with bottom aligned to floor, pixel-art crisp
             const spriteX = screenX - spriteSize / 2;
             const spriteY = floorY - spriteSize;
+            const prevSmoothing = this.ctx.imageSmoothingEnabled;
+            this.ctx.imageSmoothingEnabled = false;
             this.ctx.drawImage(sprite, spriteX, spriteY, spriteSize, spriteSize);
+            this.ctx.imageSmoothingEnabled = prevSmoothing;
 
             // Hit flash overlay (red tint for 150ms after being hit)
             if (entity.hitFlashTime && Date.now() - entity.hitFlashTime < 150) {
@@ -799,44 +885,56 @@ class Renderer {
                 this.ctx.globalAlpha = 1.0;
             }
         } else if (entityType === 'pickup') {
-            // Render pickup as colored circle (simple representation)
-            const renderInfo = entity.getRenderInfo();
-            const size = (this.wallHeight * this.projectionDistance) / distance * 0.3; // Smaller than enemies
+            const size = (this.wallHeight * this.projectionDistance) / distance * 0.3;
             const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
             const floorY = this.halfHeight + wallScreenHeight / 2;
-            const screenY = floorY - size / 2; // Center circle sitting on floor
+            const screenY = floorY - size / 2;
 
-            this.ctx.fillStyle = renderInfo.color;
-            this.ctx.beginPath();
-            this.ctx.arc(screenX, screenY, size / 2, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            // Add a white border for visibility
-            this.ctx.strokeStyle = '#FFFFFF';
-            this.ctx.lineWidth = 2;
-            this.ctx.stroke();
+            // Try sprite-based pickup rendering
+            const pickupType = entity.type || '';
+            const pickupImg = this.pickupSprites[pickupType];
+            if (pickupImg && pickupImg.complete && pickupImg.naturalWidth > 0) {
+                const prevSmoothing = this.ctx.imageSmoothingEnabled;
+                this.ctx.imageSmoothingEnabled = false;
+                this.ctx.drawImage(pickupImg, screenX - size / 2, screenY - size / 2, size, size);
+                this.ctx.imageSmoothingEnabled = prevSmoothing;
+            } else {
+                // Fallback to colored circle
+                const renderInfo = entity.getRenderInfo();
+                this.ctx.fillStyle = renderInfo.color;
+                this.ctx.beginPath();
+                this.ctx.arc(screenX, screenY, size / 2, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#FFFFFF';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+            }
         } else if (entityType === 'barrel') {
-            // Render barrel as a red-brown cylinder
             const size = (this.wallHeight * this.projectionDistance) / distance * 0.35;
             const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
             const floorY = this.halfHeight + wallScreenHeight / 2;
             const barrelX = screenX - size / 2;
             const barrelY = floorY - size;
 
-            // Barrel body (dark red)
-            this.ctx.fillStyle = '#8B2500';
-            this.ctx.fillRect(barrelX, barrelY, size, size);
-            // Metal bands
-            this.ctx.fillStyle = '#555555';
-            this.ctx.fillRect(barrelX, barrelY + size * 0.15, size, size * 0.1);
-            this.ctx.fillRect(barrelX, barrelY + size * 0.75, size, size * 0.1);
-            // Hazard stripe
-            this.ctx.fillStyle = '#FFCC00';
-            this.ctx.fillRect(barrelX + size * 0.2, barrelY + size * 0.35, size * 0.6, size * 0.3);
-            // Border
-            this.ctx.strokeStyle = '#333333';
-            this.ctx.lineWidth = 1;
-            this.ctx.strokeRect(barrelX, barrelY, size, size);
+            // Try sprite-based barrel rendering
+            if (this.barrelSprite && this.barrelSprite.complete && this.barrelSprite.naturalWidth > 0) {
+                const prevSmoothing = this.ctx.imageSmoothingEnabled;
+                this.ctx.imageSmoothingEnabled = false;
+                this.ctx.drawImage(this.barrelSprite, barrelX, barrelY, size, size);
+                this.ctx.imageSmoothingEnabled = prevSmoothing;
+            } else {
+                // Fallback to geometric barrel
+                this.ctx.fillStyle = '#8B2500';
+                this.ctx.fillRect(barrelX, barrelY, size, size);
+                this.ctx.fillStyle = '#555555';
+                this.ctx.fillRect(barrelX, barrelY + size * 0.15, size, size * 0.1);
+                this.ctx.fillRect(barrelX, barrelY + size * 0.75, size, size * 0.1);
+                this.ctx.fillStyle = '#FFCC00';
+                this.ctx.fillRect(barrelX + size * 0.2, barrelY + size * 0.35, size * 0.6, size * 0.3);
+                this.ctx.strokeStyle = '#333333';
+                this.ctx.lineWidth = 1;
+                this.ctx.strokeRect(barrelX, barrelY, size, size);
+            }
         }
     }
 }

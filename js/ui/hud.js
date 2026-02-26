@@ -55,6 +55,10 @@ class HUD {
         this.revealedTiles = new Set();
         this.fogRevealRadius = 4; // tiles
 
+        // Load weapon sprite images (from FPS Starter Kit, CC0)
+        this.weaponImages = {};
+        this.loadWeaponImages();
+
         console.log('HUD system initialized');
     }
     
@@ -283,53 +287,96 @@ class HUD {
         this.ctx.fillRect(centerX - 1, centerY - 1, 2, 2);
     }
     
+    loadWeaponImages() {
+        // Map weapon names to sprite image paths
+        const weaponImageMap = {
+            'PISTOL': 'assets/sprites/weapons/fps_handgun.png',
+            'SHOTGUN': 'assets/sprites/weapons/shotgun_pickup.png',
+            'RIFLE': 'assets/sprites/weapons/rifle_pickup.png',
+            'ROCKET': 'assets/sprites/weapons/rocket_pickup.png',
+            'CHAINGUN': 'assets/sprites/weapons/chaingun_pickup.png',
+            'PUNCH': 'assets/sprites/weapons/knife_pickup.png'
+        };
+
+        // First-person gun sprite (used for pistol/rifle/shotgun)
+        this.fpsGunSprite = new Image();
+        this.fpsGunSprite.src = 'assets/sprites/weapons/fps_gun_idle.png';
+
+        this.fpsMeleeSprite = new Image();
+        this.fpsMeleeSprite.src = 'assets/sprites/weapons/fps_melee_idle.png';
+
+        for (const [name, path] of Object.entries(weaponImageMap)) {
+            const img = new Image();
+            img.src = path;
+            this.weaponImages[name] = img;
+        }
+    }
+
     renderWeaponSprite(player) {
         if (!this.showWeaponSprite) return;
-        
+
         const weaponInfo = player.weaponManager.getHUDInfo();
         const weaponName = weaponInfo.weaponName;
-        
-        // Position in bottom center of screen
+
+        // First-person weapon view (larger, bottom-right of screen)
+        const fpsWeaponSize = 200;
+        const fpsX = this.canvas.width / 2 + 50;
+        const fpsY = this.canvas.height - fpsWeaponSize + 20;
+
+        // Choose between gun and melee first-person sprite
+        const fpsSprite = (weaponName === 'PUNCH') ? this.fpsMeleeSprite : this.fpsGunSprite;
+        if (fpsSprite && fpsSprite.complete && fpsSprite.naturalWidth > 0) {
+            this.ctx.drawImage(fpsSprite, fpsX, fpsY, fpsWeaponSize, fpsWeaponSize);
+        }
+
+        // Small weapon icon in bottom center HUD area
         const centerX = this.canvas.width / 2;
         const bottomY = this.canvas.height - 80;
-        const spriteWidth = 120;
-        const spriteHeight = 60;
+        const spriteWidth = 50;
+        const spriteHeight = 50;
         const x = centerX - spriteWidth / 2;
         const y = bottomY - spriteHeight;
-        
-        // Background for weapon sprite area
+
+        // Background for weapon icon
         this.ctx.fillStyle = this.backgroundColor;
         this.ctx.fillRect(x - 5, y - 5, spriteWidth + 10, spriteHeight + 10);
-        
-        // Border
         this.ctx.strokeStyle = this.textColor;
         this.ctx.strokeRect(x - 5, y - 5, spriteWidth + 10, spriteHeight + 10);
-        
-        // Weapon-specific visual representation
-        this.ctx.fillStyle = this.textColor;
-        this.ctx.strokeStyle = this.textColor;
-        this.ctx.lineWidth = 2;
-        
-        switch(weaponName) {
-            case 'PISTOL':
-                this.drawPistolSprite(x, y, spriteWidth, spriteHeight);
-                break;
-            case 'SHOTGUN':
-                this.drawShotgunSprite(x, y, spriteWidth, spriteHeight);
-                break;
-            case 'RIFLE':
-                this.drawRifleSprite(x, y, spriteWidth, spriteHeight);
-                break;
-            case 'ROCKET':
-                this.drawRocketSprite(x, y, spriteWidth, spriteHeight);
-                break;
-            case 'CHAINGUN':
-                this.drawChaingunSprite(x, y, spriteWidth, spriteHeight);
-                break;
-            default:
-                this.drawDefaultWeaponSprite(x, y, spriteWidth, spriteHeight);
+
+        // Try image-based weapon icon
+        const weaponImg = this.weaponImages[weaponName];
+        if (weaponImg && weaponImg.complete && weaponImg.naturalWidth > 0) {
+            const prevSmoothing = this.ctx.imageSmoothingEnabled;
+            this.ctx.imageSmoothingEnabled = false;
+            this.ctx.drawImage(weaponImg, x, y, spriteWidth, spriteHeight);
+            this.ctx.imageSmoothingEnabled = prevSmoothing;
+        } else {
+            // Fallback to procedural weapon sprites
+            this.ctx.fillStyle = this.textColor;
+            this.ctx.strokeStyle = this.textColor;
+            this.ctx.lineWidth = 2;
+
+            switch(weaponName) {
+                case 'PISTOL':
+                    this.drawPistolSprite(x, y, spriteWidth, spriteHeight);
+                    break;
+                case 'SHOTGUN':
+                    this.drawShotgunSprite(x, y, spriteWidth, spriteHeight);
+                    break;
+                case 'RIFLE':
+                    this.drawRifleSprite(x, y, spriteWidth, spriteHeight);
+                    break;
+                case 'ROCKET':
+                    this.drawRocketSprite(x, y, spriteWidth, spriteHeight);
+                    break;
+                case 'CHAINGUN':
+                    this.drawChaingunSprite(x, y, spriteWidth, spriteHeight);
+                    break;
+                default:
+                    this.drawDefaultWeaponSprite(x, y, spriteWidth, spriteHeight);
+            }
         }
-        
+
         // Weapon name label
         this.ctx.fillStyle = this.textColor;
         this.ctx.font = this.smallFont;
