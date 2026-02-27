@@ -252,9 +252,10 @@ class Renderer {
             const cosAngle = Math.cos(rayAngle);
             const sinAngle = Math.sin(rayAngle);
             const cosCorrection = Math.cos(rayAngle - player.angle);
-            const baseFloorColor = this.hexToRgb(this.ceilingColor);
+            const baseFloorColor = this.hexToRgb(this.floorColor);
+            const floorDistCoeff = (this.wallHeight / 2) * this.projectionDistance;
             for (let y = Math.max(0, floorStartY); y < this.height; y++) {
-                const rowDist = (this.halfHeight * this.wallHeight) / (y - this.halfHeight);
+                const rowDist = floorDistCoeff / (y - this.halfHeight);
                 const actualDist = rowDist / cosCorrection;
                 const floorWorldX = player.x + actualDist * cosAngle;
                 const floorWorldY = player.y + actualDist * sinAngle;
@@ -288,8 +289,9 @@ class Renderer {
             const sinAngle = Math.sin(rayAngle);
             const cosCorrection = Math.cos(rayAngle - player.angle);
             const baseFloorColor = this.hexToRgb(this.floorColor);
+            const floorDistCoeff = (this.wallHeight / 2) * this.projectionDistance;
             for (let y = Math.ceil(this.halfHeight); y < this.height; y++) {
-                const rowDist = (this.halfHeight * this.wallHeight) / (y - this.halfHeight);
+                const rowDist = floorDistCoeff / (y - this.halfHeight);
                 const actualDist = rowDist / cosCorrection;
                 const floorWorldX = player.x + actualDist * cosAngle;
                 const floorWorldY = player.y + actualDist * sinAngle;
