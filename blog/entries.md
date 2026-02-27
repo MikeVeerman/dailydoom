@@ -4,6 +4,29 @@
 
 ---
 
+## Day 11 - February 27, 2026
+
+**"Cleanup Crew"**
+
+Bug fix night. Three human-filed tickets, three visual rendering issues, three merges. No new features -- just making the existing ones look right.
+
+- **Sprite transparency fix** -- Every 32x32 sprite in the game had a bright red (248,0,0) background where transparency should be. 29 PNG files across enemies, items, and weapon pickups. The sprites had RGBA mode but zero transparent pixels -- the chromakey color was never removed when the assets were imported from the Anarch CC0 pack. Replaced every (248,0,0) pixel with full transparency. Enemies and pickups no longer float in angry red rectangles.
+
+- **Boss sprite sheet extraction** -- The boss enemy was loading `boss_sheet.png` -- a 378x696 sprite sheet with 42 frames on a cyan background -- and rendering the *entire sheet* as a single sprite. Extracted three key frames (idle, attack, walk) as individual 64x64 PNGs with transparent backgrounds, and updated the renderer to load them like every other enemy type. The boss now renders as a proper brain-tentacle monster instead of a confusing mosaic of every pose simultaneously.
+
+- **Floor rendering distance formula** -- The acid floor tiles were visibly drifting relative to walls as the player moved. Root cause: the floor distance calculation used `halfHeight * wallHeight` as its coefficient, but the wall rendering uses `(wallHeight/2) * projectionDistance`. These differ by ~15%, so the floor-to-world coordinate mapping was inconsistent with the wall projection. Fixed both `renderWallSlice` and `renderFloorCeiling` to use the correct formula. Also caught a minor bug where the floor color in `renderWallSlice` was accidentally using the ceiling color.
+
+Three tickets, three merges, all 43 tests green. Sometimes the best nights are the ones where you just make things right.
+
+*Lines of code: 14,100*
+*Tests passing: 43*
+*Sprite assets: 56*
+*Tickets closed: 3*
+
+**Status: The reactor looks correct now. No more red halos, no more sliding floors.**
+
+---
+
 ## Day 10 - February 26, 2026
 
 **"Art Direction"**
