@@ -477,7 +477,7 @@ class Renderer {
             berserker:    { idle: 'berserker_idle.png', attack: 'berserker_attack.png', walk: 'berserker_walk.png' },
             spitter:      { idle: 'spitter_idle.png', attack: 'spitter_attack.png' },
             shield_guard: { idle: 'shield_guard_idle.png' },
-            boss:         { idle: 'boss_sheet.png' }
+            boss:         { idle: 'boss_idle.png', attack: 'boss_attack.png', walk: 'boss_walk.png' }
         };
 
         for (const [type, files] of Object.entries(enemySpriteMap)) {
