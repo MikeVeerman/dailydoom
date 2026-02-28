@@ -625,6 +625,50 @@ class SoundEngine {
         noiseSource.stop(now + 0.08);
     }
 
+    playPunchHit(isCombo) {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Deep bass thump
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(isCombo ? 80 : 60, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * (isCombo ? 0.9 : 0.7), now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+        osc.start(now);
+        osc.stop(now + 0.2);
+
+        // Impact crunch noise
+        const noiseBuffer = this.createNoiseBuffer(0.1);
+        const noiseSource = this.audioContext.createBufferSource();
+        const noiseGain = this.audioContext.createGain();
+        const filter = this.audioContext.createBiquadFilter();
+
+        noiseSource.buffer = noiseBuffer;
+        noiseSource.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.masterGain);
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(isCombo ? 600 : 300, now);
+        filter.Q.setValueAtTime(2, now);
+
+        noiseGain.gain.setValueAtTime(0, now);
+        noiseGain.gain.linearRampToValueAtTime(this.sfxVolume * (isCombo ? 0.6 : 0.4), now + 0.005);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+        noiseSource.start(now);
+        noiseSource.stop(now + 0.12);
+    }
+
     // Level complete victory fanfare
     playLevelComplete() {
         if (!this.isInitialized) return;
