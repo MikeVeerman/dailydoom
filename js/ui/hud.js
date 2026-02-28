@@ -47,6 +47,10 @@ class HUD {
         this.killFeedMax = 4;
         this.killFeedDuration = 3000; // 3 seconds
 
+        // Weapon recoil animation
+        this.weaponRecoilOffset = 0;
+        this.weaponRecoilDecay = 0.85;
+
         // Damage direction indicators
         this.damageIndicators = [];
         this.damageIndicatorDuration = 1000; // 1 second
@@ -135,6 +139,9 @@ class HUD {
 
             // Render damage direction indicators
             this.renderDamageIndicators(player);
+
+            // Render low ammo warning
+            this.renderLowAmmoWarning(player);
 
             // Render damage flash effect
             this.renderDamageFlash(player);
@@ -226,9 +233,16 @@ class HUD {
             this.ctx.fillText('RELOADING...', this.canvas.width - 20, y + 25);
         }
         
-        // Muzzle flash effect
+        // Muzzle flash effect (weapon-specific colors)
         if (weaponInfo.muzzleFlash) {
-            this.ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+            const flashColors = {
+                PISTOL: 'rgba(255, 200, 50, 0.25)',
+                SHOTGUN: 'rgba(255, 150, 30, 0.35)',
+                RIFLE: 'rgba(200, 220, 255, 0.2)',
+                ROCKET: 'rgba(255, 100, 0, 0.4)',
+                CHAINGUN: 'rgba(255, 255, 100, 0.15)'
+            };
+            this.ctx.fillStyle = flashColors[weaponInfo.weaponName] || 'rgba(255, 255, 0, 0.3)';
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
     }
@@ -318,10 +332,14 @@ class HUD {
         const weaponInfo = player.weaponManager.getHUDInfo();
         const weaponName = weaponInfo.weaponName;
 
+        // Decay weapon recoil
+        this.weaponRecoilOffset *= this.weaponRecoilDecay;
+        if (Math.abs(this.weaponRecoilOffset) < 0.5) this.weaponRecoilOffset = 0;
+
         // First-person weapon view (larger, bottom-right of screen)
         const fpsWeaponSize = 200;
         const fpsX = this.canvas.width / 2 + 50;
-        const fpsY = this.canvas.height - fpsWeaponSize + 20;
+        const fpsY = this.canvas.height - fpsWeaponSize + 20 - this.weaponRecoilOffset;
 
         // Choose between gun and melee first-person sprite
         const fpsSprite = (weaponName === 'PUNCH') ? this.fpsMeleeSprite : this.fpsGunSprite;
@@ -544,6 +562,52 @@ class HUD {
         this.ctx.fillText(`Frame Time: ${gameEngine.getAverageFrameTime().toFixed(2)}ms`, x, y);
     }
     
+    renderLowAmmoWarning(player) {
+        const weapon = player.weaponManager.getCurrentWeapon();
+        const stats = weapon.getWeaponStats(weapon.type);
+        const maxMag = stats.ammo;
+
+        // Warn when magazine ammo is below 20% of max magazine capacity
+        if (weapon.ammo > 0 && weapon.ammo <= maxMag * 0.2 && !weapon.isReloading) {
+            const now = Date.now();
+            const pulseAlpha = (Math.sin(now * 0.008) * 0.5 + 0.5) * 0.25;
+            const w = this.canvas.width;
+            const h = this.canvas.height;
+            const edgeSize = 40;
+
+            // Amber/yellow border pulse
+            const color = `rgba(255, 160, 0, ${pulseAlpha})`;
+
+            // Top
+            const gradTop = this.ctx.createLinearGradient(0, 0, 0, edgeSize);
+            gradTop.addColorStop(0, color);
+            gradTop.addColorStop(1, 'rgba(255, 160, 0, 0)');
+            this.ctx.fillStyle = gradTop;
+            this.ctx.fillRect(0, 0, w, edgeSize);
+
+            // Bottom
+            const gradBottom = this.ctx.createLinearGradient(0, h, 0, h - edgeSize);
+            gradBottom.addColorStop(0, color);
+            gradBottom.addColorStop(1, 'rgba(255, 160, 0, 0)');
+            this.ctx.fillStyle = gradBottom;
+            this.ctx.fillRect(0, h - edgeSize, w, edgeSize);
+
+            // Left
+            const gradLeft = this.ctx.createLinearGradient(0, 0, edgeSize, 0);
+            gradLeft.addColorStop(0, color);
+            gradLeft.addColorStop(1, 'rgba(255, 160, 0, 0)');
+            this.ctx.fillStyle = gradLeft;
+            this.ctx.fillRect(0, 0, edgeSize, h);
+
+            // Right
+            const gradRight = this.ctx.createLinearGradient(w, 0, w - edgeSize, 0);
+            gradRight.addColorStop(0, color);
+            gradRight.addColorStop(1, 'rgba(255, 160, 0, 0)');
+            this.ctx.fillStyle = gradRight;
+            this.ctx.fillRect(w - edgeSize, 0, edgeSize, h);
+        }
+    }
+
     renderDamageFlash(player) {
         const now = Date.now();
         const w = this.canvas.width;
@@ -736,6 +800,10 @@ class HUD {
     // Trigger screen shake
     triggerScreenShake(intensity) {
         this.shakeIntensity = Math.max(this.shakeIntensity, intensity);
+    }
+
+    triggerWeaponRecoil(amount) {
+        this.weaponRecoilOffset = Math.max(this.weaponRecoilOffset, amount);
     }
 
     updateScreenShake() {
