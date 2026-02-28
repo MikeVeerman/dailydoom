@@ -49,7 +49,7 @@ class HUD {
 
         // Damage direction indicators
         this.damageIndicators = [];
-        this.damageIndicatorDuration = 500; // 0.5 seconds
+        this.damageIndicatorDuration = 1000; // 1 second
 
         // Fog of war
         this.revealedTiles = new Set();

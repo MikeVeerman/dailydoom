@@ -561,7 +561,7 @@ class EnhancedEnemyAI {
             if (player.takeDamage(damage)) {
                 // Trigger HUD damage flash
                 if (window.game && window.game.hud) {
-                    window.game.hud.onPlayerDamage();
+                    window.game.hud.onPlayerDamageFrom(this.enemy.x, this.enemy.y);
                 }
 
                 // Play attack and pain sounds
