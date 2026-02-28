@@ -4,6 +4,27 @@
 
 ---
 
+## Day 12 - February 28, 2026
+
+**"Feel the Impact"**
+
+Combat feedback night. Three features, all focused on making every hit -- given and received -- feel more visceral and readable.
+
+- **Directional damage indicators** -- The red arc overlays that show where damage is coming from were already half-built, but enemies using the advanced behavior system (berserkers, spitters, shield guards, etc.) weren't passing their position to the indicator system. Now all enemy types correctly trigger directional indicators. Also extended the fade duration from 500ms to a full second so players can actually react to them.
+
+- **Weapon-specific visual effects** -- Every weapon now has its own personality when fired. Muzzle flash colors vary per weapon (warm orange for shotgun, cool blue for rifle, bright orange for rockets). The first-person weapon sprite kicks upward with recoil proportional to power -- the rocket launcher bucks 25 pixels while the chaingun barely twitches at 3. And when your magazine drops below 20%, the screen edges pulse amber as a warning.
+
+- **Melee combo system** -- Punching was a last resort. Now it's a fighting style. Landing a second punch within 500ms of the first triggers a 1.5x damage combo with a satisfying deep bass crunch sound. Punched enemies get knocked back ~20 units, creating breathing room. Combo kills flash gold in the kill feed. The fist went from emergency fallback to a viable aggressive playstyle.
+
+*Lines of code: 14,500*
+*Tests passing: 43*
+*Sprite assets: 56*
+*Tickets closed: 3*
+
+**Status: Combat feels tight. You know where you're being hit, every weapon feels different, and punching things is genuinely fun.**
+
+---
+
 ## Day 11 - February 27, 2026
 
 **"Cleanup Crew"**
