@@ -66,6 +66,9 @@ class Player {
         this.punchRange = 40;
         this.punchCooldown = 400; // ms
         this.lastPunchTime = 0;
+        this.lastPunchHitTime = 0; // When last punch connected
+        this.punchComboWindow = 500; // ms to chain combo
+        this.punchComboMultiplier = 1.5;
 
         // Power-up effects
         this.speedBoostEndTime = 0;
@@ -435,6 +438,12 @@ class Player {
         if (closestEnemy) {
             let damage = this.punchDamage;
 
+            // Combo multiplier: bonus damage if punching within combo window of last hit
+            const isCombo = (now - this.lastPunchHitTime) < this.punchComboWindow;
+            if (isCombo) {
+                damage = Math.round(damage * this.punchComboMultiplier);
+            }
+
             // Apply damage boost
             if (this.hasDamageBoost && this.hasDamageBoost()) {
                 damage = Math.round(damage * 1.5);
@@ -443,6 +452,8 @@ class Player {
                 damage = Math.round(damage * this.levelBonuses.damageMultiplier);
             }
 
+            this.lastPunchHitTime = now;
+
             if (this.stats) {
                 this.stats.shotsHit++;
                 this.stats.damageDealt += damage;
@@ -450,6 +461,18 @@ class Player {
 
             const wasAlive = closestEnemy.active;
             closestEnemy.takeDamage(damage);
+
+            // Knockback: push enemy away from player
+            if (closestEnemy.active) {
+                const dx = closestEnemy.x - this.x;
+                const dy = closestEnemy.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 0) {
+                    const knockbackDist = 20; // ~0.3 tiles (tile = 64)
+                    closestEnemy.x += (dx / dist) * knockbackDist;
+                    closestEnemy.y += (dy / dist) * knockbackDist;
+                }
+            }
 
             if (wasAlive && !closestEnemy.active) {
                 if (this.stats) this.stats.enemiesKilled++;
@@ -460,7 +483,8 @@ class Player {
                 // Kill feed message for punch kills
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
                     const typeName = (closestEnemy.type || 'enemy').charAt(0).toUpperCase() + (closestEnemy.type || 'enemy').slice(1);
-                    window.game.hud.addKillFeedMessage(`Punched ${typeName} +${xpReward} XP`, '#FF4444');
+                    const comboText = isCombo ? 'COMBO! Punched' : 'Punched';
+                    window.game.hud.addKillFeedMessage(`${comboText} ${typeName} +${xpReward} XP`, isCombo ? '#FFD700' : '#FF4444');
                 }
             }
 
@@ -468,10 +492,16 @@ class Player {
             closestEnemy.hitFlashTime = Date.now();
             if (window.game && window.game.hud) {
                 window.game.hud.emitBloodParticles(closestEnemy.x, closestEnemy.y, wasAlive && !closestEnemy.active ? 12 : 5);
-                window.game.hud.addDamageNumber(closestEnemy.x, closestEnemy.y, damage, false);
+                window.game.hud.addDamageNumber(closestEnemy.x, closestEnemy.y, damage, isCombo);
+                window.game.hud.triggerScreenShake(isCombo ? 8 : 4);
             }
 
-            console.log(`Punch hit ${closestEnemy.type} for ${damage} damage!`);
+            // Play punch hit sound (enhanced)
+            if (window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playPunchHit) {
+                window.soundEngine.playPunchHit(isCombo);
+            }
+
+            console.log(`${isCombo ? 'COMBO! ' : ''}Punch hit ${closestEnemy.type} for ${damage} damage!`);
         }
     }
 
