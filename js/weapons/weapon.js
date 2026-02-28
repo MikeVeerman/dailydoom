@@ -112,6 +112,10 @@ class Weapon {
             // Screen shake based on weapon power
             const shakeMap = { pistol: 2, shotgun: 6, rifle: 1.5, rocket: 10, chaingun: 1 };
             window.game.hud.triggerScreenShake(shakeMap[this.type] || 3);
+
+            // Weapon recoil animation
+            const recoilMap = { pistol: 8, shotgun: 18, rifle: 5, rocket: 25, chaingun: 3 };
+            window.game.hud.triggerWeaponRecoil(recoilMap[this.type] || 6);
         }
 
         // Play weapon sound
