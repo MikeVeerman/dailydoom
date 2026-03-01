@@ -38,6 +38,10 @@ class GameEngine {
         this.levelComplete = false;
         this.levelCompleteTime = 0;
 
+        // High score persistence
+        this.STORAGE_KEY = 'dailydoom_highscores';
+        this.currentScore = 0;
+
         // Pause menu
         this.pauseMenuSelection = -1;
         this._pauseMenuItems = [];
@@ -304,11 +308,79 @@ class GameEngine {
             this.levelCompleteTime = performance.now();
             console.log('Level complete! All enemies eliminated.');
 
+            // Calculate and save score
+            this.currentScore = this.calculateScore();
+            this.saveHighScore(this.currentScore);
+
             // Play victory sound
             if (window.soundEngine && window.soundEngine.isInitialized) {
                 window.soundEngine.playLevelComplete();
             }
         }
+    }
+
+    // ========== HIGH SCORE SYSTEM ==========
+
+    calculateScore() {
+        const stats = this.player.stats;
+        const elapsed = (this.levelCompleteTime - this.levelStartTime) / 1000;
+        const accuracy = stats.shotsFired > 0
+            ? (stats.shotsHit / stats.shotsFired) * 100
+            : 0;
+
+        // Score formula: kills * 100 + accuracy bonus + time bonus - damage penalty
+        const killScore = stats.enemiesKilled * 100;
+        const accuracyBonus = Math.round(accuracy * 10);
+        const timeBonus = Math.max(0, 300 - Math.floor(elapsed)) * 5; // Faster = more points
+        const damagePenalty = Math.round(stats.damageTaken);
+        const levelBonus = (this.player.level - 1) * 200;
+
+        return Math.max(0, killScore + accuracyBonus + timeBonus - damagePenalty + levelBonus);
+    }
+
+    getHighScores() {
+        try {
+            const data = localStorage.getItem(this.STORAGE_KEY);
+            return data ? JSON.parse(data) : [];
+        } catch (e) {
+            console.warn('Failed to load high scores:', e);
+            return [];
+        }
+    }
+
+    saveHighScore(score) {
+        try {
+            const scores = this.getHighScores();
+            const stats = this.player.stats;
+            const elapsed = (this.levelCompleteTime - this.levelStartTime) / 1000;
+            const accuracy = stats.shotsFired > 0
+                ? Math.round((stats.shotsHit / stats.shotsFired) * 100)
+                : 0;
+
+            scores.push({
+                score: score,
+                kills: stats.enemiesKilled,
+                accuracy: accuracy,
+                time: Math.floor(elapsed),
+                difficulty: window.CONFIG ? window.CONFIG.difficulty : 'normal',
+                level: this.player.level,
+                date: new Date().toISOString()
+            });
+
+            // Sort descending and keep top 5
+            scores.sort((a, b) => b.score - a.score);
+            scores.splice(5);
+
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(scores));
+            console.log(`High score saved: ${score} (rank ${scores.findIndex(s => s.score === score) + 1})`);
+        } catch (e) {
+            console.warn('Failed to save high score:', e);
+        }
+    }
+
+    getPersonalBest() {
+        const scores = this.getHighScores();
+        return scores.length > 0 ? scores[0] : null;
     }
 
     restartLevel() {
@@ -392,7 +464,24 @@ class GameEngine {
         ctx.textAlign = 'center';
         ctx.fillStyle = '#FFD700';
         ctx.font = 'bold 36px monospace';
-        ctx.fillText('LEVEL COMPLETE', w / 2, h * 0.15);
+        ctx.fillText('LEVEL COMPLETE', w / 2, h * 0.10);
+
+        // Score display
+        ctx.font = 'bold 24px monospace';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(`SCORE: ${this.currentScore}`, w / 2, h * 0.16);
+
+        // Personal best indicator
+        const personalBest = this.getPersonalBest();
+        if (personalBest && this.currentScore >= personalBest.score) {
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText('NEW PERSONAL BEST!', w / 2, h * 0.20);
+        } else if (personalBest) {
+            ctx.fillStyle = '#888888';
+            ctx.font = '14px monospace';
+            ctx.fillText(`Personal Best: ${personalBest.score}`, w / 2, h * 0.20);
+        }
 
         // Calculate stats
         const elapsed = (this.levelCompleteTime - this.levelStartTime) / 1000;
@@ -407,13 +496,12 @@ class GameEngine {
             ? Math.round((stats.shotsHit / stats.shotsFired) * 100)
             : 0;
         const damageTaken = Math.round(stats.damageTaken);
-        const xpGained = this.player.xp + (this.player.level - 1) * 100; // approximate
 
         // Stats panel background
-        const panelX = w * 0.25;
-        const panelY = h * 0.22;
-        const panelW = w * 0.5;
-        const panelH = h * 0.48;
+        const panelX = w * 0.2;
+        const panelY = h * 0.23;
+        const panelW = w * 0.6;
+        const panelH = h * 0.46;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.fillRect(panelX, panelY, panelW, panelH);
         ctx.strokeStyle = '#FFD700';
@@ -421,12 +509,10 @@ class GameEngine {
         ctx.strokeRect(panelX, panelY, panelW, panelH);
 
         // Stats lines
-        ctx.font = '18px monospace';
-        ctx.fillStyle = '#FFFFFF';
-        ctx.textAlign = 'left';
-        const startX = panelX + 30;
-        let y = panelY + 40;
-        const lineH = 36;
+        ctx.font = '16px monospace';
+        const startX = panelX + 20;
+        let y = panelY + 32;
+        const lineH = 30;
 
         const statLines = [
             ['Time', timeStr],
@@ -434,7 +520,7 @@ class GameEngine {
             ['Accuracy', `${accuracy}%`],
             ['Damage Taken', `${damageTaken}`],
             ['Player Level', `${this.player.level}`],
-            ['XP Gained', `${xpGained}`]
+            ['Score', `${this.currentScore}`]
         ];
 
         for (const [label, value] of statLines) {
@@ -443,15 +529,40 @@ class GameEngine {
             ctx.fillText(label, startX, y);
             ctx.fillStyle = '#FFFFFF';
             ctx.textAlign = 'right';
-            ctx.fillText(value, panelX + panelW - 30, y);
+            ctx.fillText(value, panelX + panelW - 20, y);
             y += lineH;
+        }
+
+        // High scores section
+        const scores = this.getHighScores();
+        if (scores.length > 0) {
+            y += 8;
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 14px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('TOP SCORES', w / 2, y);
+            y += 20;
+
+            ctx.font = '13px monospace';
+            for (let i = 0; i < Math.min(scores.length, 5); i++) {
+                const s = scores[i];
+                const isCurrentRun = s.score === this.currentScore && i === scores.findIndex(x => x.score === this.currentScore);
+                ctx.fillStyle = isCurrentRun ? '#FFD700' : '#AAAAAA';
+                ctx.textAlign = 'left';
+                ctx.fillText(`${i + 1}.`, startX, y);
+                ctx.fillText(`${s.score}`, startX + 25, y);
+                ctx.textAlign = 'right';
+                const diffLabel = s.difficulty ? s.difficulty.charAt(0).toUpperCase() + s.difficulty.slice(1) : '';
+                ctx.fillText(`${diffLabel}  ${s.accuracy}% acc`, panelX + panelW - 20, y);
+                y += 18;
+            }
         }
 
         // Play Again button
         const btnW = 200;
         const btnH = 45;
         const btnX = (w - btnW) / 2;
-        const btnY = panelY + panelH + 20;
+        const btnY = panelY + panelH + 15;
 
         ctx.fillStyle = '#CC3300';
         ctx.fillRect(btnX, btnY, btnW, btnH);
