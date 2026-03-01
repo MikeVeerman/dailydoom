@@ -149,6 +149,27 @@ class Pickup {
                 maxValue: 0,
                 sound: 'weapon',
                 message: 'Chaingun Acquired!'
+            },
+            mod_armor_piercing: {
+                value: 0,
+                color: '#FF2222',
+                maxValue: 0,
+                sound: 'powerup',
+                message: 'Armor-Piercing Rounds!'
+            },
+            mod_rapid_fire: {
+                value: 0,
+                color: '#22FF88',
+                maxValue: 0,
+                sound: 'powerup',
+                message: 'Rapid-Fire Mod!'
+            },
+            mod_extended_mag: {
+                value: 0,
+                color: '#2288FF',
+                maxValue: 0,
+                sound: 'powerup',
+                message: 'Extended Magazine!'
             }
         };
         
@@ -165,8 +186,8 @@ class Pickup {
         // Animate bobbing
         this.bobOffset += this.bobSpeed * deltaTime;
         
-        // Animate rotation for power-ups and weapon pickups
-        if (this.type.includes('boost') || this.type.startsWith('weapon_')) {
+        // Animate rotation for power-ups, weapon pickups, and mods
+        if (this.type.includes('boost') || this.type.startsWith('weapon_') || this.type.startsWith('mod_')) {
             this.rotation += this.rotationSpeed * deltaTime;
         }
         
@@ -276,6 +297,18 @@ class Pickup {
                 if (!player.weaponManager.isUnlocked(weaponName)) {
                     player.weaponManager.unlockWeapon(weaponName);
                     player.weaponManager.switchWeapon(weaponName);
+                    canCollect = true;
+                }
+                break;
+            }
+
+            case 'mod_armor_piercing':
+            case 'mod_rapid_fire':
+            case 'mod_extended_mag': {
+                const modName = this.type.replace('mod_', '');
+                const currentWeapon = player.weaponManager.getCurrentWeapon();
+                if (!currentWeapon.mods.includes(modName)) {
+                    currentWeapon.addMod(modName);
                     canCollect = true;
                 }
                 break;
@@ -526,6 +559,22 @@ class PickupManager {
         }
 
         return pickup;
+    }
+
+    // Spawn weapon mod pickups at strategic locations
+    spawnModPickups(map) {
+        const tileSize = map.tileSize;
+        const modLocations = [
+            { type: 'mod_armor_piercing', x: 14.5 * tileSize, y: 5.5  * tileSize }, // Near reactor entrance
+            { type: 'mod_rapid_fire',     x: 3.5  * tileSize, y: 18.5 * tileSize }, // Waste storage area
+            { type: 'mod_extended_mag',   x: 18.5 * tileSize, y: 18.5 * tileSize }  // Far corner storage
+        ];
+
+        for (const loc of modLocations) {
+            if (!map.isWallAtPosition(loc.x, loc.y)) {
+                this.addPickup(loc.x, loc.y, loc.type);
+            }
+        }
     }
 
     // Spawn random pickups around the map

@@ -210,7 +210,26 @@ class HUD {
         this.ctx.font = this.largeFont;
         this.ctx.textAlign = 'right';
         this.ctx.fillText(weaponInfo.weaponName, this.canvas.width - 20, y - 15);
-        
+
+        // Active mods display
+        if (weaponInfo.mods && weaponInfo.mods.length > 0) {
+            this.ctx.font = '10px monospace';
+            const modLabels = { armor_piercing: 'AP', rapid_fire: 'RF', extended_mag: 'EXT' };
+            const modColors = { armor_piercing: '#FF4444', rapid_fire: '#22FF88', extended_mag: '#4488FF' };
+            let modX = this.canvas.width - 20;
+            for (let i = weaponInfo.mods.length - 1; i >= 0; i--) {
+                const mod = weaponInfo.mods[i];
+                const label = modLabels[mod] || mod.toUpperCase();
+                const color = modColors[mod] || '#FFFFFF';
+                const tw = this.ctx.measureText(label).width + 8;
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                this.ctx.fillRect(modX - tw, y - 6, tw, 14);
+                this.ctx.fillStyle = color;
+                this.ctx.fillText(label, modX - 4, y + 5);
+                modX -= tw + 4;
+            }
+        }
+
         // Reload indicator
         if (weaponInfo.isReloading) {
             const progress = weaponInfo.reloadProgress;
