@@ -21,6 +21,9 @@ class Weapon {
         this.muzzleFlash = false;
         this.muzzleFlashDuration = 100; // ms
         this.muzzleFlashStart = 0;
+
+        // Weapon mods (upgrades)
+        this.mods = [];
     }
     
     getWeaponStats(type) {
@@ -80,7 +83,7 @@ class Weapon {
     canFire() {
         const now = Date.now();
         const timeSinceLastShot = now - this.lastFireTime;
-        let fireInterval = 1000 / this.fireRate;
+        let fireInterval = 1000 / this.getModdedFireRate();
 
         // Rapid fire power-up doubles fire rate
         if (window.game && window.game.player && window.game.player.hasRapidFire()) {
@@ -133,8 +136,8 @@ class Weapon {
             // Track hit
             if (player.stats) player.stats.shotsHit++;
 
-            // Calculate damage with accuracy
-            let actualDamage = this.damage;
+            // Calculate damage with accuracy (including mods)
+            let actualDamage = this.getModdedDamage();
             if (Math.random() > this.accuracy) {
                 actualDamage *= 0.3; // Partial damage on inaccurate shots
             }
@@ -383,6 +386,36 @@ class Weapon {
         return xpTable[enemy.type] || 20;
     }
 
+    addMod(modType) {
+        if (this.mods.includes(modType)) return false;
+        this.mods.push(modType);
+
+        // Apply permanent stat changes
+        if (modType === 'extended_mag') {
+            const bonus = Math.floor(this.getWeaponStats(this.type).maxAmmo * 0.5);
+            this.maxAmmo += bonus;
+        }
+
+        console.log(`Mod applied to ${this.type}: ${modType}`);
+        return true;
+    }
+
+    getModdedDamage() {
+        let dmg = this.damage;
+        if (this.mods.includes('armor_piercing')) {
+            dmg = Math.round(dmg * 1.25);
+        }
+        return dmg;
+    }
+
+    getModdedFireRate() {
+        let rate = this.fireRate;
+        if (this.mods.includes('rapid_fire')) {
+            rate *= 1.3;
+        }
+        return rate;
+    }
+
     getAmmoString() {
         return `${this.ammo}/${this.maxAmmo}`;
     }
@@ -458,7 +491,8 @@ class WeaponManager {
             ammo: weapon.getAmmoString(),
             isReloading: weapon.isReloading,
             reloadProgress: weapon.getReloadProgress(),
-            muzzleFlash: weapon.muzzleFlash
+            muzzleFlash: weapon.muzzleFlash,
+            mods: weapon.mods
         };
     }
 }

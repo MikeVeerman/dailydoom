@@ -89,6 +89,7 @@ class GameEngine {
         this.pickupManager = new PickupManager();
         this.pickupManager.spawnWeaponPickups(this.map);
         this.pickupManager.spawnRandomPickups(this.map, 6);
+        this.pickupManager.spawnModPickups(this.map);
         console.log('Pickup system initialized');
         
         // Bind debug toggle
@@ -193,6 +194,7 @@ class GameEngine {
         this.pickupManager = new PickupManager();
         this.pickupManager.spawnWeaponPickups(this.map);
         this.pickupManager.spawnRandomPickups(this.map, 6);
+        this.pickupManager.spawnModPickups(this.map);
         this.hud.resetFog();
         this.levelStartTime = performance.now();
         this.totalEnemyCount = this.map.enemies.length;
@@ -505,6 +507,7 @@ class GameEngine {
         this.pickupManager = new PickupManager();
         this.pickupManager.spawnWeaponPickups(this.map);
         this.pickupManager.spawnRandomPickups(this.map, 6);
+        this.pickupManager.spawnModPickups(this.map);
 
         // Re-apply difficulty
         if (window.CONFIG && window.CONFIG.difficulty) {
