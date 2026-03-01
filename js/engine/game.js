@@ -42,6 +42,18 @@ class GameEngine {
         this.STORAGE_KEY = 'dailydoom_highscores';
         this.currentScore = 0;
 
+        // Dynamic difficulty scaling
+        this.difficultyScaler = {
+            lastCheckTime: 0,
+            checkInterval: 30000, // 30 seconds
+            currentModifier: 0, // -15 to +15 (percentage)
+            maxModifier: 15,
+            stepSize: 5,
+            killsAtLastCheck: 0,
+            damageAtLastCheck: 0,
+            enabled: false // Set based on difficulty after game starts
+        };
+
         // Pause menu
         this.pauseMenuSelection = -1;
         this._pauseMenuItems = [];
@@ -138,6 +150,9 @@ class GameEngine {
         this.lastTime = performance.now();
         this.levelStartTime = performance.now();
         this.totalEnemyCount = this.map.enemies.length;
+
+        // Initialize dynamic difficulty scaling
+        this.initDifficultyScaler();
 
         // Start the game loop
         this.gameLoop();
@@ -295,6 +310,9 @@ class GameEngine {
             window.soundEngine.updateMusicState(this.player, this.map.enemies);
         }
 
+        // Dynamic difficulty scaling
+        this.updateDifficultyScaling();
+
         // Check level completion
         this.checkLevelComplete();
     }
@@ -383,6 +401,87 @@ class GameEngine {
         return scores.length > 0 ? scores[0] : null;
     }
 
+    // ========== DYNAMIC DIFFICULTY SCALING ==========
+
+    updateDifficultyScaling() {
+        const scaler = this.difficultyScaler;
+        if (!scaler.enabled) return;
+
+        const now = Date.now();
+        if (now - scaler.lastCheckTime < scaler.checkInterval) return;
+        scaler.lastCheckTime = now;
+
+        const stats = this.player.stats;
+        const healthPercent = this.player.health / this.player.maxHealth;
+
+        // Kill rate since last check
+        const killsSinceCheck = stats.enemiesKilled - scaler.killsAtLastCheck;
+        const damageSinceCheck = stats.damageTaken - scaler.damageAtLastCheck;
+        scaler.killsAtLastCheck = stats.enemiesKilled;
+        scaler.damageAtLastCheck = stats.damageTaken;
+
+        // Determine adjustment direction
+        let adjustment = 0;
+
+        // Player dominating: high health + high kill rate = make harder
+        if (healthPercent > 0.8 && killsSinceCheck >= 2) {
+            adjustment = scaler.stepSize;
+        }
+        // Player struggling: low health or high damage taken = make easier
+        else if (healthPercent < 0.3 || damageSinceCheck > 40) {
+            adjustment = -scaler.stepSize;
+        }
+
+        if (adjustment === 0) return;
+
+        // Clamp to max modifier range
+        const newModifier = Math.max(-scaler.maxModifier,
+            Math.min(scaler.maxModifier, scaler.currentModifier + adjustment));
+
+        if (newModifier === scaler.currentModifier) return;
+
+        scaler.currentModifier = newModifier;
+        this.applyDifficultyModifier(newModifier);
+
+        const direction = adjustment > 0 ? 'harder' : 'easier';
+        console.log(`Difficulty adjustment: enemies ${Math.abs(adjustment)}% ${direction} (total: ${newModifier > 0 ? '+' : ''}${newModifier}%)`);
+    }
+
+    applyDifficultyModifier(modifierPercent) {
+        const multiplier = 1 + modifierPercent / 100;
+
+        this.map.enemies.forEach(enemy => {
+            if (!enemy.active) return;
+
+            if (enemy.enhancedAI && enemy.enhancedAI.behavior) {
+                const baseBehavior = EnemyBehaviors[enemy.type];
+                if (baseBehavior) {
+                    enemy.enhancedAI.behavior.damage = Math.round(baseBehavior.damage * multiplier);
+                    enemy.enhancedAI.behavior.speed = Math.round(baseBehavior.speed * multiplier);
+                }
+            }
+
+            // Scale base enemy stats
+            const baseHealth = enemy.maxHealth;
+            enemy.speed = Math.round((enemy._baseSpeed || enemy.speed) * multiplier);
+            if (!enemy._baseSpeed) enemy._baseSpeed = enemy.speed;
+        });
+    }
+
+    initDifficultyScaler() {
+        const difficulty = window.CONFIG ? window.CONFIG.difficulty : 'normal';
+        // Only enable on Normal and Nightmare
+        this.difficultyScaler.enabled = difficulty !== 'easy';
+        this.difficultyScaler.lastCheckTime = Date.now();
+        this.difficultyScaler.currentModifier = 0;
+        this.difficultyScaler.killsAtLastCheck = 0;
+        this.difficultyScaler.damageAtLastCheck = 0;
+
+        if (this.difficultyScaler.enabled) {
+            console.log('Dynamic difficulty scaling enabled');
+        }
+    }
+
     restartLevel() {
         console.log('Restarting level...');
         this.levelComplete = false;
@@ -422,8 +521,11 @@ class GameEngine {
 
         this.totalEnemyCount = this.map.enemies.length;
         this.levelStartTime = performance.now();
+
+        // Reset dynamic difficulty
+        this.initDifficultyScaler();
     }
-    
+
     render() {
         // Apply screen shake offset
         const shake = this.hud.getScreenShakeOffset();
