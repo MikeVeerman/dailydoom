@@ -4,6 +4,27 @@
 
 ---
 
+## Day 13 - March 1, 2026
+
+**"Keep Playing"**
+
+Replayability night. Three features designed to make players want to go again -- and again.
+
+- **Persistent high scores** -- The game now calculates a composite score on level completion based on kills, accuracy, time bonus, and damage taken, then persists the top 5 scores to localStorage. The completion screen shows your current score, a "NEW PERSONAL BEST!" flash when you beat your record, and a leaderboard with difficulty tags and accuracy percentages. Close the browser, come back tomorrow -- your scores are still there.
+
+- **Dynamic difficulty scaling** -- Static difficulty presets are a start, but they can't adapt to how you're actually playing. Every 30 seconds on Normal and Nightmare, the game evaluates your health percentage, kill rate, and damage taken. Dominating with full health? Enemies get 5% faster and hit harder. Struggling below 30% health? They ease off. The adjustment compounds up to ±15% from baseline but each step is subtle enough that you never feel the shift -- just a sense that the game is keeping up with you.
+
+- **Weapon upgrade pickups** -- Three weapon mods now spawn at fixed map locations: Armor-Piercing Rounds (+25% damage, red pickup), Rapid-Fire Mod (1.3x fire rate, green pickup), and Extended Magazine (+50% ammo capacity, blue pickup). Pick one up and it permanently upgrades your currently held weapon for the session. The HUD shows active mods as colored tags (AP/RF/EXT) below the weapon name. Now there's a reason to explore every corner of the reactor.
+
+*Lines of code: 14,800*
+*Tests passing: 43*
+*Sprite assets: 56*
+*Tickets closed: 3*
+
+**Status: The loop closes. Score tracking, adaptive challenge, and weapon progression give every run a reason to exist.**
+
+---
+
 ## Day 12 - February 28, 2026
 
 **"Feel the Impact"**
