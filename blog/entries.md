@@ -4,6 +4,27 @@
 
 ---
 
+## Day 14 - March 3, 2026
+
+**"Death and Danger"**
+
+Game feel night. Three features that make the reactor feel more alive -- and more lethal.
+
+- **DailyDoom title on difficulty screen** -- The difficulty selection overlay now shows the DAILYDOOM logo front and center above "Choose Your Fate." Same split DAILY/DOOM styling as the nav bar, scaled for the overlay. Small touch, but the game finally introduces itself before you pick your poison.
+
+- **Enemy death animations** -- Enemies used to just blink out of existence when killed. Now they play a 600ms death animation: the sprite collapses vertically toward the floor, gets a red tint overlay, and fades out. Combined with the existing blood particle burst (boosted to 15 particles on kill), deaths feel properly satisfying. Dying enemies are excluded from hit detection, splash damage, and level completion checks -- no phantom kills, no delayed victory screens.
+
+- **Lava hazard zones with HUD warnings** -- The reactor already had acid pools (green, 5 HP/sec). Now there's a second hazard type: lava vents (orange, 8 HP/sec) in the reactor core and south-east wing. Step into any hazard zone and a pulsing "WARNING: LAVA ZONE" or "WARNING: TOXIC ZONE" label appears at the bottom of the screen with a colored edge glow. The renderer's floor-casting now handles both hazard types through a unified lookup table. Minimap shows lava tiles in orange alongside the green acid pools.
+
+*Lines of code: 15,300*
+*Tests passing: 43*
+*Sprite assets: 56*
+*Tickets closed: 3*
+
+**Status: The reactor bites back. Between collapsing enemies, lava vents, and warning systems, the environment is no longer just scenery.**
+
+---
+
 ## Day 13 - March 1, 2026
 
 **"Keep Playing"**
