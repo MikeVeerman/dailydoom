@@ -36,6 +36,11 @@ class Enemy {
         this.lastBarkTime = 0;
         this.barkCooldown = 2000; // Minimum 2s between barks
         this.hasPlayedAlert = false;
+
+        // Death animation
+        this.dying = false;
+        this.deathTime = 0;
+        this.deathDuration = 600; // ms for death animation
         
         // Enhanced AI system
         this.enhancedAI = null;
@@ -46,6 +51,14 @@ class Enemy {
     
     update(deltaTime, player, map, allEnemies) {
         if (!this.active) return;
+
+        // Handle death animation timer
+        if (this.dying) {
+            if (Date.now() - this.deathTime >= this.deathDuration) {
+                this.active = false;
+            }
+            return; // No AI updates while dying
+        }
 
         // Use enhanced AI if available
         if (this.enhancedAI) {
@@ -294,13 +307,20 @@ class Enemy {
             this.tryBark('pain');
         }
 
-        if (this.health <= 0) {
-            this.active = false;
+        if (this.health <= 0 && !this.dying) {
+            this.dying = true;
+            this.deathTime = Date.now();
+            this.state = 'dying';
             console.log(`${this.type} destroyed!`);
 
             // Play death sound
             if (window.soundEngine && window.soundEngine.isInitialized) {
                 window.soundEngine.playEnemyDeath();
+            }
+
+            // Emit death particle burst
+            if (window.game && window.game.hud) {
+                window.game.hud.emitBloodParticles(this.x, this.y, 15);
             }
 
             // 30% chance to drop an ammo crate

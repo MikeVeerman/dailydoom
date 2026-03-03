@@ -159,12 +159,12 @@ class Weapon {
             }
 
             actualDamage = Math.round(actualDamage);
-            const wasAlive = hit.enemy.active;
+            const wasAlive = !hit.enemy.dying;
             hit.enemy.takeDamage(actualDamage);
 
             // Track damage dealt and kills
             if (player.stats) player.stats.damageDealt += actualDamage;
-            if (wasAlive && !hit.enemy.active) {
+            if (wasAlive && (hit.enemy.dying || !hit.enemy.active)) {
                 if (player.stats) player.stats.enemiesKilled++;
                 // Grant XP based on enemy type
                 const xpReward = this.getKillXP(hit.enemy);
@@ -182,7 +182,7 @@ class Weapon {
             // Trigger enemy hit flash and blood particles
             hit.enemy.hitFlashTime = Date.now();
             if (window.game && window.game.hud) {
-                window.game.hud.emitBloodParticles(hit.enemy.x, hit.enemy.y, wasAlive && !hit.enemy.active ? 12 : 5);
+                window.game.hud.emitBloodParticles(hit.enemy.x, hit.enemy.y, wasAlive && hit.enemy.dying ? 12 : 5);
             }
 
             // Show floating damage number
@@ -222,7 +222,7 @@ class Weapon {
 
             // Damage all enemies in splash radius
             map.enemies.forEach(enemy => {
-                if (!enemy.active) return;
+                if (!enemy.active || enemy.dying) return;
                 if (enemy === hit.enemy) return; // Already took direct hit
                 const dx = enemy.x - hit.hitPoint.x;
                 const dy = enemy.y - hit.hitPoint.y;
@@ -289,7 +289,7 @@ class Weapon {
             
             // Check for enemy collisions
             map.enemies.forEach(enemy => {
-                if (!enemy.active) return;
+                if (!enemy.active || enemy.dying) return;
                 
                 const enemyDistance = Math.sqrt(
                     (enemy.x - currentX) * (enemy.x - currentX) +
