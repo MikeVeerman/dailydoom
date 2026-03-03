@@ -49,6 +49,7 @@ class GameMap {
         this.doors = []; // Interactive doors
         this.barrels = []; // Exploding barrels
         this.acidTiles = new Set(); // Floor tiles that deal acid damage
+        this.lavaTiles = new Set(); // Floor tiles that deal lava/fire damage
 
         // Door system
         this.initializeDoors();
@@ -113,6 +114,14 @@ class GameMap {
         // Cooling tunnel leak
         this.addAcidTile(2, 11);
         this.addAcidTile(4, 14);
+
+        // Lava vents — orange-tinted floor tiles that deal 8 HP/sec
+        // Reactor Core center vents
+        this.addLavaTile(12, 12);
+        this.addLavaTile(11, 11);
+        // South-east wing heat vents
+        this.addLavaTile(20, 19);
+        this.addLavaTile(21, 20);
 
         // Exploding barrels — shoot to detonate (60 dmg, 100 unit radius)
         // Main corridor
@@ -283,6 +292,24 @@ class GameMap {
         const mapX = Math.floor(worldX / this.tileSize);
         const mapY = Math.floor(worldY / this.tileSize);
         return this.isAcidTile(mapX, mapY);
+    }
+
+    addLavaTile(mapX, mapY) {
+        this.lavaTiles.add(mapX + ',' + mapY);
+    }
+
+    isLavaTile(mapX, mapY) {
+        return this.lavaTiles.has(mapX + ',' + mapY);
+    }
+
+    isLavaAtPosition(worldX, worldY) {
+        const mapX = Math.floor(worldX / this.tileSize);
+        const mapY = Math.floor(worldY / this.tileSize);
+        return this.isLavaTile(mapX, mapY);
+    }
+
+    isHazardAtPosition(worldX, worldY) {
+        return this.isAcidAtPosition(worldX, worldY) || this.isLavaAtPosition(worldX, worldY);
     }
 
     addBarrel(x, y) {
