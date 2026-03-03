@@ -241,6 +241,22 @@ a:hover {
     display: none;
 }
 
+.difficulty-overlay .game-logo {
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: 4px;
+    margin-bottom: 12px;
+}
+
+.difficulty-overlay .game-logo .logo-daily {
+    color: #aaa;
+}
+
+.difficulty-overlay .game-logo .logo-doom {
+    color: #ff6b6b;
+    text-shadow: 0 0 30px rgba(255, 107, 107, 0.5);
+}
+
 .difficulty-title {
     font-size: 1.8rem;
     color: #ff6b6b;
@@ -879,6 +895,10 @@ a:hover {
     .difficulty-btn {
         width: 100%;
         max-width: 280px;
+    }
+
+    .difficulty-overlay .game-logo {
+        font-size: 2rem;
     }
 
     .difficulty-title {
