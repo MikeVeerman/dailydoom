@@ -692,8 +692,8 @@ class Renderer {
     }
     
     renderSprites(player) {
-        // Get all active enemies
-        const activeEnemies = this.map.enemies.filter(enemy => enemy.active);
+        // Get all active enemies (including dying ones for death animation)
+        const activeEnemies = this.map.enemies.filter(enemy => enemy.active || enemy.dying);
         
         // Get all active pickups (if pickup manager exists)
         const activePickups = window.game && window.game.pickupManager ? 
@@ -871,19 +871,42 @@ class Renderer {
             const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
             const floorY = this.halfHeight + wallScreenHeight / 2;
 
+            // Death animation: fade out + collapse to floor
+            let deathProgress = 0;
+            if (entity.dying && entity.deathTime) {
+                deathProgress = Math.min(1, (Date.now() - entity.deathTime) / (entity.deathDuration || 600));
+            }
+
+            // Apply death animation transforms
+            const deathAlpha = entity.dying ? 1 - deathProgress * 0.8 : 1;
+            const deathScaleY = entity.dying ? 1 - deathProgress * 0.7 : 1;
+            const adjustedHeight = spriteSize * deathScaleY;
+
             // Draw the sprite with bottom aligned to floor, pixel-art crisp
             const spriteX = screenX - spriteSize / 2;
-            const spriteY = floorY - spriteSize;
+            const spriteY = floorY - adjustedHeight;
             const prevSmoothing = this.ctx.imageSmoothingEnabled;
             this.ctx.imageSmoothingEnabled = false;
-            this.ctx.drawImage(sprite, spriteX, spriteY, spriteSize, spriteSize);
+            this.ctx.globalAlpha = deathAlpha;
+
+            // Red tint during death
+            if (entity.dying) {
+                this.ctx.drawImage(sprite, spriteX, spriteY, spriteSize, adjustedHeight);
+                this.ctx.globalAlpha = deathAlpha * 0.5;
+                this.ctx.fillStyle = '#FF0000';
+                this.ctx.fillRect(spriteX, spriteY, spriteSize, adjustedHeight);
+            } else {
+                this.ctx.drawImage(sprite, spriteX, spriteY, spriteSize, adjustedHeight);
+            }
+
+            this.ctx.globalAlpha = 1.0;
             this.ctx.imageSmoothingEnabled = prevSmoothing;
 
             // Hit flash overlay (red tint for 150ms after being hit)
-            if (entity.hitFlashTime && Date.now() - entity.hitFlashTime < 150) {
+            if (!entity.dying && entity.hitFlashTime && Date.now() - entity.hitFlashTime < 150) {
                 this.ctx.globalAlpha = 0.4;
                 this.ctx.fillStyle = '#FF0000';
-                this.ctx.fillRect(spriteX, spriteY, spriteSize, spriteSize);
+                this.ctx.fillRect(spriteX, spriteY, spriteSize, adjustedHeight);
                 this.ctx.globalAlpha = 1.0;
             }
         } else if (entityType === 'pickup') {

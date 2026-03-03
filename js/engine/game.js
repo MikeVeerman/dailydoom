@@ -298,7 +298,7 @@ class GameEngine {
             }
         }
         this.map.enemies.forEach(enemy => {
-            if (!enemy.active) return;
+            if (!enemy.active || enemy.dying) return;
             if (this.map.isAcidAtPosition(enemy.x, enemy.y)) {
                 if (!enemy._lastAcidTick || Date.now() - enemy._lastAcidTick > 500) {
                     enemy.takeDamage(2.5);
@@ -322,7 +322,7 @@ class GameEngine {
     checkLevelComplete() {
         if (this.levelComplete) return;
 
-        const activeEnemies = this.map.enemies.filter(e => e.active);
+        const activeEnemies = this.map.enemies.filter(e => e.active && !e.dying);
         if (activeEnemies.length === 0 && this.totalEnemyCount > 0) {
             this.levelComplete = true;
             this.levelCompleteTime = performance.now();
