@@ -59,6 +59,10 @@ class HUD {
         this.revealedTiles = new Set();
         this.fogRevealRadius = 4; // tiles
 
+        // Hazard zone warning
+        this.inHazardZone = false;
+        this.hazardType = null; // 'acid' or 'lava'
+
         // Load weapon sprite images (from FPS Starter Kit, CC0)
         this.weaponImages = {};
         this.loadWeaponImages();
@@ -145,6 +149,9 @@ class HUD {
 
             // Render damage flash effect
             this.renderDamageFlash(player);
+
+            // Render hazard zone warning
+            this.renderHazardWarning();
 
             this.ctx.restore();
         } catch (error) {
@@ -675,6 +682,35 @@ class HUD {
         }
     }
     
+    renderHazardWarning() {
+        if (!this.inHazardZone) return;
+
+        const now = Date.now();
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const pulse = 0.15 + 0.1 * Math.sin(now * 0.008);
+
+        // Screen edge tint (green for acid, orange for lava)
+        const color = this.hazardType === 'lava' ? '255, 100, 0' : '0, 200, 0';
+        const edgeSize = 40;
+
+        // Bottom edge warning glow
+        const grad = this.ctx.createLinearGradient(0, h, 0, h - edgeSize);
+        grad.addColorStop(0, `rgba(${color}, ${pulse})`);
+        grad.addColorStop(1, `rgba(${color}, 0)`);
+        this.ctx.fillStyle = grad;
+        this.ctx.fillRect(0, h - edgeSize, w, edgeSize);
+
+        // Warning text
+        const label = this.hazardType === 'lava' ? 'LAVA' : 'TOXIC';
+        this.ctx.font = 'bold 14px monospace';
+        this.ctx.textAlign = 'center';
+        const textAlpha = 0.6 + 0.4 * Math.sin(now * 0.006);
+        this.ctx.fillStyle = `rgba(${color}, ${textAlpha})`;
+        this.ctx.fillText(`WARNING: ${label} ZONE`, w / 2, h - 52);
+        this.ctx.textAlign = 'left';
+    }
+
     renderDamageIndicators(player) {
         const now = Date.now();
         const w = this.canvas.width;
@@ -1162,6 +1198,21 @@ class HUD {
                 this.ctx.fillRect(
                     mapX + ax * cellW,
                     mapY + ay * cellH,
+                    Math.ceil(cellW),
+                    Math.ceil(cellH)
+                );
+            }
+        }
+
+        // Draw lava tiles (only in revealed areas)
+        if (map.lavaTiles) {
+            this.ctx.fillStyle = 'rgba(255, 100, 0, 0.4)';
+            for (const key of map.lavaTiles) {
+                const [lx, ly] = key.split(',').map(Number);
+                if (!this.isTileRevealed(lx, ly)) continue;
+                this.ctx.fillRect(
+                    mapX + lx * cellW,
+                    mapY + ly * cellH,
                     Math.ceil(cellW),
                     Math.ceil(cellH)
                 );

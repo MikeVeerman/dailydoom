@@ -289,13 +289,27 @@ class GameEngine {
         // Update doors (proximity-based opening + animation)
         this.map.updateDoors(this.player.x, this.player.y, deltaTime);
 
-        // Acid pool damage (5 HP/sec for player and enemies)
-        if (this.map.isAcidAtPosition(this.player.x, this.player.y)) {
+        // Hazard zone damage (acid: 5 HP/sec, lava: 8 HP/sec)
+        const inAcid = this.map.isAcidAtPosition(this.player.x, this.player.y);
+        const inLava = this.map.isLavaAtPosition(this.player.x, this.player.y);
+        if (inAcid) {
             if (!this._lastAcidTick || Date.now() - this._lastAcidTick > 500) {
                 this.player.takeDamage(2.5); // 2.5 per tick = 5/sec
                 if (this.hud) this.hud.onPlayerDamage();
                 this._lastAcidTick = Date.now();
             }
+        }
+        if (inLava) {
+            if (!this._lastLavaTick || Date.now() - this._lastLavaTick > 500) {
+                this.player.takeDamage(4); // 4 per tick = 8/sec
+                if (this.hud) this.hud.onPlayerDamage();
+                this._lastLavaTick = Date.now();
+            }
+        }
+        // Update HUD hazard warning
+        if (this.hud) {
+            this.hud.inHazardZone = inAcid || inLava;
+            this.hud.hazardType = inLava ? 'lava' : (inAcid ? 'acid' : null);
         }
         this.map.enemies.forEach(enemy => {
             if (!enemy.active || enemy.dying) return;

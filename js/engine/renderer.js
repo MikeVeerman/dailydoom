@@ -61,10 +61,12 @@ class Renderer {
     }
     
     buildAcidLookup() {
+        // Hazard lookup: 0=none, 1=acid, 2=lava
         this._acidLookup = [];
         for (let y = 0; y < this.map.height; y++) {
             this._acidLookup[y] = new Uint8Array(this.map.width);
         }
+        this._acidTileCount = 0;
         if (this.map.acidTiles) {
             for (const key of this.map.acidTiles) {
                 const [x, y] = key.split(',').map(Number);
@@ -72,9 +74,16 @@ class Renderer {
                     this._acidLookup[y][x] = 1;
                 }
             }
-            this._acidTileCount = this.map.acidTiles.size;
-        } else {
-            this._acidTileCount = 0;
+            this._acidTileCount += this.map.acidTiles.size;
+        }
+        if (this.map.lavaTiles) {
+            for (const key of this.map.lavaTiles) {
+                const [x, y] = key.split(',').map(Number);
+                if (y >= 0 && y < this.map.height && x >= 0 && x < this.map.width) {
+                    this._acidLookup[y][x] = 2;
+                }
+            }
+            this._acidTileCount += this.map.lavaTiles.size;
         }
     }
 
@@ -85,12 +94,27 @@ class Renderer {
         return false;
     }
 
+    isLavaTile(mapX, mapY) {
+        if (mapY >= 0 && mapY < this.map.height && mapX >= 0 && mapX < this.map.width) {
+            return this._acidLookup[mapY][mapX] === 2;
+        }
+        return false;
+    }
+
+    isHazardTile(mapX, mapY) {
+        if (mapY >= 0 && mapY < this.map.height && mapX >= 0 && mapX < this.map.width) {
+            return this._acidLookup[mapY][mapX] > 0;
+        }
+        return false;
+    }
+
     render(player) {
         // Clear screen
         this.clearScreen();
 
-        // Build acid tile lookup (once, or when tiles change)
-        if (!this._acidLookup || (this.map.acidTiles && this.map.acidTiles.size !== this._acidTileCount)) {
+        // Build hazard tile lookup (once, or when tiles change)
+        const totalHazardCount = (this.map.acidTiles ? this.map.acidTiles.size : 0) + (this.map.lavaTiles ? this.map.lavaTiles.size : 0);
+        if (!this._acidLookup || totalHazardCount !== this._acidTileCount) {
             this.buildAcidLookup();
         }
 
@@ -261,13 +285,21 @@ class Renderer {
                 const floorWorldY = player.y + actualDist * sinAngle;
                 const mapX = Math.floor(floorWorldX / this.wallHeight);
                 const mapY = Math.floor(floorWorldY / this.wallHeight);
-                if (this.isAcidTile(mapX, mapY)) {
+                const hazardType = this._acidLookup[mapY] && this._acidLookup[mapY][mapX];
+                if (hazardType > 0) {
                     const shade = Math.max(0.3, 1 - (rowDist / this.maxRenderDistance));
                     const pulse = 0.85 + 0.15 * Math.sin(this._acidTime + mapX * 3.7 + mapY * 5.3);
                     const s = shade * pulse;
-                    const r = Math.floor(15 * s);
-                    const g = Math.floor(180 * s);
-                    const b = Math.floor(10 * s);
+                    let r, g, b;
+                    if (hazardType === 2) { // Lava: orange
+                        r = Math.floor(220 * s);
+                        g = Math.floor(80 * s);
+                        b = Math.floor(10 * s);
+                    } else { // Acid: green
+                        r = Math.floor(15 * s);
+                        g = Math.floor(180 * s);
+                        b = Math.floor(10 * s);
+                    }
                     this.setPixel(x, y, 0xFF000000 | (b << 16) | (g << 8) | r);
                 } else {
                     this.setPixel(x, y, baseFloorColor);
@@ -279,7 +311,7 @@ class Renderer {
             }
         }
     }
-    
+
     renderFloorCeiling(x, player, rayAngle) {
         for (let y = 0; y < this.halfHeight; y++) {
             this.setPixel(x, y, this.hexToRgb(this.ceilingColor));
@@ -297,13 +329,21 @@ class Renderer {
                 const floorWorldY = player.y + actualDist * sinAngle;
                 const mapX = Math.floor(floorWorldX / this.wallHeight);
                 const mapY = Math.floor(floorWorldY / this.wallHeight);
-                if (this.isAcidTile(mapX, mapY)) {
+                const hazardType = this._acidLookup[mapY] && this._acidLookup[mapY][mapX];
+                if (hazardType > 0) {
                     const shade = Math.max(0.3, 1 - (rowDist / this.maxRenderDistance));
                     const pulse = 0.85 + 0.15 * Math.sin(this._acidTime + mapX * 3.7 + mapY * 5.3);
                     const s = shade * pulse;
-                    const r = Math.floor(15 * s);
-                    const g = Math.floor(180 * s);
-                    const b = Math.floor(10 * s);
+                    let r, g, b;
+                    if (hazardType === 2) { // Lava: orange
+                        r = Math.floor(220 * s);
+                        g = Math.floor(80 * s);
+                        b = Math.floor(10 * s);
+                    } else { // Acid: green
+                        r = Math.floor(15 * s);
+                        g = Math.floor(180 * s);
+                        b = Math.floor(10 * s);
+                    }
                     this.setPixel(x, y, 0xFF000000 | (b << 16) | (g << 8) | r);
                 } else {
                     this.setPixel(x, y, baseFloorColor);
