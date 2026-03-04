@@ -48,6 +48,7 @@ class GameMap {
         this.enemies = []; // Enemy spawn points
         this.doors = []; // Interactive doors
         this.barrels = []; // Exploding barrels
+        this.crates = []; // Destructible crates with item drops
         this.acidTiles = new Set(); // Floor tiles that deal acid damage
         this.lavaTiles = new Set(); // Floor tiles that deal lava/fire damage
 
@@ -135,6 +136,24 @@ class GameMap {
         this.addBarrel(5.5 * this.tileSize, 16.5 * this.tileSize);
         // Near boss room
         this.addBarrel(17.5 * this.tileSize, 20.5 * this.tileSize);
+
+        // Destructible crates — shoot to break, drops random item
+        // Control room area
+        this.addCrate(5.5 * this.tileSize, 6.5 * this.tileSize);
+        // North corridor
+        this.addCrate(14.5 * this.tileSize, 1.5 * this.tileSize);
+        // Near cooling tunnels
+        this.addCrate(4.5 * this.tileSize, 11.5 * this.tileSize);
+        // Reactor area entrance
+        this.addCrate(8.5 * this.tileSize, 10.5 * this.tileSize);
+        // South corridor
+        this.addCrate(10.5 * this.tileSize, 16.5 * this.tileSize);
+        // Containment wing
+        this.addCrate(20.5 * this.tileSize, 4.5 * this.tileSize);
+        // Waste storage
+        this.addCrate(3.5 * this.tileSize, 21.5 * this.tileSize);
+        // South-east wing
+        this.addCrate(20.5 * this.tileSize, 21.5 * this.tileSize);
     }
 
     initializeDoors() {
@@ -377,6 +396,42 @@ class GameMap {
                 setTimeout(() => this.explodeBarrel(other), 150);
             }
         });
+    }
+
+    addCrate(x, y) {
+        this.crates.push({
+            x, y,
+            health: 40,
+            maxHealth: 40,
+            active: true,
+            radius: 16
+        });
+    }
+
+    destroyCrate(crate) {
+        if (!crate.active) return;
+        crate.active = false;
+
+        // Particle burst
+        if (window.game && window.game.hud) {
+            window.game.hud.emitExplosionParticles(crate.x, crate.y, 8);
+        }
+
+        // Play crate break sound
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playCrateBreak();
+        }
+
+        // Drop a random pickup
+        if (window.game && window.game.pickupManager) {
+            const dropTypes = ['health', 'ammo_pistol', 'ammo_shotgun', 'ammo_rifle', 'ammo_rocket', 'armor'];
+            const dropType = dropTypes[Math.floor(Math.random() * dropTypes.length)];
+            window.game.pickupManager.addPickup(crate.x, crate.y, dropType);
+
+            if (window.game.hud && window.game.hud.addKillFeedMessage) {
+                window.game.hud.addKillFeedMessage('Crate destroyed!', '#C8A030');
+            }
+        }
     }
 
     // Check if a coordinate contains a wall (for entity collision)

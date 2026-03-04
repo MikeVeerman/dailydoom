@@ -201,7 +201,15 @@ class Weapon {
             }
         }
 
-        if (!hit.enemy && !hit.barrel && hit.hitWall) {
+        // Crate hit — damage crate, destroy and drop item if broken
+        if (hit.crate && hit.crate.active) {
+            hit.crate.health -= this.damage;
+            if (hit.crate.health <= 0) {
+                map.destroyCrate(hit.crate);
+            }
+        }
+
+        if (!hit.enemy && !hit.barrel && !hit.crate && hit.hitWall) {
             // Wall impact effect
             if (window.game && window.game.hud) {
                 window.game.hud.addImpactSpark(hit.hitPoint.x, hit.hitPoint.y);
@@ -329,9 +337,33 @@ class Weapon {
             }
         }
 
+        // Check for crate collisions
+        let closestCrate = null;
+        let closestCrateDistance = this.range;
+        if (map.crates) {
+            let cCheckX = rayX, cCheckY = rayY, cDist = 0;
+            const cStepSize = 2;
+            while (cDist < this.range) {
+                cCheckX += rayDirX * cStepSize;
+                cCheckY += rayDirY * cStepSize;
+                cDist += cStepSize;
+                if (map.isWallAtPosition(cCheckX, cCheckY)) break;
+                for (const crate of map.crates) {
+                    if (!crate.active) continue;
+                    const cdx = crate.x - cCheckX;
+                    const cdy = crate.y - cCheckY;
+                    if (Math.sqrt(cdx * cdx + cdy * cdy) < crate.radius && cDist < closestCrateDistance) {
+                        closestCrate = crate;
+                        closestCrateDistance = cDist;
+                    }
+                }
+            }
+        }
+
         return {
             enemy: closestEnemy,
             barrel: closestBarrel,
+            crate: closestCrate,
             distance: closestDistance,
             hitPoint: { x: currentX, y: currentY },
             hitWall: !closestEnemy && map.isWallAtPosition(currentX, currentY)
