@@ -329,9 +329,10 @@ class GameEngine {
             }
         });
 
-        // Update adaptive music
+        // Update adaptive music and ambient audio
         if (window.soundEngine && window.soundEngine.isInitialized) {
             window.soundEngine.updateMusicState(this.player, this.map.enemies);
+            window.soundEngine.updateAmbientAudio(this.player.x, this.player.y);
         }
 
         // Dynamic difficulty scaling

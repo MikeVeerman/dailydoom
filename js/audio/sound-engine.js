@@ -581,6 +581,208 @@ class SoundEngine {
         return !this.musicMuted;
     }
 
+    // ========== AMBIENT ENVIRONMENTAL AUDIO ==========
+
+    ambientZone = null;
+    ambientNodes = null;
+
+    /**
+     * Determine which ambient zone the player is in based on tile position.
+     * Returns: 'control', 'reactor', 'waste', 'cooling', 'corridor'
+     */
+    getAmbientZone(playerX, playerY) {
+        const tileSize = 64;
+        const tx = Math.floor(playerX / tileSize);
+        const ty = Math.floor(playerY / tileSize);
+
+        // Control Room: cols 3-6, rows 3-7
+        if (tx >= 3 && tx <= 6 && ty >= 3 && ty <= 7) return 'control';
+        // Reactor Core: cols 9-15, rows 10-15
+        if (tx >= 9 && tx <= 15 && ty >= 10 && ty <= 15) return 'reactor';
+        // Waste Storage: cols 1-6, rows 18-22
+        if (tx >= 1 && tx <= 6 && ty >= 18 && ty <= 22) return 'waste';
+        // Cooling Tunnels: cols 1-6 or 18-22, rows 10-15
+        if (((tx >= 1 && tx <= 6) || (tx >= 18 && tx <= 22)) && ty >= 10 && ty <= 15) return 'cooling';
+        // Default: corridor
+        return 'corridor';
+    }
+
+    /**
+     * Update ambient sounds based on player position. Called from game loop.
+     */
+    updateAmbientAudio(playerX, playerY) {
+        if (!this.isInitialized || this.musicMuted) return;
+
+        const zone = this.getAmbientZone(playerX, playerY);
+        if (zone === this.ambientZone) return; // No change
+
+        // Fade out old ambient
+        this.stopAmbientZoneAudio();
+
+        this.ambientZone = zone;
+        this.startAmbientZoneAudio(zone);
+    }
+
+    stopAmbientZoneAudio() {
+        if (!this.ambientNodes) return;
+        const now = this.audioContext.currentTime;
+        // Fade out over 0.5s then stop
+        if (this.ambientNodes.gain) {
+            this.ambientNodes.gain.gain.linearRampToValueAtTime(0, now + 0.5);
+        }
+        const nodes = this.ambientNodes;
+        setTimeout(() => {
+            if (nodes.sources) {
+                nodes.sources.forEach(s => { try { s.stop(); } catch(e) {} });
+            }
+        }, 600);
+        this.ambientNodes = null;
+    }
+
+    startAmbientZoneAudio(zone) {
+        const now = this.audioContext.currentTime;
+        const gainNode = this.audioContext.createGain();
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(this.musicVolume * 0.15, now + 0.5);
+        gainNode.connect(this.masterGain);
+
+        const sources = [];
+
+        switch (zone) {
+            case 'control': {
+                // Electrical buzz - high-frequency oscillation
+                const buzz = this.audioContext.createOscillator();
+                buzz.type = 'sawtooth';
+                buzz.frequency.setValueAtTime(120, now);
+                const buzzFilter = this.audioContext.createBiquadFilter();
+                buzzFilter.type = 'bandpass';
+                buzzFilter.frequency.setValueAtTime(180, now);
+                buzzFilter.Q.setValueAtTime(8, now);
+                buzz.connect(buzzFilter);
+                buzzFilter.connect(gainNode);
+                buzz.start(now);
+                sources.push(buzz);
+
+                // Subtle hum undertone
+                const hum = this.audioContext.createOscillator();
+                hum.type = 'sine';
+                hum.frequency.setValueAtTime(60, now);
+                const humGain = this.audioContext.createGain();
+                humGain.gain.setValueAtTime(0.3, now);
+                hum.connect(humGain);
+                humGain.connect(gainNode);
+                hum.start(now);
+                sources.push(hum);
+                break;
+            }
+            case 'reactor': {
+                // Deep machinery hum - low rumble
+                const rumble = this.audioContext.createOscillator();
+                rumble.type = 'sawtooth';
+                rumble.frequency.setValueAtTime(40, now);
+                const rumbleFilter = this.audioContext.createBiquadFilter();
+                rumbleFilter.type = 'lowpass';
+                rumbleFilter.frequency.setValueAtTime(80, now);
+                rumble.connect(rumbleFilter);
+                rumbleFilter.connect(gainNode);
+                rumble.start(now);
+                sources.push(rumble);
+
+                // Pulsing overtone
+                const pulse = this.audioContext.createOscillator();
+                pulse.type = 'sine';
+                pulse.frequency.setValueAtTime(80, now);
+                const lfo = this.audioContext.createOscillator();
+                lfo.type = 'sine';
+                lfo.frequency.setValueAtTime(0.5, now);
+                const lfoGain = this.audioContext.createGain();
+                lfoGain.gain.setValueAtTime(0.4, now);
+                lfo.connect(lfoGain);
+                lfoGain.connect(pulse.frequency);
+                pulse.connect(gainNode);
+                pulse.start(now);
+                lfo.start(now);
+                sources.push(pulse, lfo);
+                break;
+            }
+            case 'waste': {
+                // Dripping water - periodic noise bursts
+                this._startDripLoop(gainNode, sources);
+                break;
+            }
+            case 'cooling': {
+                // Wind/airflow - filtered noise
+                const noiseBuffer = this.createNoiseBuffer(4);
+                if (noiseBuffer) {
+                    const noise = this.audioContext.createBufferSource();
+                    noise.buffer = noiseBuffer;
+                    noise.loop = true;
+                    const windFilter = this.audioContext.createBiquadFilter();
+                    windFilter.type = 'bandpass';
+                    windFilter.frequency.setValueAtTime(400, now);
+                    windFilter.Q.setValueAtTime(1.5, now);
+                    // Slowly modulate filter for wind variation
+                    const windLfo = this.audioContext.createOscillator();
+                    windLfo.type = 'sine';
+                    windLfo.frequency.setValueAtTime(0.15, now);
+                    const windLfoGain = this.audioContext.createGain();
+                    windLfoGain.gain.setValueAtTime(200, now);
+                    windLfo.connect(windLfoGain);
+                    windLfoGain.connect(windFilter.frequency);
+                    noise.connect(windFilter);
+                    windFilter.connect(gainNode);
+                    noise.start(now);
+                    windLfo.start(now);
+                    sources.push(noise, windLfo);
+                }
+                break;
+            }
+            case 'corridor':
+            default: {
+                // Quiet low hum - distant machinery
+                const distHum = this.audioContext.createOscillator();
+                distHum.type = 'sine';
+                distHum.frequency.setValueAtTime(50, now);
+                const distFilter = this.audioContext.createBiquadFilter();
+                distFilter.type = 'lowpass';
+                distFilter.frequency.setValueAtTime(100, now);
+                distHum.connect(distFilter);
+                distFilter.connect(gainNode);
+                distHum.start(now);
+                sources.push(distHum);
+                break;
+            }
+        }
+
+        this.ambientNodes = { gain: gainNode, sources: sources };
+    }
+
+    _startDripLoop(gainNode, sources) {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Create a repeating drip using scheduled oscillators
+        const dripInterval = 1.2; // seconds between drips
+        const numDrips = 20; // enough for ~24 seconds
+
+        for (let i = 0; i < numDrips; i++) {
+            const t = now + i * dripInterval + Math.random() * 0.4;
+            const osc = this.audioContext.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1200 + Math.random() * 400, t);
+            osc.frequency.exponentialRampToValueAtTime(600, t + 0.06);
+            const dripGain = this.audioContext.createGain();
+            dripGain.gain.setValueAtTime(0, t);
+            dripGain.gain.linearRampToValueAtTime(0.6, t + 0.005);
+            dripGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+            osc.connect(dripGain);
+            dripGain.connect(gainNode);
+            osc.start(t);
+            osc.stop(t + 0.1);
+            sources.push(osc);
+        }
+    }
+
     // Melee punch sound
     playPunch() {
         if (!this.isInitialized) return;
