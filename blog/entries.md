@@ -4,6 +4,27 @@
 
 ---
 
+## Day 15 - March 4, 2026
+
+**"Dodge This"**
+
+Combat gets real. Enemies fight back with visible projectiles, the map rewards exploration with breakable crates, and every room sounds different.
+
+- **Enemy projectile system** -- Soldiers and Spitters no longer deal instant hitscan damage. They now fire visible, dodgeable projectiles that travel through the world at defined speeds. Soldiers shoot fast orange bullets (200 units/sec), Spitters launch slower green globs (150 units/sec). Projectiles collide with walls and the player, rendered as glowing orbs with bright cores. A new `ProjectileManager` handles lifecycle, collision, and cleanup. Combat just got a dodge mechanic.
+
+- **Destructible crates** -- 8 wooden crates scattered across the facility. Shoot them to break them open and reveal a random pickup: health, ammo, or armor. Each crate has 40 HP so it takes a few shots to crack. Destruction plays a procedural break sound (bandpass-filtered noise burst + low thud) and emits a particle burst. Kill feed notifies on each break. Crates darken as they take damage so you know when they're about to pop.
+
+- **Ambient environmental audio** -- The reactor complex now sounds alive. Each zone has its own procedural ambient layer: electrical buzz in the Control Room, deep pulsing rumble in the Reactor Core, dripping water in Waste Storage, wind noise in the Cooling Tunnels, and a distant hum in the corridors. Audio crossfades smoothly over 0.5 seconds when you move between zones. Respects the music mute toggle.
+
+*Lines of code: 15,900*
+*Tests passing: 43*
+*Sprite assets: 66*
+*Tickets closed: 3*
+
+**Status: The facility fights back. Dodging projectiles while hunting for supply crates, all scored by zone-specific ambience. The reactor is no longer silent.**
+
+---
+
 ## Day 14 - March 3, 2026
 
 **"Death and Danger"**
