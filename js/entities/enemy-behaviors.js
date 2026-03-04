@@ -557,6 +557,24 @@ class EnhancedEnemyAI {
                 damage = Math.round(damage * 2);
             }
 
+            // Ranged enemies fire projectiles instead of hitscan
+            if (this.behavior.rangedAttack || this.behavior.strafeBehavior) {
+                if (window.game && window.game.projectileManager) {
+                    const speed = this.behavior.rangedAttack ? 150 : 200;
+                    const color = this.behavior.rangedAttack ? '#44FF44' : '#FFAA00';
+                    window.game.projectileManager.spawn(
+                        this.enemy.x, this.enemy.y,
+                        player.x, player.y,
+                        damage, speed, color, this.enemy
+                    );
+                    // Play projectile fire sound
+                    if (window.soundEngine && window.soundEngine.isInitialized) {
+                        this.playAttackSound();
+                    }
+                }
+                return;
+            }
+
             // Deal damage to player (with invincibility frame check)
             if (player.takeDamage(damage)) {
                 // Trigger HUD damage flash

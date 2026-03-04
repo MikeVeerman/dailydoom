@@ -834,9 +834,34 @@ class Renderer {
             });
         }
 
+        // Add projectiles to rendering queue
+        if (window.game && window.game.projectileManager) {
+            window.game.projectileManager.getActiveProjectiles().forEach(proj => {
+                const dx = proj.x - player.x;
+                const dy = proj.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > this.maxRenderDistance) return;
+
+                let projAngle = Math.atan2(dy, dx);
+                let angleDiff = projAngle - player.angle;
+                while (angleDiff > Math.PI) angleDiff -= MathUtils.PI2;
+                while (angleDiff < -Math.PI) angleDiff += MathUtils.PI2;
+                if (Math.abs(angleDiff) > this.fov / 2) return;
+
+                spritesToRender.push({
+                    entity: proj,
+                    entityType: 'projectile',
+                    distance: distance,
+                    angleDiff: angleDiff,
+                    x: proj.x,
+                    y: proj.y
+                });
+            });
+        }
+
         // Sort sprites by distance (furthest first)
         spritesToRender.sort((a, b) => b.distance - a.distance);
-        
+
         // Render each sprite
         spritesToRender.forEach(spriteData => {
             this.renderSprite(spriteData, player);
@@ -974,6 +999,24 @@ class Renderer {
                 this.ctx.lineWidth = 2;
                 this.ctx.stroke();
             }
+        } else if (entityType === 'projectile') {
+            const size = Math.max(4, (this.wallHeight * this.projectionDistance) / distance * 0.08);
+            const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
+            const floorY = this.halfHeight + wallScreenHeight / 2;
+            // Center projectile vertically at half-wall height
+            const projY = this.halfHeight;
+
+            // Glowing projectile circle
+            this.ctx.fillStyle = entity.color || '#FF4400';
+            this.ctx.beginPath();
+            this.ctx.arc(screenX, projY, size, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Bright core
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.beginPath();
+            this.ctx.arc(screenX, projY, size * 0.4, 0, Math.PI * 2);
+            this.ctx.fill();
         } else if (entityType === 'barrel') {
             const size = (this.wallHeight * this.projectionDistance) / distance * 0.35;
             const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
