@@ -834,6 +834,33 @@ class Renderer {
             });
         }
 
+        // Add crates to rendering queue
+        if (this.map.crates) {
+            this.map.crates.forEach(crate => {
+                if (!crate.active) return;
+                const dx = crate.x - player.x;
+                const dy = crate.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > this.maxRenderDistance) return;
+
+                let crateAngle = Math.atan2(dy, dx);
+                let angleDiff = crateAngle - player.angle;
+                while (angleDiff > Math.PI) angleDiff -= MathUtils.PI2;
+                while (angleDiff < -Math.PI) angleDiff += MathUtils.PI2;
+                if (Math.abs(angleDiff) > this.fov / 2) return;
+                if (this.isOccludedByWall(player.x, player.y, crate.x, crate.y)) return;
+
+                spritesToRender.push({
+                    entity: crate,
+                    entityType: 'crate',
+                    distance: distance,
+                    angleDiff: angleDiff,
+                    x: crate.x,
+                    y: crate.y
+                });
+            });
+        }
+
         // Add projectiles to rendering queue
         if (window.game && window.game.projectileManager) {
             window.game.projectileManager.getActiveProjectiles().forEach(proj => {
@@ -998,6 +1025,45 @@ class Renderer {
                 this.ctx.strokeStyle = '#FFFFFF';
                 this.ctx.lineWidth = 2;
                 this.ctx.stroke();
+            }
+        } else if (entityType === 'crate') {
+            const size = (this.wallHeight * this.projectionDistance) / distance * 0.35;
+            const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
+            const floorY = this.halfHeight + wallScreenHeight / 2;
+            const crateX = screenX - size / 2;
+            const crateY = floorY - size;
+
+            // Wooden crate body
+            this.ctx.fillStyle = '#8B6914';
+            this.ctx.fillRect(crateX, crateY, size, size);
+
+            // Darker planks
+            this.ctx.fillStyle = '#6B4F10';
+            this.ctx.fillRect(crateX, crateY + size * 0.48, size, size * 0.04);
+            this.ctx.fillRect(crateX + size * 0.48, crateY, size * 0.04, size);
+
+            // Cross bracing
+            this.ctx.strokeStyle = '#5A3E0D';
+            this.ctx.lineWidth = Math.max(1, size * 0.03);
+            this.ctx.beginPath();
+            this.ctx.moveTo(crateX + size * 0.1, crateY + size * 0.1);
+            this.ctx.lineTo(crateX + size * 0.9, crateY + size * 0.9);
+            this.ctx.moveTo(crateX + size * 0.9, crateY + size * 0.1);
+            this.ctx.lineTo(crateX + size * 0.1, crateY + size * 0.9);
+            this.ctx.stroke();
+
+            // Border
+            this.ctx.strokeStyle = '#4A2E08';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(crateX, crateY, size, size);
+
+            // Health indicator (darken as damaged)
+            const healthPct = entity.health / entity.maxHealth;
+            if (healthPct < 1) {
+                this.ctx.globalAlpha = (1 - healthPct) * 0.4;
+                this.ctx.fillStyle = '#000000';
+                this.ctx.fillRect(crateX, crateY, size, size);
+                this.ctx.globalAlpha = 1.0;
             }
         } else if (entityType === 'projectile') {
             const size = Math.max(4, (this.wallHeight * this.projectionDistance) / distance * 0.08);

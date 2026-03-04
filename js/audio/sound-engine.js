@@ -828,6 +828,45 @@ class SoundEngine {
     }
 
     // Barrel explosion
+    playCrateBreak() {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Short cracking/breaking noise
+        const noiseBuffer = this.createNoiseBuffer(0.15);
+        if (noiseBuffer) {
+            const noise = this.audioContext.createBufferSource();
+            noise.buffer = noiseBuffer;
+            const noiseGain = this.audioContext.createGain();
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(800, now);
+            filter.Q.setValueAtTime(2, now);
+            noise.connect(filter);
+            filter.connect(noiseGain);
+            noiseGain.connect(this.masterGain);
+            noiseGain.gain.setValueAtTime(0, now);
+            noiseGain.gain.linearRampToValueAtTime(this.sfxVolume * 0.4, now + 0.01);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            noise.start(now);
+            noise.stop(now + 0.15);
+        }
+
+        // Low thud
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.start(now);
+        osc.stop(now + 0.12);
+    }
+
     playExplosion() {
         if (!this.isInitialized) return;
         const now = this.audioContext.currentTime;
