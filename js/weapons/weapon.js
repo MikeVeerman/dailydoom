@@ -385,6 +385,226 @@ class Weapon {
         };
     }
     
+    getAltFireStats() {
+        const altStats = {
+            pistol: { ammoCost: 3, damageMultiplier: 3, fireRateMultiplier: 0.5, label: 'CHARGED' },
+            shotgun: { ammoCost: 2, damageMultiplier: 1.5, accuracy: 0.98, range: 500, label: 'SLUG' },
+            rifle: { ammoCost: 3, burstCount: 3, burstDelay: 50, label: 'BURST' },
+            rocket: { ammoCost: 1, airBurstDist: 200, label: 'AIRBURST' },
+            chaingun: { ammoCost: 2, fireRateMultiplier: 2.0, label: 'OVERDRIVE' }
+        };
+        return altStats[this.type] || null;
+    }
+
+    canAltFire() {
+        const altStats = this.getAltFireStats();
+        if (!altStats) return false;
+        const now = Date.now();
+        const fireInterval = 1000 / (this.getModdedFireRate() * (altStats.fireRateMultiplier || 1));
+        return !this.isReloading &&
+               this.ammo >= (altStats.ammoCost || 1) &&
+               (now - this.lastFireTime) >= fireInterval;
+    }
+
+    altFire(player, enemies, map) {
+        if (!this.canAltFire()) return false;
+
+        const altStats = this.getAltFireStats();
+        const now = Date.now();
+        this.lastFireTime = now;
+        this.ammo -= altStats.ammoCost;
+
+        // Muzzle flash
+        this.muzzleFlash = true;
+        this.muzzleFlashStart = now;
+
+        // Play weapon sound
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playWeaponFire(this.type);
+        }
+
+        if (player.stats) player.stats.shotsFired++;
+
+        // Screen shake + recoil
+        if (window.game && window.game.hud) {
+            const muzzleX = player.x + Math.cos(player.angle) * 20;
+            const muzzleY = player.y + Math.sin(player.angle) * 20;
+            window.game.hud.emitMuzzleParticles(muzzleX, muzzleY, player.angle);
+            window.game.hud.triggerScreenShake(5);
+            window.game.hud.triggerWeaponRecoil(10);
+        }
+
+        // Rifle burst — fire multiple rapid shots
+        if (this.type === 'rifle') {
+            this.fireBurst(player, enemies, map, altStats);
+            return true;
+        }
+
+        // Perform raycast with possible overrides
+        const savedAccuracy = this.accuracy;
+        const savedRange = this.range;
+        if (altStats.accuracy) this.accuracy = altStats.accuracy;
+        if (altStats.range) this.range = altStats.range;
+
+        const hit = this.performRaycast(player, map);
+
+        this.accuracy = savedAccuracy;
+        this.range = savedRange;
+
+        // Rocket air burst — explode at fixed distance
+        if (this.type === 'rocket' && altStats.airBurstDist) {
+            const burstX = player.x + Math.cos(player.angle) * altStats.airBurstDist;
+            const burstY = player.y + Math.sin(player.angle) * altStats.airBurstDist;
+            const splashRadius = this.getWeaponStats('rocket').splashRadius || 80;
+            const splashDamage = this.damage * 0.6;
+
+            if (window.game && window.game.hud) {
+                window.game.hud.emitExplosionParticles(burstX, burstY, 15);
+                window.game.hud.triggerScreenShake(12);
+            }
+
+            map.enemies.forEach(enemy => {
+                if (!enemy.active || enemy.dying) return;
+                const dx = enemy.x - burstX;
+                const dy = enemy.y - burstY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < splashRadius) {
+                    const falloff = 1 - (dist / splashRadius);
+                    const dmg = Math.round(splashDamage * falloff);
+                    enemy.takeDamage(dmg);
+                    if (window.game && window.game.hud) {
+                        window.game.hud.addDamageNumber(enemy.x, enemy.y, dmg, false);
+                    }
+                }
+            });
+
+            // Self damage
+            const playerDist = Math.sqrt((player.x - burstX) ** 2 + (player.y - burstY) ** 2);
+            if (playerDist < splashRadius) {
+                const selfDmg = Math.round(splashDamage * (1 - playerDist / splashRadius) * 0.5);
+                if (selfDmg > 0) player.takeDamage(selfDmg);
+            }
+
+            if (this.ammo === 0) this.startReload();
+            return true;
+        }
+
+        // Standard alt-fire hit processing (pistol charged, shotgun slug, chaingun overdrive)
+        if (hit.enemy) {
+            if (player.stats) player.stats.shotsHit++;
+            let actualDamage = this.getModdedDamage() * (altStats.damageMultiplier || 1);
+            let isCritical = Math.random() < 0.1;
+            if (isCritical) actualDamage *= 2;
+            if (player.hasDamageBoost && player.hasDamageBoost()) actualDamage *= 1.5;
+            if (player.levelBonuses) actualDamage *= player.levelBonuses.damageMultiplier;
+            actualDamage = Math.round(actualDamage);
+
+            const wasAlive = !hit.enemy.dying;
+            hit.enemy.takeDamage(actualDamage);
+
+            if (player.stats) player.stats.damageDealt += actualDamage;
+            if (wasAlive && (hit.enemy.dying || !hit.enemy.active)) {
+                if (player.stats) player.stats.enemiesKilled++;
+                const xpReward = this.getKillXP(hit.enemy);
+                if (player.addXP) player.addXP(xpReward);
+                if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
+                    const typeName = (hit.enemy.type || 'enemy').charAt(0).toUpperCase() + (hit.enemy.type || 'enemy').slice(1);
+                    window.game.hud.addKillFeedMessage(`ALT! Killed ${typeName} +${xpReward} XP`, '#00CCFF');
+                }
+            }
+
+            hit.enemy.hitFlashTime = Date.now();
+            if (window.game && window.game.hud) {
+                window.game.hud.emitBloodParticles(hit.enemy.x, hit.enemy.y, wasAlive && hit.enemy.dying ? 12 : 5);
+                window.game.hud.addDamageNumber(hit.enemy.x, hit.enemy.y, actualDamage, isCritical);
+            }
+        }
+
+        if (hit.barrel && hit.barrel.active) {
+            hit.barrel.health -= this.damage * (altStats.damageMultiplier || 1);
+            if (hit.barrel.health <= 0) map.explodeBarrel(hit.barrel);
+        }
+
+        if (hit.crate && hit.crate.active) {
+            hit.crate.health -= this.damage * (altStats.damageMultiplier || 1);
+            if (hit.crate.health <= 0) map.destroyCrate(hit.crate);
+        }
+
+        if (hit.secretWall) {
+            map.damageSecretWall(hit.secretWall.mapX, hit.secretWall.mapY, this.damage * (altStats.damageMultiplier || 1));
+        }
+
+        if (!hit.enemy && !hit.barrel && !hit.crate && hit.hitWall) {
+            if (window.game && window.game.hud) {
+                window.game.hud.addImpactSpark(hit.hitPoint.x, hit.hitPoint.y);
+            }
+        }
+
+        if (this.ammo === 0) this.startReload();
+        return true;
+    }
+
+    fireBurst(player, enemies, map, altStats) {
+        const burstCount = altStats.burstCount || 3;
+        const burstDelay = altStats.burstDelay || 50;
+
+        // Fire first shot immediately
+        const hit = this.performRaycast(player, map);
+        this.processAltHit(hit, player, map, 1.0);
+
+        // Schedule remaining burst shots
+        for (let i = 1; i < burstCount; i++) {
+            setTimeout(() => {
+                if (window.soundEngine && window.soundEngine.isInitialized) {
+                    window.soundEngine.playWeaponFire(this.type);
+                }
+                if (window.game && window.game.hud) {
+                    window.game.hud.triggerScreenShake(2);
+                    window.game.hud.triggerWeaponRecoil(5);
+                }
+                const burstHit = this.performRaycast(player, map);
+                this.processAltHit(burstHit, player, map, 1.0);
+            }, burstDelay * i);
+        }
+    }
+
+    processAltHit(hit, player, map, damageMultiplier) {
+        if (hit.enemy) {
+            if (player.stats) player.stats.shotsHit++;
+            let actualDamage = this.getModdedDamage() * damageMultiplier;
+            let isCritical = Math.random() < 0.1;
+            if (isCritical) actualDamage *= 2;
+            if (player.hasDamageBoost && player.hasDamageBoost()) actualDamage *= 1.5;
+            if (player.levelBonuses) actualDamage *= player.levelBonuses.damageMultiplier;
+            actualDamage = Math.round(actualDamage);
+
+            const wasAlive = !hit.enemy.dying;
+            hit.enemy.takeDamage(actualDamage);
+            if (player.stats) player.stats.damageDealt += actualDamage;
+            if (wasAlive && (hit.enemy.dying || !hit.enemy.active)) {
+                if (player.stats) player.stats.enemiesKilled++;
+                const xpReward = this.getKillXP(hit.enemy);
+                if (player.addXP) player.addXP(xpReward);
+            }
+            hit.enemy.hitFlashTime = Date.now();
+            if (window.game && window.game.hud) {
+                window.game.hud.emitBloodParticles(hit.enemy.x, hit.enemy.y, 5);
+                window.game.hud.addDamageNumber(hit.enemy.x, hit.enemy.y, actualDamage, isCritical);
+            }
+        }
+        if (hit.barrel && hit.barrel.active) {
+            hit.barrel.health -= this.damage;
+            if (hit.barrel.health <= 0) map.explodeBarrel(hit.barrel);
+        }
+        if (hit.crate && hit.crate.active) {
+            hit.crate.health -= this.damage;
+            if (hit.crate.health <= 0) map.destroyCrate(hit.crate);
+        }
+        if (hit.secretWall) {
+            map.damageSecretWall(hit.secretWall.mapX, hit.secretWall.mapY, this.damage);
+        }
+    }
+
     startReload() {
         if (this.isReloading || this.ammo === this.getWeaponStats(this.type).ammo) {
             return false; // Already reloading or full
@@ -521,7 +741,11 @@ class WeaponManager {
     fire(player, enemies, map) {
         return this.getCurrentWeapon().fire(player, enemies, map);
     }
-    
+
+    altFire(player, enemies, map) {
+        return this.getCurrentWeapon().altFire(player, enemies, map);
+    }
+
     reload() {
         return this.getCurrentWeapon().startReload();
     }
@@ -533,13 +757,16 @@ class WeaponManager {
     
     getHUDInfo() {
         const weapon = this.getCurrentWeapon();
+        const altStats = weapon.getAltFireStats();
         return {
             weaponName: weapon.type.toUpperCase(),
             ammo: weapon.getAmmoString(),
             isReloading: weapon.isReloading,
             reloadProgress: weapon.getReloadProgress(),
             muzzleFlash: weapon.muzzleFlash,
-            mods: weapon.mods
+            mods: weapon.mods,
+            altFireLabel: altStats ? altStats.label : null,
+            canAltFire: weapon.canAltFire()
         };
     }
 }

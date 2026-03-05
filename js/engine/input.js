@@ -319,6 +319,10 @@ class InputManager {
     isDashing() {
         return this.isKeyPressed('dash');
     }
+
+    isAltFiring() {
+        return this.mouse.rightButton;
+    }
     
     // Debug
     getDebugInfo() {
