@@ -133,6 +133,9 @@ class HUD {
                 this.renderSecretsCounter(gameEngine.map);
             }
 
+            // Render dash cooldown indicator
+            this.renderDashIndicator(player);
+
             // Render kill feed
             this.renderKillFeed();
 
@@ -956,6 +959,32 @@ class HUD {
         const kills = player.stats ? player.stats.enemiesKilled : 0;
         this.ctx.fillStyle = '#FF8888';
         this.ctx.fillText(`K:${kills}`, x + barWidth - 30, y + 10);
+    }
+
+    renderDashIndicator(player) {
+        if (!player.getDashCooldownProgress) return;
+
+        const progress = player.getDashCooldownProgress();
+        const cx = this.canvas.width / 2;
+        const cy = this.canvas.height / 2 + 25;
+        const radius = 8;
+
+        // Only show when on cooldown or dashing
+        if (progress >= 1 && !player.isDashing) return;
+
+        // Cooldown arc
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+        this.ctx.strokeStyle = player.isDashing ? '#00FFFF' : 'rgba(0, 255, 255, 0.6)';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+
+        // Background circle
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
     }
 
     renderSecretsCounter(map) {

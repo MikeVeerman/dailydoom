@@ -41,7 +41,7 @@ class InputManager {
             'ArrowRight': 'turnRight',
             
             // Actions
-            'Space': 'jump',
+            'Space': 'dash',
             'ShiftLeft': 'run',
             'ShiftRight': 'run',
             'ControlLeft': 'crouch',
@@ -314,6 +314,10 @@ class InputManager {
 
     isPunching() {
         return this.isKeyPressed('punch');
+    }
+
+    isDashing() {
+        return this.isKeyPressed('dash');
     }
     
     // Debug

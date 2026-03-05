@@ -70,6 +70,17 @@ class Player {
         this.punchComboWindow = 500; // ms to chain combo
         this.punchComboMultiplier = 1.5;
 
+        // Dash ability
+        this.dashSpeed = 800;
+        this.dashDuration = 200; // ms
+        this.dashCooldown = 2000; // ms
+        this.dashInvulnDuration = 100; // ms of invulnerability
+        this.lastDashTime = 0;
+        this.isDashing = false;
+        this.dashStartTime = 0;
+        this.dashDirX = 0;
+        this.dashDirY = 0;
+
         // Power-up effects
         this.speedBoostEndTime = 0;
         this.damageBoostEndTime = 0;
@@ -211,6 +222,11 @@ class Player {
             }
         }
 
+        // Dash
+        if (inputManager.isDashing()) {
+            this.startDash(inputManager);
+        }
+
         // Reload
         if (inputManager.isKeyPressed('reload')) {
             this.reload();
@@ -229,18 +245,21 @@ class Player {
         // Track survival time
         this.stats.timeSurvived += deltaTime;
 
+        // Update dash movement (overrides normal movement while active)
+        this.updateDash(deltaTime, map);
+
         // Apply movement with collision detection
         this.updatePosition(deltaTime, map);
-        
+
         // Check for item collection
         this.checkItemCollection(map);
-        
+
         // Update weapon system
         this.weaponManager.update();
-        
+
         // Update power-up effects
         this.updatePowerupEffects();
-        
+
         // Update other systems
         this.updatePhysics(deltaTime);
     }
@@ -505,6 +524,86 @@ class Player {
         }
     }
 
+    startDash(inputManager) {
+        const now = Date.now();
+        if (this.isDashing || now - this.lastDashTime < this.dashCooldown) return;
+
+        // Determine dash direction from movement input (forward if none)
+        const movement = inputManager.getMovementVector();
+        if (movement.x !== 0 || movement.y !== 0) {
+            // Dash in movement direction
+            const forwardX = Math.cos(this.angle) * movement.y;
+            const forwardY = Math.sin(this.angle) * movement.y;
+            const strafeAngle = this.angle + MathUtils.HALF_PI;
+            const strafeX = Math.cos(strafeAngle) * movement.x;
+            const strafeY = Math.sin(strafeAngle) * movement.x;
+            const dx = forwardX + strafeX;
+            const dy = forwardY + strafeY;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            this.dashDirX = dx / len;
+            this.dashDirY = dy / len;
+        } else {
+            // Dash forward
+            this.dashDirX = Math.cos(this.angle);
+            this.dashDirY = Math.sin(this.angle);
+        }
+
+        this.isDashing = true;
+        this.dashStartTime = now;
+        this.lastDashTime = now;
+
+        // Sound
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playDash();
+        }
+
+        // Screen shake
+        if (window.game && window.game.hud) {
+            window.game.hud.triggerScreenShake(3);
+        }
+    }
+
+    updateDash(deltaTime, map) {
+        if (!this.isDashing) return;
+
+        const now = Date.now();
+        const elapsed = now - this.dashStartTime;
+
+        if (elapsed >= this.dashDuration) {
+            this.isDashing = false;
+            return;
+        }
+
+        // Move at dash speed
+        const moveX = this.dashDirX * this.dashSpeed * deltaTime;
+        const moveY = this.dashDirY * this.dashSpeed * deltaTime;
+
+        // Apply with collision
+        const newX = this.x + moveX;
+        if (!this.checkCollision(newX, this.y, map)) {
+            this.x = newX;
+        } else {
+            this.isDashing = false; // Stop dash on wall collision
+        }
+
+        const newY = this.y + moveY;
+        if (!this.checkCollision(this.x, newY, map)) {
+            this.y = newY;
+        } else {
+            this.isDashing = false;
+        }
+    }
+
+    canDash() {
+        return !this.isDashing && (Date.now() - this.lastDashTime >= this.dashCooldown);
+    }
+
+    getDashCooldownProgress() {
+        if (this.canDash()) return 1;
+        const elapsed = Date.now() - this.lastDashTime;
+        return Math.min(elapsed / this.dashCooldown, 1);
+    }
+
     reload() {
         const success = this.weaponManager.reload();
         if (success) {
@@ -524,6 +623,9 @@ class Player {
     takeDamage(damage) {
         // Invulnerability power-up check
         if (this.hasInvulnerability()) return false;
+
+        // Dash invulnerability (first 100ms of dash)
+        if (this.isDashing && (Date.now() - this.dashStartTime) < this.dashInvulnDuration) return false;
 
         // Invincibility frame check (500ms after last hit)
         const now = Date.now();
