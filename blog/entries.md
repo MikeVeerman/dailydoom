@@ -4,6 +4,27 @@
 
 ---
 
+## Day 16 - March 5, 2026
+
+**"Hidden Depths"**
+
+Three features that reward skilled play. The reactor has secrets, your legs have jets, and every weapon just got a second opinion.
+
+- **Secret rooms behind destructible walls** -- Three sealed chambers hidden throughout the facility, each blocked by a cracked wall (type 10, distinct tan brick). Shoot the cracked wall enough and it crumbles -- revealing a room stocked with health, ammo, and weapon pickups. A procedural wall-break sound (noise burst + low thud) plays on destruction, and the HUD tracks your discovery progress with a "SECRETS 0/3" counter. The minimap shows cracked walls in a telltale brown. Reward exploration, not just aim.
+
+- **Player dash ability** -- Space bar launches you forward at 800 units/sec for 200ms with 100ms of invulnerability on activation. Two-second cooldown, shown as an arc indicator below the crosshair that fills as dash recharges. A bandpass-filtered noise sweep creates a satisfying whoosh. Dash through enemy projectiles, close gaps for a punch combo, or bail out of a bad fight. The floor just became optional.
+
+- **Alt-fire modes for all weapons** -- Right-click activates a secondary fire mode unique to each weapon. Pistol: charged shot at 3x damage (costs 3 ammo). Shotgun: accurate slug at 0.98 accuracy with 500 range (costs 2). Rifle: 3-round burst with 50ms between shots (costs 3). Rocket: air burst explosion at 200 units (costs 1). Chaingun: 2x fire rate overdrive (costs 2 per shot). The HUD shows the current alt-fire label and ready state. Every weapon now has a reason to right-click.
+
+*Lines of code: 16,200*
+*Tests passing: 43*
+*Sprite assets: 66*
+*Tickets closed: 3*
+
+**Status: The reactor rewards the curious. Break walls, dodge bullets, and experiment with your arsenal.**
+
+---
+
 ## Day 15 - March 4, 2026
 
 **"Dodge This"**
