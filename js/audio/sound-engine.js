@@ -1069,6 +1069,32 @@ class SoundEngine {
         osc.stop(now + 0.12);
     }
 
+    playDash() {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Quick whoosh: filtered noise sweep
+        const noiseBuffer = this.createNoiseBuffer(0.25);
+        if (noiseBuffer) {
+            const noise = this.audioContext.createBufferSource();
+            noise.buffer = noiseBuffer;
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(2000, now);
+            filter.frequency.exponentialRampToValueAtTime(400, now + 0.2);
+            filter.Q.setValueAtTime(1, now);
+            const gain = this.audioContext.createGain();
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.35, now + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            noise.start(now);
+            noise.stop(now + 0.25);
+        }
+    }
+
     playWallBreak() {
         if (!this.isInitialized) return;
         const now = this.audioContext.currentTime;
