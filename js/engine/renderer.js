@@ -44,7 +44,8 @@ class Renderer {
             6: '#00FFFF', // Cyan wall
             7: '#FFFFFF', // White wall
             8: '#888888', // Gray wall
-            9: '#8B4513'  // Door (brown/wood)
+            9: '#8B4513', // Door (brown/wood)
+            10: '#AA7733' // Cracked destructible wall
         };
         
         // Performance optimization
@@ -727,7 +728,8 @@ class Renderer {
             6: 'stone',    // Purple areas (fallback to stone)
             7: 'metal',    // Other areas
             8: 'brick',    // Fallback
-            9: 'tech'      // Doors
+            9: 'tech',     // Doors
+            10: 'brick'    // Cracked destructible walls
         };
     }
     

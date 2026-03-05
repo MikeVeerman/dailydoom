@@ -128,6 +128,11 @@ class HUD {
                 this.renderMinimap(player, gameEngine);
             }
 
+            // Render secrets counter
+            if (gameEngine && gameEngine.map && gameEngine.map.totalSecrets > 0) {
+                this.renderSecretsCounter(gameEngine.map);
+            }
+
             // Render kill feed
             this.renderKillFeed();
 
@@ -953,6 +958,21 @@ class HUD {
         this.ctx.fillText(`K:${kills}`, x + barWidth - 30, y + 10);
     }
 
+    renderSecretsCounter(map) {
+        const x = 20;
+        const y = this.canvas.height - 25;
+
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        this.ctx.fillRect(x - 2, y - 12, 100, 18);
+
+        const found = map.secretsFound;
+        const total = map.totalSecrets;
+        this.ctx.fillStyle = found === total ? '#FFD700' : '#AAAAAA';
+        this.ctx.font = this.smallFont;
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText(`SECRETS: ${found}/${total}`, x, y);
+    }
+
     // Kill feed system
     addKillFeedMessage(text, color = '#FF4444') {
         this.killFeed.unshift({
@@ -1177,6 +1197,7 @@ class HUD {
                         case 5: this.ctx.fillStyle = '#888866'; break;
                         case 6: this.ctx.fillStyle = '#666644'; break;
                         case 9: this.ctx.fillStyle = '#886600'; break;
+                        case 10: this.ctx.fillStyle = '#AA7733'; break;
                         default: this.ctx.fillStyle = '#444444'; break;
                     }
                     this.ctx.fillRect(

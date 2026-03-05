@@ -1069,6 +1069,45 @@ class SoundEngine {
         osc.stop(now + 0.12);
     }
 
+    playWallBreak() {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Heavy crumbling noise (longer and deeper than crate)
+        const noiseBuffer = this.createNoiseBuffer(0.4);
+        if (noiseBuffer) {
+            const noise = this.audioContext.createBufferSource();
+            noise.buffer = noiseBuffer;
+            const noiseGain = this.audioContext.createGain();
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(600, now);
+            filter.frequency.exponentialRampToValueAtTime(200, now + 0.3);
+            noise.connect(filter);
+            filter.connect(noiseGain);
+            noiseGain.connect(this.masterGain);
+            noiseGain.gain.setValueAtTime(0, now);
+            noiseGain.gain.linearRampToValueAtTime(this.sfxVolume * 0.6, now + 0.02);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            noise.start(now);
+            noise.stop(now + 0.4);
+        }
+
+        // Deep impact thud
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(80, now);
+        osc.frequency.exponentialRampToValueAtTime(25, now + 0.25);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.5, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+    }
+
     playExplosion() {
         if (!this.isInitialized) return;
         const now = this.audioContext.currentTime;
