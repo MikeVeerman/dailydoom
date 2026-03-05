@@ -209,6 +209,11 @@ class Weapon {
             }
         }
 
+        // Secret wall hit — damage destructible wall
+        if (hit.secretWall) {
+            map.damageSecretWall(hit.secretWall.mapX, hit.secretWall.mapY, this.damage);
+        }
+
         if (!hit.enemy && !hit.barrel && !hit.crate && hit.hitWall) {
             // Wall impact effect
             if (window.game && window.game.hud) {
@@ -360,10 +365,20 @@ class Weapon {
             }
         }
 
+        // Check if the ray hit a secret wall (destructible wall type 10)
+        let hitSecretWall = null;
+        if (map.isWallAtPosition(currentX, currentY)) {
+            const wallMapX = Math.floor(currentX / map.tileSize);
+            const wallMapY = Math.floor(currentY / map.tileSize);
+            const sw = map.getSecretWallAt(wallMapX, wallMapY);
+            if (sw) hitSecretWall = sw;
+        }
+
         return {
             enemy: closestEnemy,
             barrel: closestBarrel,
             crate: closestCrate,
+            secretWall: hitSecretWall,
             distance: closestDistance,
             hitPoint: { x: currentX, y: currentY },
             hitWall: !closestEnemy && map.isWallAtPosition(currentX, currentY)

@@ -14,12 +14,13 @@ class GameMap {
         this.spawnAngle = 0;
 
         // Wall types: 1=stone(outer), 2=brick(containment), 3=metal(cooling),
-        // 4=tech(control room), 5=marble(reactor core), 6=stone(waste storage)
+        // 4=tech(control room), 5=marble(reactor core), 6=stone(waste storage),
+        // 10=cracked(destructible secret wall)
         this.grid = [
         //   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1], // 0  outer wall
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 1  north corridor
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 2  north corridor
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,1], // 1  north corridor (secret at 16,1)
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,1], // 2  cracked wall at (16,2)
             [1,0,0,4,4,4,4,0,0,1,1,1,0,1,1,0,0,0,2,2,2,2,0,1], // 3  control room top / containment top
             [1,0,0,4,0,0,4,0,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,1], // 4  control room interior
             [1,0,0,4,0,0,4,4,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,1], // 5  control room (wall at col 7)
@@ -33,8 +34,8 @@ class GameMap {
             [1,0,0,3,0,0,3,0,0,5,0,0,0,0,0,5,0,0,3,0,0,0,3,1], // 13 cooling / reactor interior
             [1,0,0,3,0,0,3,0,0,5,0,0,0,0,0,5,0,0,3,0,0,0,3,1], // 14 cooling / reactor interior
             [1,3,3,3,0,3,3,0,0,5,5,5,0,5,5,5,0,0,3,3,0,3,3,1], // 15 cooling tunnels / reactor bottom
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 16 south corridor
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 17 south corridor
+            [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1], // 16 south corridor (secrets at 1,16 and 22,16)
+            [1,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,1], // 17 cracked walls at (1,17) and (22,17)
             [1,6,6,6,6,6,6,0,0,1,1,1,0,1,1,1,0,0,1,1,1,1,1,1], // 18 waste storage top / south rooms
             [1,6,0,0,0,0,6,0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,1], // 19 waste storage
             [1,6,0,0,0,0,6,0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,1], // 20 waste storage
@@ -51,12 +52,18 @@ class GameMap {
         this.crates = []; // Destructible crates with item drops
         this.acidTiles = new Set(); // Floor tiles that deal acid damage
         this.lavaTiles = new Set(); // Floor tiles that deal lava/fire damage
+        this.secretWalls = []; // Destructible secret walls
+        this.secretsFound = 0;
+        this.totalSecrets = 0;
 
         // Door system
         this.initializeDoors();
 
         // Initialize additional map elements
         this.initializeMapElements();
+
+        // Initialize secret rooms
+        this.initializeSecretRooms();
         
         console.log('Map initialized:', this.width + 'x' + this.height);
     }
@@ -432,6 +439,106 @@ class GameMap {
                 window.game.hud.addKillFeedMessage('Crate destroyed!', '#C8A030');
             }
         }
+    }
+
+    // --- Secret Room methods ---
+
+    initializeSecretRooms() {
+        // Secret 1: North corridor — room at (16,1), cracked wall at (16,2)
+        this.addSecretWall(16, 2, 16, 1);
+        // Secret 2: SW south corridor — room at (1,16), cracked wall at (1,17)
+        this.addSecretWall(1, 17, 1, 16);
+        // Secret 3: SE south corridor — room at (22,16), cracked wall at (22,17)
+        this.addSecretWall(22, 17, 22, 16);
+
+        console.log(`Secret rooms initialized: ${this.totalSecrets} secrets`);
+    }
+
+    addSecretWall(mapX, mapY, roomX, roomY) {
+        this.secretWalls.push({
+            mapX, mapY,
+            roomX, roomY,
+            health: 80,
+            maxHealth: 80,
+            active: true
+        });
+        this.totalSecrets++;
+
+        // Place bonus pickups in the secret room
+        if (window.game && window.game.pickupManager) {
+            window.game.pickupManager.addPickup(
+                (roomX + 0.5) * this.tileSize,
+                (roomY + 0.5) * this.tileSize,
+                'health_large'
+            );
+        } else {
+            // Defer pickup placement until pickup manager exists
+            this.items.push({
+                x: (roomX + 0.5) * this.tileSize,
+                y: (roomY + 0.5) * this.tileSize,
+                type: 'health',
+                collected: false
+            });
+        }
+    }
+
+    damageSecretWall(mapX, mapY, damage) {
+        for (const wall of this.secretWalls) {
+            if (!wall.active || wall.mapX !== mapX || wall.mapY !== mapY) continue;
+
+            wall.health -= damage;
+            if (wall.health <= 0) {
+                this.destroySecretWall(wall);
+            }
+            return wall;
+        }
+        return null;
+    }
+
+    destroySecretWall(wall) {
+        if (!wall.active) return;
+        wall.active = false;
+
+        // Remove the wall tile — make it passable
+        this.grid[wall.mapY][wall.mapX] = 0;
+
+        this.secretsFound++;
+
+        // Particles
+        if (window.game && window.game.hud) {
+            const worldX = (wall.mapX + 0.5) * this.tileSize;
+            const worldY = (wall.mapY + 0.5) * this.tileSize;
+            window.game.hud.emitExplosionParticles(worldX, worldY, 12);
+            window.game.hud.triggerScreenShake(6);
+        }
+
+        // Sound
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playWallBreak();
+        }
+
+        // Kill feed
+        if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
+            window.game.hud.addKillFeedMessage(
+                `SECRET FOUND! (${this.secretsFound}/${this.totalSecrets})`,
+                '#FFD700'
+            );
+        }
+
+        // Spawn a valuable pickup in the secret room
+        if (window.game && window.game.pickupManager) {
+            const roomWorldX = (wall.roomX + 0.5) * this.tileSize;
+            const roomWorldY = (wall.roomY + 0.5) * this.tileSize;
+            const rewards = ['health', 'armor', 'ammo_rocket', 'ammo_rifle'];
+            const reward = rewards[Math.floor(Math.random() * rewards.length)];
+            window.game.pickupManager.addPickup(roomWorldX, roomWorldY, reward);
+        }
+
+        console.log(`Secret wall destroyed at (${wall.mapX}, ${wall.mapY})! Secrets: ${this.secretsFound}/${this.totalSecrets}`);
+    }
+
+    getSecretWallAt(mapX, mapY) {
+        return this.secretWalls.find(w => w.active && w.mapX === mapX && w.mapY === mapY);
     }
 
     // Check if a coordinate contains a wall (for entity collision)
