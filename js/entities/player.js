@@ -222,6 +222,11 @@ class Player {
             }
         }
 
+        // Alt-fire (right-click)
+        if (inputManager.isAltFiring()) {
+            this.altShoot(map);
+        }
+
         // Dash
         if (inputManager.isDashing()) {
             this.startDash(inputManager);
@@ -409,6 +414,13 @@ class Player {
         const success = this.weaponManager.fire(this, map.enemies, map);
         if (success) {
             console.log('Weapon fired!');
+        }
+    }
+
+    altShoot(map) {
+        const success = this.weaponManager.altFire(this, map.enemies, map);
+        if (success) {
+            console.log('Alt-fire!');
         }
     }
     

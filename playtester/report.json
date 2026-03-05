@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-02-25T23:36:02.667Z",
+  "timestamp": "2026-03-05T23:52:20.508Z",
   "passed": 43,
   "failed": 0,
   "skipped": 3,
@@ -27,17 +27,17 @@
     {
       "id": "T1-05",
       "status": "pass",
-      "note": "FPS: 33"
+      "note": "FPS: 35"
     },
     {
       "id": "T1-06",
       "status": "pass",
-      "note": "Moved from (160, 160) to (386, 160)"
+      "note": "Moved from (160, 160) to (389, 160)"
     },
     {
       "id": "T1-07",
       "status": "pass",
-      "note": "Rotated from 0° to 175°"
+      "note": "Rotated from 0° to 178°"
     },
     {
       "id": "T1-08",
@@ -47,7 +47,7 @@
     {
       "id": "T1-09",
       "status": "pass",
-      "note": "FPS: 39 (threshold: 20)"
+      "note": "FPS: 37 (threshold: 20)"
     },
     {
       "id": "T2-01",
@@ -72,7 +72,7 @@
     {
       "id": "T2-05",
       "status": "pass",
-      "note": "Pickup system active with 11 items"
+      "note": "Pickup system active with 12 items"
     },
     {
       "id": "T2-06",
@@ -132,7 +132,7 @@
     {
       "id": "T2-17",
       "status": "pass",
-      "note": "5/8 enemies moved, 7 distinct speeds"
+      "note": "7/9 enemies moved, 7 distinct speeds"
     },
     {
       "id": "T2-18",
@@ -147,7 +147,7 @@
     {
       "id": "T2-20",
       "status": "pass",
-      "note": "24x24 map, 7 wall types [1,2,3,4,5,6,9], 9 enemies in 4 quadrants, 6 pickups"
+      "note": "24x24 map, 8 wall types [1,10,2,3,4,5,6,9], 9 enemies in 4 quadrants, 9 pickups"
     },
     {
       "id": "T2-21",
@@ -212,7 +212,7 @@
     {
       "id": "T2-33",
       "status": "pass",
-      "note": "Damage direction: 500ms fade, directional indicators on hit"
+      "note": "Damage direction: 1000ms fade, directional indicators on hit"
     },
     {
       "id": "T2-34",

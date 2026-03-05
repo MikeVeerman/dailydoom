@@ -279,8 +279,22 @@ class HUD {
             this.ctx.fillStyle = flashColors[weaponInfo.weaponName] || 'rgba(255, 255, 0, 0.3)';
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
+
+        // Alt-fire mode indicator
+        if (weaponInfo.altFireLabel) {
+            const altX = this.canvas.width - 20;
+            const altY = y - 42;
+            this.ctx.font = '10px monospace';
+            this.ctx.textAlign = 'right';
+            const label = `RMB: ${weaponInfo.altFireLabel}`;
+            const tw = this.ctx.measureText(label).width + 8;
+            this.ctx.fillStyle = weaponInfo.canAltFire ? 'rgba(0, 180, 255, 0.3)' : 'rgba(80, 80, 80, 0.3)';
+            this.ctx.fillRect(altX - tw, altY - 10, tw + 4, 14);
+            this.ctx.fillStyle = weaponInfo.canAltFire ? '#00BBFF' : '#666666';
+            this.ctx.fillText(label, altX, altY);
+        }
     }
-    
+
     renderAmmoCounter(player) {
         const weaponInfo = player.weaponManager.getHUDInfo();
         const x = this.canvas.width - 20;
