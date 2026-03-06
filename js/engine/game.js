@@ -522,7 +522,7 @@ class GameEngine {
         this.player.armor = 0;
         this.player.isDead = false;
         this.player.stats = {
-            enemiesKilled: 0, shotsFired: 0, shotsHit: 0,
+            enemiesKilled: 0, shotsFired: 0, shotsHit: 0, headshots: 0,
             damageTaken: 0, damageDealt: 0, itemsCollected: 0,
             deaths: 0, timeSurvived: 0
         };
@@ -635,7 +635,7 @@ class GameEngine {
         const panelX = w * 0.2;
         const panelY = h * 0.23;
         const panelW = w * 0.6;
-        const panelH = h * 0.46;
+        const panelH = h * 0.50;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.fillRect(panelX, panelY, panelW, panelH);
         ctx.strokeStyle = '#FFD700';
@@ -652,10 +652,14 @@ class GameEngine {
         const bestStreak = comboInfo ? comboInfo.bestStreak : 0;
         const comboKills = comboInfo ? comboInfo.totalComboKills : 0;
 
+        const headshots = stats.headshots || 0;
+        const headshotPct = stats.shotsHit > 0 ? Math.round((headshots / stats.shotsHit) * 100) : 0;
+
         const statLines = [
             ['Time', timeStr],
             ['Enemies Killed', `${killed} / ${total}`],
             ['Accuracy', `${accuracy}%`],
+            ['Headshots', `${headshots} (${headshotPct}%)`],
             ['Damage Taken', `${damageTaken}`],
             ['Best Combo', `${bestStreak}x`],
             ['Combo Kills', `${comboKills}`],

@@ -142,7 +142,14 @@ class Weapon {
                 actualDamage *= 0.3; // Partial damage on inaccurate shots
             }
 
-            // Critical hit (10% chance for 2x damage)
+            // Headshot: 2x damage for upper sprite hit
+            const isHeadshot = hit.isHeadshot;
+            if (isHeadshot) {
+                actualDamage *= 2;
+                if (player.stats) player.stats.headshots++;
+            }
+
+            // Critical hit (10% chance for 2x damage, stacks with headshot)
             let isCritical = Math.random() < 0.1;
             if (isCritical) {
                 actualDamage *= 2;
@@ -174,8 +181,8 @@ class Weapon {
                 // Kill feed message
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
                     const typeName = (hit.enemy.type || 'enemy').charAt(0).toUpperCase() + (hit.enemy.type || 'enemy').slice(1);
-                    const prefix = isCritical ? 'CRITICAL! Killed' : 'Killed';
-                    const color = isCritical ? '#FFD700' : '#FF4444';
+                    const prefix = isHeadshot ? 'HEADSHOT! Killed' : (isCritical ? 'CRITICAL! Killed' : 'Killed');
+                    const color = isHeadshot ? '#FFD700' : (isCritical ? '#FFD700' : '#FF4444');
                     window.game.hud.addKillFeedMessage(`${prefix} ${typeName} +${xpReward} XP`, color);
                 }
             }
@@ -186,12 +193,17 @@ class Weapon {
                 window.game.hud.emitBloodParticles(hit.enemy.x, hit.enemy.y, wasAlive && hit.enemy.dying ? 12 : 5);
             }
 
-            // Show floating damage number
+            // Show floating damage number (gold for headshots)
             if (window.game && window.game.hud) {
-                window.game.hud.addDamageNumber(hit.enemy.x, hit.enemy.y, actualDamage, isCritical);
+                window.game.hud.addDamageNumber(hit.enemy.x, hit.enemy.y, actualDamage, isCritical || isHeadshot, isHeadshot);
             }
 
-            console.log(`${isCritical ? 'CRITICAL! ' : ''}Hit enemy for ${actualDamage} damage! Enemy health: ${hit.enemy.health}`);
+            // Headshot sound
+            if (isHeadshot && window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playHeadshot) {
+                window.soundEngine.playHeadshot();
+            }
+
+            console.log(`${isHeadshot ? 'HEADSHOT! ' : ''}${isCritical ? 'CRITICAL! ' : ''}Hit enemy for ${actualDamage} damage! Enemy health: ${hit.enemy.health}`);
         }
 
         // Barrel hit — damage barrel, explode if destroyed
@@ -375,12 +387,22 @@ class Weapon {
             if (sw) hitSecretWall = sw;
         }
 
+        // Headshot detection: based on accuracy and distance (simulates upper sprite hit)
+        // Closer range + higher accuracy = higher headshot probability
+        let isHeadshot = false;
+        if (closestEnemy) {
+            const distRatio = closestDistance / this.range;
+            const headshotChance = this.accuracy * Math.max(0.1, 1 - distRatio * 0.8) * 0.3;
+            isHeadshot = Math.random() < headshotChance;
+        }
+
         return {
             enemy: closestEnemy,
             barrel: closestBarrel,
             crate: closestCrate,
             secretWall: hitSecretWall,
             distance: closestDistance,
+            isHeadshot: isHeadshot,
             hitPoint: { x: currentX, y: currentY },
             hitWall: !closestEnemy && map.isWallAtPosition(currentX, currentY)
         };
@@ -494,6 +516,11 @@ class Weapon {
         if (hit.enemy) {
             if (player.stats) player.stats.shotsHit++;
             let actualDamage = this.getModdedDamage() * (altStats.damageMultiplier || 1);
+            const isHeadshot = hit.isHeadshot;
+            if (isHeadshot) {
+                actualDamage *= 2;
+                if (player.stats) player.stats.headshots++;
+            }
             let isCritical = Math.random() < 0.1;
             if (isCritical) actualDamage *= 2;
             if (player.hasDamageBoost && player.hasDamageBoost()) actualDamage *= 1.5;
@@ -511,14 +538,18 @@ class Weapon {
                 if (player.registerKill) player.registerKill();
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
                     const typeName = (hit.enemy.type || 'enemy').charAt(0).toUpperCase() + (hit.enemy.type || 'enemy').slice(1);
-                    window.game.hud.addKillFeedMessage(`ALT! Killed ${typeName} +${xpReward} XP`, '#00CCFF');
+                    const prefix = isHeadshot ? 'HEADSHOT!' : 'ALT!';
+                    window.game.hud.addKillFeedMessage(`${prefix} Killed ${typeName} +${xpReward} XP`, isHeadshot ? '#FFD700' : '#00CCFF');
                 }
             }
 
             hit.enemy.hitFlashTime = Date.now();
             if (window.game && window.game.hud) {
                 window.game.hud.emitBloodParticles(hit.enemy.x, hit.enemy.y, wasAlive && hit.enemy.dying ? 12 : 5);
-                window.game.hud.addDamageNumber(hit.enemy.x, hit.enemy.y, actualDamage, isCritical);
+                window.game.hud.addDamageNumber(hit.enemy.x, hit.enemy.y, actualDamage, isCritical || isHeadshot, isHeadshot);
+            }
+            if (isHeadshot && window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playHeadshot) {
+                window.soundEngine.playHeadshot();
             }
         }
 
@@ -574,6 +605,11 @@ class Weapon {
         if (hit.enemy) {
             if (player.stats) player.stats.shotsHit++;
             let actualDamage = this.getModdedDamage() * damageMultiplier;
+            const isHeadshot = hit.isHeadshot;
+            if (isHeadshot) {
+                actualDamage *= 2;
+                if (player.stats) player.stats.headshots++;
+            }
             let isCritical = Math.random() < 0.1;
             if (isCritical) actualDamage *= 2;
             if (player.hasDamageBoost && player.hasDamageBoost()) actualDamage *= 1.5;
@@ -590,9 +626,12 @@ class Weapon {
                 if (player.registerKill) player.registerKill();
             }
             hit.enemy.hitFlashTime = Date.now();
+            if (isHeadshot && window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playHeadshot) {
+                window.soundEngine.playHeadshot();
+            }
             if (window.game && window.game.hud) {
                 window.game.hud.emitBloodParticles(hit.enemy.x, hit.enemy.y, 5);
-                window.game.hud.addDamageNumber(hit.enemy.x, hit.enemy.y, actualDamage, isCritical);
+                window.game.hud.addDamageNumber(hit.enemy.x, hit.enemy.y, actualDamage, isCritical || isHeadshot, isHeadshot);
             }
         }
         if (hit.barrel && hit.barrel.active) {

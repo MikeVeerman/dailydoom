@@ -1095,6 +1095,29 @@ class SoundEngine {
         }
     }
 
+    playHeadshot() {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Sharp metallic ping
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1800, now);
+        osc.frequency.exponentialRampToValueAtTime(3200, now + 0.08);
+        osc.frequency.exponentialRampToValueAtTime(2400, now + 0.15);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.5, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+        osc.start(now);
+        osc.stop(now + 0.2);
+    }
+
     playComboTier(comboCount) {
         if (!this.isInitialized) return;
         const now = this.audioContext.currentTime;

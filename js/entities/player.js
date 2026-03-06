@@ -44,6 +44,7 @@ class Player {
             enemiesKilled: 0,
             shotsFired: 0,
             shotsHit: 0,
+            headshots: 0,
             damageTaken: 0,
             damageDealt: 0,
             itemsCollected: 0,
