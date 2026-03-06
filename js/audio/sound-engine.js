@@ -1095,6 +1095,47 @@ class SoundEngine {
         }
     }
 
+    playComboTier(comboCount) {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Rising pitch ding based on combo tier
+        const baseFreq = 600 + Math.min(comboCount, 5) * 200;
+
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, now + 0.15);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.6, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+        osc.start(now);
+        osc.stop(now + 0.3);
+
+        // Second harmonic for richness
+        const osc2 = this.audioContext.createOscillator();
+        const gain2 = this.audioContext.createGain();
+        osc2.connect(gain2);
+        gain2.connect(this.masterGain);
+
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(baseFreq * 2, now + 0.05);
+        osc2.frequency.exponentialRampToValueAtTime(baseFreq * 2.5, now + 0.2);
+
+        gain2.gain.setValueAtTime(0, now + 0.05);
+        gain2.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, now + 0.07);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+        osc2.start(now + 0.05);
+        osc2.stop(now + 0.35);
+    }
+
     playWallBreak() {
         if (!this.isInitialized) return;
         const now = this.audioContext.currentTime;

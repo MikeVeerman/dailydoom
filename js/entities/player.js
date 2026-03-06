@@ -61,6 +61,15 @@ class Player {
         // Weapon system
         this.weaponManager = new WeaponManager();
 
+        // Kill combo system
+        this.combo = {
+            count: 0,
+            lastKillTime: 0,
+            window: 3000, // 3 seconds between kills
+            bestStreak: 0,
+            totalComboKills: 0 // kills that were part of a combo (count >= 2)
+        };
+
         // Melee punch system
         this.punchDamage = 30;
         this.punchRange = 40;
@@ -510,6 +519,7 @@ class Player {
                 const xpTable = { imp: 15, guard: 20, soldier: 30, demon: 40, berserker: 35, spitter: 25, shield_guard: 45, boss: 200 };
                 const xpReward = xpTable[closestEnemy.type] || 20;
                 if (this.addXP) this.addXP(xpReward);
+                this.registerKill();
 
                 // Kill feed message for punch kills
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
@@ -786,6 +796,71 @@ class Player {
         return active;
     }
     
+    // Kill combo system
+    registerKill() {
+        const now = Date.now();
+        const timeSinceLastKill = now - this.combo.lastKillTime;
+
+        if (timeSinceLastKill <= this.combo.window && this.combo.lastKillTime > 0) {
+            this.combo.count++;
+            this.combo.totalComboKills++;
+        } else {
+            this.combo.count = 1;
+        }
+
+        this.combo.lastKillTime = now;
+        if (this.combo.count > this.combo.bestStreak) {
+            this.combo.bestStreak = this.combo.count;
+        }
+
+        // Combo tier thresholds and names
+        const tier = this.getComboTier();
+        if (tier) {
+            // Show combo tier name in kill feed
+            if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
+                window.game.hud.addKillFeedMessage(`${tier.name}! x${this.combo.count}`, '#FFD700');
+            }
+            // Play combo sound
+            if (window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playComboTier) {
+                window.soundEngine.playComboTier(this.combo.count);
+            }
+        }
+    }
+
+    getComboTier() {
+        const tiers = [
+            { min: 5, name: 'UNSTOPPABLE', color: '#FF00FF' },
+            { min: 4, name: 'MEGA KILL', color: '#FF4400' },
+            { min: 3, name: 'MULTI KILL', color: '#FF8800' },
+            { min: 2, name: 'DOUBLE KILL', color: '#FFCC00' }
+        ];
+        for (const tier of tiers) {
+            if (this.combo.count >= tier.min) return tier;
+        }
+        return null;
+    }
+
+    getComboMultiplier() {
+        const multipliers = { 1: 1, 2: 1.5, 3: 2, 4: 2.5 };
+        return multipliers[Math.min(this.combo.count, 5)] || 3;
+    }
+
+    getComboInfo() {
+        const now = Date.now();
+        const elapsed = now - this.combo.lastKillTime;
+        const remaining = Math.max(0, this.combo.window - elapsed);
+        const active = this.combo.count >= 2 && remaining > 0;
+        return {
+            count: this.combo.count,
+            active: active,
+            timerProgress: remaining / this.combo.window,
+            tier: this.getComboTier(),
+            multiplier: this.getComboMultiplier(),
+            bestStreak: this.combo.bestStreak,
+            totalComboKills: this.combo.totalComboKills
+        };
+    }
+
     // Progression methods
     addXP(amount) {
         this.xp += amount;

@@ -371,14 +371,16 @@ class GameEngine {
             ? (stats.shotsHit / stats.shotsFired) * 100
             : 0;
 
-        // Score formula: kills * 100 + accuracy bonus + time bonus - damage penalty
+        // Score formula: kills * 100 + accuracy bonus + time bonus - damage penalty + combo bonus
         const killScore = stats.enemiesKilled * 100;
         const accuracyBonus = Math.round(accuracy * 10);
         const timeBonus = Math.max(0, 300 - Math.floor(elapsed)) * 5; // Faster = more points
         const damagePenalty = Math.round(stats.damageTaken);
         const levelBonus = (this.player.level - 1) * 200;
+        const comboInfo = this.player.getComboInfo ? this.player.getComboInfo() : null;
+        const comboBonus = comboInfo ? (comboInfo.bestStreak * 50 + comboInfo.totalComboKills * 25) : 0;
 
-        return Math.max(0, killScore + accuracyBonus + timeBonus - damagePenalty + levelBonus);
+        return Math.max(0, killScore + accuracyBonus + timeBonus - damagePenalty + levelBonus + comboBonus);
     }
 
     getHighScores() {
@@ -525,6 +527,7 @@ class GameEngine {
             deaths: 0, timeSurvived: 0
         };
         this.player.weaponManager = new WeaponManager();
+        this.player.combo = { count: 0, lastKillTime: 0, window: 3000, bestStreak: 0, totalComboKills: 0 };
 
         // Re-initialize pickups
         this.pickupManager = new PickupManager();
@@ -645,11 +648,17 @@ class GameEngine {
         let y = panelY + 32;
         const lineH = 30;
 
+        const comboInfo = this.player.getComboInfo ? this.player.getComboInfo() : null;
+        const bestStreak = comboInfo ? comboInfo.bestStreak : 0;
+        const comboKills = comboInfo ? comboInfo.totalComboKills : 0;
+
         const statLines = [
             ['Time', timeStr],
             ['Enemies Killed', `${killed} / ${total}`],
             ['Accuracy', `${accuracy}%`],
             ['Damage Taken', `${damageTaken}`],
+            ['Best Combo', `${bestStreak}x`],
+            ['Combo Kills', `${comboKills}`],
             ['Player Level', `${this.player.level}`],
             ['Score', `${this.currentScore}`]
         ];
