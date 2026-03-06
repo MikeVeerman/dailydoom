@@ -441,9 +441,13 @@ class Weapon {
         this.muzzleFlash = true;
         this.muzzleFlashStart = now;
 
-        // Play weapon sound
+        // Play alt-fire sound (distinct from primary fire)
         if (window.soundEngine && window.soundEngine.isInitialized) {
-            window.soundEngine.playWeaponFire(this.type);
+            if (window.soundEngine.playAltFire) {
+                window.soundEngine.playAltFire(this.type);
+            } else {
+                window.soundEngine.playWeaponFire(this.type);
+            }
         }
 
         if (player.stats) player.stats.shotsFired++;
@@ -585,12 +589,9 @@ class Weapon {
         const hit = this.performRaycast(player, map);
         this.processAltHit(hit, player, map, 1.0);
 
-        // Schedule remaining burst shots
+        // Schedule remaining burst shots (sound handled by playAltFire burst pattern)
         for (let i = 1; i < burstCount; i++) {
             setTimeout(() => {
-                if (window.soundEngine && window.soundEngine.isInitialized) {
-                    window.soundEngine.playWeaponFire(this.type);
-                }
                 if (window.game && window.game.hud) {
                     window.game.hud.triggerScreenShake(2);
                     window.game.hud.triggerWeaponRecoil(5);

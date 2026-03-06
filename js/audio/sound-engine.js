@@ -116,6 +116,251 @@ class SoundEngine {
         noiseSource.stop(now + 0.08);
     }
     
+    // Alt-fire weapon sounds — each weapon has a unique alt-fire sound
+    playAltFire(weaponType) {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        switch (weaponType) {
+            case 'pistol':
+                // Charged shot: rising electronic whine then heavy discharge
+                this._playPistolCharged(now);
+                break;
+            case 'shotgun':
+                // Slug: deep heavy bass thud with metallic punch
+                this._playShotgunSlug(now);
+                break;
+            case 'rifle':
+                // Burst: three crisp clicks with pitch variation
+                this._playRifleBurst(now);
+                break;
+            case 'rocket':
+                // Airburst: ascending whistle then sharp crack
+                this._playRocketAirburst(now);
+                break;
+            case 'chaingun':
+                // Overdrive: mechanical spin-up whir, higher pitch
+                this._playChaingunOverdrive(now);
+                break;
+        }
+    }
+
+    _playPistolCharged(now) {
+        // Rising electronic whine
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.2);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.5, now + 0.01);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.9, now + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.start(now);
+        osc.stop(now + 0.25);
+
+        // Heavy discharge noise
+        const noiseBuffer = this.createNoiseBuffer(0.12);
+        if (noiseBuffer) {
+            const noise = this.audioContext.createBufferSource();
+            noise.buffer = noiseBuffer;
+            const nGain = this.audioContext.createGain();
+            noise.connect(nGain);
+            nGain.connect(this.masterGain);
+            nGain.gain.setValueAtTime(0, now + 0.07);
+            nGain.gain.linearRampToValueAtTime(this.sfxVolume * 0.7, now + 0.08);
+            nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+            noise.start(now + 0.07);
+            noise.stop(now + 0.2);
+        }
+    }
+
+    _playShotgunSlug(now) {
+        // Deep bass thud
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(50, now);
+        osc.frequency.exponentialRampToValueAtTime(25, now + 0.2);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 1.0, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+
+        // Metallic punch
+        const osc2 = this.audioContext.createOscillator();
+        const gain2 = this.audioContext.createGain();
+        osc2.connect(gain2);
+        gain2.connect(this.masterGain);
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(120, now);
+        osc2.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+        gain2.gain.setValueAtTime(0, now);
+        gain2.gain.linearRampToValueAtTime(this.sfxVolume * 0.6, now + 0.005);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc2.start(now);
+        osc2.stop(now + 0.2);
+
+        // Heavy noise burst
+        const noiseBuffer = this.createNoiseBuffer(0.15);
+        if (noiseBuffer) {
+            const noise = this.audioContext.createBufferSource();
+            noise.buffer = noiseBuffer;
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(800, now);
+            const nGain = this.audioContext.createGain();
+            noise.connect(filter);
+            filter.connect(nGain);
+            nGain.connect(this.masterGain);
+            nGain.gain.setValueAtTime(0, now);
+            nGain.gain.linearRampToValueAtTime(this.sfxVolume * 0.8, now + 0.005);
+            nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            noise.start(now);
+            noise.stop(now + 0.15);
+        }
+    }
+
+    _playRifleBurst(now) {
+        // Three crisp clicks with slight pitch variation
+        for (let i = 0; i < 3; i++) {
+            const t = now + i * 0.06;
+            const pitchShift = 1 + (i - 1) * 0.08; // Slight variation
+
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(220 * pitchShift, t);
+            osc.frequency.exponentialRampToValueAtTime(100 * pitchShift, t + 0.04);
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.6, t + 0.003);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+            osc.start(t);
+            osc.stop(t + 0.05);
+
+            // Click noise per shot
+            const noiseBuffer = this.createNoiseBuffer(0.03);
+            if (noiseBuffer) {
+                const noise = this.audioContext.createBufferSource();
+                noise.buffer = noiseBuffer;
+                const nGain = this.audioContext.createGain();
+                noise.connect(nGain);
+                nGain.connect(this.masterGain);
+                nGain.gain.setValueAtTime(0, t);
+                nGain.gain.linearRampToValueAtTime(this.sfxVolume * 0.4, t + 0.002);
+                nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+                noise.start(t);
+                noise.stop(t + 0.03);
+            }
+        }
+    }
+
+    _playRocketAirburst(now) {
+        // Ascending whistle
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(2000, now + 0.15);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.4, now + 0.02);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.6, now + 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        osc.start(now);
+        osc.stop(now + 0.18);
+
+        // Sharp crack/detonation
+        const noiseBuffer = this.createNoiseBuffer(0.1);
+        if (noiseBuffer) {
+            const noise = this.audioContext.createBufferSource();
+            noise.buffer = noiseBuffer;
+            const nGain = this.audioContext.createGain();
+            noise.connect(nGain);
+            nGain.connect(this.masterGain);
+            nGain.gain.setValueAtTime(0, now + 0.13);
+            nGain.gain.linearRampToValueAtTime(this.sfxVolume * 0.9, now + 0.135);
+            nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            noise.start(now + 0.13);
+            noise.stop(now + 0.25);
+        }
+
+        // Low rumble after detonation
+        const osc2 = this.audioContext.createOscillator();
+        const gain2 = this.audioContext.createGain();
+        osc2.connect(gain2);
+        gain2.connect(this.masterGain);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(60, now + 0.14);
+        osc2.frequency.exponentialRampToValueAtTime(30, now + 0.35);
+        gain2.gain.setValueAtTime(0, now + 0.14);
+        gain2.gain.linearRampToValueAtTime(this.sfxVolume * 0.5, now + 0.16);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc2.start(now + 0.14);
+        osc2.stop(now + 0.35);
+    }
+
+    _playChaingunOverdrive(now) {
+        // Mechanical spin-up whir that accelerates
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(100, now);
+        osc.frequency.exponentialRampToValueAtTime(400, now + 0.12);
+        osc.frequency.setValueAtTime(400, now + 0.12);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.4, now + 0.02);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.7, now + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+
+        // High-pitch sustained rattle
+        const osc2 = this.audioContext.createOscillator();
+        const gain2 = this.audioContext.createGain();
+        osc2.connect(gain2);
+        gain2.connect(this.masterGain);
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(350, now + 0.05);
+        osc2.frequency.exponentialRampToValueAtTime(500, now + 0.12);
+        gain2.gain.setValueAtTime(0, now + 0.05);
+        gain2.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, now + 0.07);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc2.start(now + 0.05);
+        osc2.stop(now + 0.15);
+
+        // Noise burst for mechanical texture
+        const noiseBuffer = this.createNoiseBuffer(0.1);
+        if (noiseBuffer) {
+            const noise = this.audioContext.createBufferSource();
+            noise.buffer = noiseBuffer;
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(1500, now);
+            filter.Q.setValueAtTime(2, now);
+            const nGain = this.audioContext.createGain();
+            noise.connect(filter);
+            filter.connect(nGain);
+            nGain.connect(this.masterGain);
+            nGain.gain.setValueAtTime(0, now + 0.03);
+            nGain.gain.linearRampToValueAtTime(this.sfxVolume * 0.5, now + 0.05);
+            nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+            noise.start(now + 0.03);
+            noise.stop(now + 0.13);
+        }
+    }
+
     // Enemy hit/damage sound
     playEnemyHit() {
         if (!this.isInitialized) return;
