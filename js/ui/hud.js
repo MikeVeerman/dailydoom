@@ -1125,9 +1125,9 @@ class HUD {
     }
 
     // Add a floating damage number
-    addDamageNumber(worldX, worldY, damage, isCritical) {
+    addDamageNumber(worldX, worldY, damage, isCritical, isHeadshot) {
         this.damageNumbers.push({
-            worldX, worldY, damage, isCritical,
+            worldX, worldY, damage, isCritical, isHeadshot: isHeadshot || false,
             spawnTime: Date.now(),
             duration: 1000,
             offsetY: 0
@@ -1174,14 +1174,21 @@ class HUD {
             const screenY = baseY - 20 - (progress * 40); // Float upward
 
             const alpha = 1 - progress;
-            const fontSize = dn.isCritical ? 20 : 14;
+            const fontSize = dn.isHeadshot ? 22 : (dn.isCritical ? 20 : 14);
 
             this.ctx.font = `bold ${fontSize}px monospace`;
             this.ctx.textAlign = 'center';
-            this.ctx.fillStyle = dn.isCritical
-                ? `rgba(255, 255, 0, ${alpha})`
-                : `rgba(255, 100, 100, ${alpha})`;
-            this.ctx.fillText(dn.damage.toString(), screenX, screenY);
+            if (dn.isHeadshot) {
+                this.ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
+                this.ctx.fillText(dn.damage.toString(), screenX, screenY);
+                this.ctx.font = 'bold 10px monospace';
+                this.ctx.fillText('HEADSHOT', screenX, screenY - 14);
+            } else {
+                this.ctx.fillStyle = dn.isCritical
+                    ? `rgba(255, 255, 0, ${alpha})`
+                    : `rgba(255, 100, 100, ${alpha})`;
+                this.ctx.fillText(dn.damage.toString(), screenX, screenY);
+            }
         }
     }
 
