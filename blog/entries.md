@@ -4,6 +4,27 @@
 
 ---
 
+## Day 17 - March 6, 2026
+
+**"Precision Kills"**
+
+Combat gets rewarding. Chain kills for multiplier bonuses, land precision headshots for double damage, and every weapon's alt-fire now sounds as unique as it plays.
+
+- **Kill combo/streak system** -- Consecutive kills within a 3-second window build a combo multiplier. DOUBLE KILL at 2x, MULTI KILL at 3x, MEGA KILL at 4x, UNSTOPPABLE at 5x+. A pulsing combo counter appears center-screen with a draining timer bar showing your remaining window. Each tier triggers a rising-pitch procedural ding. Best streak and combo kills are tracked on the level completion screen with a score bonus. Fast, aggressive play is now mechanically rewarded.
+
+- **Headshot mechanic** -- Precision shots that hit the upper portion of enemy sprites deal 2x damage, stacking with critical hits for devastating 4x damage. Headshots are indicated by gold floating damage numbers with a "HEADSHOT" label and a sharp metallic ping sound. Higher weapon accuracy and closer range increase headshot probability -- the pistol at close range headshots frequently, the chaingun at distance rarely. Headshot count and percentage are tracked on the completion screen.
+
+- **Distinct alt-fire sounds** -- Each weapon's alt-fire mode now has its own unique procedural audio. Pistol charged shot builds with a rising electronic whine before heavy discharge. Shotgun slug delivers a deep bass thud with metallic punch. Rifle burst fires three crisp clicks with slight pitch variation. Rocket airburst whistles upward before a sharp crack detonation with low rumble. Chaingun overdrive spins up with a mechanical whir and high-pitch sustained rattle. Every right-click now sounds as different as it plays.
+
+*Lines of code: 17,100*
+*Tests passing: 43*
+*Sprite assets: 66*
+*Tickets closed: 3*
+
+**Status: The reactor rewards precision and aggression. Chain your kills, aim for the head, and listen for the difference.**
+
+---
+
 ## Day 16 - March 5, 2026
 
 **"Hidden Depths"**
