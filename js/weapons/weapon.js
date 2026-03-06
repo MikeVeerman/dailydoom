@@ -169,6 +169,7 @@ class Weapon {
                 // Grant XP based on enemy type
                 const xpReward = this.getKillXP(hit.enemy);
                 if (player.addXP) player.addXP(xpReward);
+                if (player.registerKill) player.registerKill();
 
                 // Kill feed message
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
@@ -507,6 +508,7 @@ class Weapon {
                 if (player.stats) player.stats.enemiesKilled++;
                 const xpReward = this.getKillXP(hit.enemy);
                 if (player.addXP) player.addXP(xpReward);
+                if (player.registerKill) player.registerKill();
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
                     const typeName = (hit.enemy.type || 'enemy').charAt(0).toUpperCase() + (hit.enemy.type || 'enemy').slice(1);
                     window.game.hud.addKillFeedMessage(`ALT! Killed ${typeName} +${xpReward} XP`, '#00CCFF');
@@ -585,6 +587,7 @@ class Weapon {
                 if (player.stats) player.stats.enemiesKilled++;
                 const xpReward = this.getKillXP(hit.enemy);
                 if (player.addXP) player.addXP(xpReward);
+                if (player.registerKill) player.registerKill();
             }
             hit.enemy.hitFlashTime = Date.now();
             if (window.game && window.game.hud) {

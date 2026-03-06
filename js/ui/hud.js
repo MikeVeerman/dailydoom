@@ -136,6 +136,9 @@ class HUD {
             // Render dash cooldown indicator
             this.renderDashIndicator(player);
 
+            // Render kill combo display
+            this.renderComboDisplay(player);
+
             // Render kill feed
             this.renderKillFeed();
 
@@ -999,6 +1002,52 @@ class HUD {
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
         this.ctx.lineWidth = 1;
         this.ctx.stroke();
+    }
+
+    renderComboDisplay(player) {
+        if (!player.getComboInfo) return;
+        const combo = player.getComboInfo();
+        if (!combo.active) return;
+
+        const cx = this.canvas.width / 2;
+        const baseY = this.canvas.height - 140;
+
+        // Combo count and tier name
+        const tier = combo.tier;
+        if (tier) {
+            // Pulsing glow effect
+            const pulse = 0.7 + 0.3 * Math.sin(Date.now() * 0.01);
+
+            // Tier name
+            this.ctx.save();
+            this.ctx.textAlign = 'center';
+            this.ctx.font = 'bold 20px monospace';
+            this.ctx.globalAlpha = pulse;
+            this.ctx.fillStyle = tier.color;
+            this.ctx.fillText(tier.name, cx, baseY);
+
+            // Multiplier
+            this.ctx.font = 'bold 16px monospace';
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.globalAlpha = 0.9;
+            this.ctx.fillText(`x${combo.count} COMBO`, cx, baseY + 20);
+            this.ctx.restore();
+        }
+
+        // Timer bar
+        const barWidth = 80;
+        const barHeight = 3;
+        const barX = cx - barWidth / 2;
+        const barY = baseY + 28;
+
+        // Background
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        this.ctx.fillRect(barX, barY, barWidth, barHeight);
+
+        // Progress
+        const timerColor = combo.timerProgress > 0.3 ? '#FFD700' : '#FF4444';
+        this.ctx.fillStyle = timerColor;
+        this.ctx.fillRect(barX, barY, barWidth * combo.timerProgress, barHeight);
     }
 
     renderSecretsCounter(map) {
