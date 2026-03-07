@@ -63,6 +63,9 @@ class HUD {
         this.inHazardZone = false;
         this.hazardType = null; // 'acid' or 'lava'
 
+        // Low health heartbeat tracking
+        this.lastHeartbeatTime = 0;
+
         // Load weapon sprite images (from FPS Starter Kit, CC0)
         this.weaponImages = {};
         this.loadWeaponImages();
@@ -678,9 +681,16 @@ class HUD {
         }
 
         // Low-health pulse: vignette red border when health < 25%
+        // Intensity scales inversely with health (lower health = stronger effect)
         if (player.health > 0 && player.health < player.maxHealth * 0.25) {
-            const pulseAlpha = (Math.sin(now * 0.005) * 0.5 + 0.5) * 0.35;
-            const edgeSize = 80;
+            const healthRatio = player.health / (player.maxHealth * 0.25); // 1.0 at 25%, 0.0 at 0%
+            const intensity = 1 - healthRatio; // 0.0 at 25%, 1.0 near 0%
+            const pulseSpeed = 0.004 + intensity * 0.006; // Faster pulse at lower health
+            const pulseAlpha = (Math.sin(now * pulseSpeed) * 0.5 + 0.5) * (0.2 + intensity * 0.4);
+            const edgeSize = 80 + intensity * 40; // Larger vignette at lower health
+
+            // Trigger heartbeat sound
+            this.playLowHealthHeartbeat(player, now);
 
             // Top edge
             const gradTop = this.ctx.createLinearGradient(0, 0, 0, edgeSize);
@@ -712,6 +722,19 @@ class HUD {
         }
     }
     
+    playLowHealthHeartbeat(player, now) {
+        const healthRatio = player.health / (player.maxHealth * 0.25);
+        // Heartbeat interval: 800ms at 25% health, 400ms near death
+        const interval = 400 + healthRatio * 400;
+
+        if (now - this.lastHeartbeatTime >= interval) {
+            this.lastHeartbeatTime = now;
+            if (window.soundEngine && window.soundEngine.isInitialized) {
+                window.soundEngine.playHeartbeat(1 - healthRatio);
+            }
+        }
+    }
+
     renderHazardWarning() {
         if (!this.inHazardZone) return;
 
