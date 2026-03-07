@@ -51,6 +51,11 @@ class HUD {
         this.weaponRecoilOffset = 0;
         this.weaponRecoilDecay = 0.85;
 
+        // Weapon bob animation
+        this.weaponBobPhase = 0;
+        this.weaponBobX = 0;
+        this.weaponBobY = 0;
+
         // Damage direction indicators
         this.damageIndicators = [];
         this.damageIndicatorDuration = 1000; // 1 second
@@ -395,10 +400,29 @@ class HUD {
         this.weaponRecoilOffset *= this.weaponRecoilDecay;
         if (Math.abs(this.weaponRecoilOffset) < 0.5) this.weaponRecoilOffset = 0;
 
+        // Weapon bob calculation
+        const speed = Math.sqrt(player.velocityX * player.velocityX + player.velocityY * player.velocityY);
+        const isMoving = speed > 5;
+
+        if (isMoving) {
+            const bobSpeed = player.isCrouching ? 4 : (player.isRunning ? 10 : 7);
+            const bobAmplitudeX = player.isCrouching ? 2 : (player.isRunning ? 6 : 4);
+            const bobAmplitudeY = player.isCrouching ? 1.5 : (player.isRunning ? 4 : 3);
+            this.weaponBobPhase += bobSpeed * 0.016; // ~60fps
+            this.weaponBobX = Math.sin(this.weaponBobPhase) * bobAmplitudeX;
+            this.weaponBobY = Math.abs(Math.cos(this.weaponBobPhase)) * bobAmplitudeY;
+        } else {
+            // Smoothly return to center
+            this.weaponBobX *= 0.85;
+            this.weaponBobY *= 0.85;
+            if (Math.abs(this.weaponBobX) < 0.3) this.weaponBobX = 0;
+            if (Math.abs(this.weaponBobY) < 0.3) this.weaponBobY = 0;
+        }
+
         // First-person weapon view (larger, bottom-right of screen)
         const fpsWeaponSize = 200;
-        const fpsX = this.canvas.width / 2 + 50;
-        const fpsY = this.canvas.height - fpsWeaponSize + 20 - this.weaponRecoilOffset;
+        const fpsX = this.canvas.width / 2 + 50 + this.weaponBobX;
+        const fpsY = this.canvas.height - fpsWeaponSize + 20 - this.weaponRecoilOffset + this.weaponBobY;
 
         // Choose between gun and melee first-person sprite
         const fpsSprite = (weaponName === 'PUNCH') ? this.fpsMeleeSprite : this.fpsGunSprite;
