@@ -58,6 +58,27 @@ class GameEngine {
         this.pauseMenuSelection = -1;
         this._pauseMenuItems = [];
 
+        // Wave spawner system
+        this.waveSystem = {
+            active: false,
+            currentWave: 0,
+            state: 'idle', // idle, announcing, spawning, fighting
+            announceTime: 0,
+            announceDuration: 2000, // 2s announcement
+            delayBetweenWaves: 3000, // 3s between waves
+            lastWaveClearTime: 0,
+            spawnPoints: [
+                { x: 14, y: 8 },
+                { x: 4, y: 16 },
+                { x: 12, y: 16 },
+                { x: 8, y: 12 },
+                { x: 20, y: 8 },
+                { x: 8, y: 4 },
+                { x: 16, y: 12 },
+                { x: 4, y: 12 }
+            ]
+        };
+
         // Initialize systems
         this.initialize();
     }
@@ -203,9 +224,15 @@ class GameEngine {
         this.hud.resetFog();
         this.levelStartTime = performance.now();
         this.totalEnemyCount = this.map.enemies.length;
+
+        // Reset wave system
+        this.waveSystem.active = false;
+        this.waveSystem.currentWave = 0;
+        this.waveSystem.state = 'idle';
+
         console.log('Level restarted');
     }
-    
+
     gameLoop(currentTime = performance.now()) {
         if (!this.running) return;
         
@@ -347,19 +374,114 @@ class GameEngine {
 
         const activeEnemies = this.map.enemies.filter(e => e.active && !e.dying);
         if (activeEnemies.length === 0 && this.totalEnemyCount > 0) {
-            this.levelComplete = true;
-            this.levelCompleteTime = performance.now();
-            console.log('Level complete! All enemies eliminated.');
+            // Wave system: spawn next wave instead of ending level
+            this.updateWaveSystem();
+        }
+    }
 
-            // Calculate and save score
-            this.currentScore = this.calculateScore();
-            this.saveHighScore(this.currentScore);
+    updateWaveSystem() {
+        const ws = this.waveSystem;
+        const now = performance.now();
 
-            // Play victory sound
-            if (window.soundEngine && window.soundEngine.isInitialized) {
-                window.soundEngine.playLevelComplete();
+        if (ws.state === 'idle') {
+            // First time all enemies cleared — start wave countdown
+            ws.active = true;
+            ws.lastWaveClearTime = now;
+            ws.state = 'waiting';
+        }
+
+        if (ws.state === 'waiting') {
+            if (now - ws.lastWaveClearTime >= ws.delayBetweenWaves) {
+                ws.currentWave++;
+                ws.state = 'announcing';
+                ws.announceTime = now;
+
+                // Show wave announcement in HUD
+                if (this.hud && this.hud.addKillFeedMessage) {
+                    this.hud.addKillFeedMessage(`WAVE ${ws.currentWave} INCOMING!`, '#FF4444');
+                }
+
+                // Play wave announcement sound
+                if (window.soundEngine && window.soundEngine.isInitialized) {
+                    window.soundEngine.playWaveAnnounce(ws.currentWave);
+                }
+
+                console.log(`Wave ${ws.currentWave} incoming!`);
             }
         }
+
+        if (ws.state === 'announcing') {
+            if (now - ws.announceTime >= ws.announceDuration) {
+                this.spawnWave(ws.currentWave);
+                ws.state = 'fighting';
+            }
+        }
+
+        if (ws.state === 'fighting') {
+            const alive = this.map.enemies.filter(e => e.active && !e.dying);
+            if (alive.length === 0) {
+                ws.lastWaveClearTime = now;
+                ws.state = 'waiting';
+            }
+        }
+    }
+
+    spawnWave(waveNumber) {
+        const ws = this.waveSystem;
+        const tileSize = this.map.tileSize;
+        const difficulty = window.CONFIG ? window.CONFIG.difficulty : 'normal';
+        const diffSettings = window.DIFFICULTY ? window.DIFFICULTY[difficulty] : null;
+
+        // Wave composition scales with wave number
+        const baseCount = 3 + Math.floor(waveNumber * 1.5);
+        const count = difficulty === 'nightmare' ? baseCount + 2 :
+                      difficulty === 'easy' ? Math.max(2, baseCount - 2) : baseCount;
+
+        // Enemy types available per wave (harder types appear in later waves)
+        const earlyTypes = ['guard', 'imp'];
+        const midTypes = ['guard', 'imp', 'soldier', 'berserker'];
+        const lateTypes = ['guard', 'imp', 'soldier', 'berserker', 'spitter', 'shield_guard'];
+        const bossTypes = ['guard', 'imp', 'soldier', 'berserker', 'spitter', 'shield_guard', 'demon', 'boss'];
+
+        let typePool;
+        if (waveNumber <= 2) typePool = earlyTypes;
+        else if (waveNumber <= 4) typePool = midTypes;
+        else if (waveNumber <= 7) typePool = lateTypes;
+        else typePool = bossTypes;
+
+        // Filter spawn points far enough from player
+        const playerX = this.player.x;
+        const playerY = this.player.y;
+        const minSpawnDist = 5 * tileSize;
+        const validSpawns = ws.spawnPoints.filter(sp => {
+            const dx = sp.x * tileSize - playerX;
+            const dy = sp.y * tileSize - playerY;
+            return Math.sqrt(dx * dx + dy * dy) >= minSpawnDist;
+        });
+        const spawns = validSpawns.length > 0 ? validSpawns : ws.spawnPoints;
+
+        for (let i = 0; i < count; i++) {
+            const sp = spawns[i % spawns.length];
+            const type = typePool[Math.floor(Math.random() * typePool.length)];
+            const enemy = new Enemy(sp.x * tileSize, sp.y * tileSize, type);
+
+            // Apply difficulty scaling
+            if (diffSettings) {
+                enemy.health = Math.round(enemy.health * diffSettings.enemyHealthMultiplier);
+                enemy.maxHealth = Math.round(enemy.maxHealth * diffSettings.enemyHealthMultiplier);
+                enemy.speed = Math.round(enemy.speed * diffSettings.enemySpeedMultiplier);
+                if (enemy.enhancedAI && enemy.enhancedAI.behavior) {
+                    enemy.enhancedAI.behavior.damage = Math.round(
+                        enemy.enhancedAI.behavior.damage * diffSettings.enemyDamageMultiplier
+                    );
+                }
+            }
+
+            this.map.enemies.push(enemy);
+        }
+
+        this.totalEnemyCount += count;
+        console.log(`Wave ${waveNumber}: spawned ${count} enemies`);
     }
 
     // ========== HIGH SCORE SYSTEM ==========
@@ -553,6 +675,11 @@ class GameEngine {
 
         this.totalEnemyCount = this.map.enemies.length;
         this.levelStartTime = performance.now();
+
+        // Reset wave system
+        this.waveSystem.active = false;
+        this.waveSystem.currentWave = 0;
+        this.waveSystem.state = 'idle';
 
         // Reset dynamic difficulty
         this.initDifficultyScaler();
