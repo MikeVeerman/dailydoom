@@ -1494,6 +1494,32 @@ class SoundEngine {
         return buffer;
     }
     
+    playHeartbeat(intensity) {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+        const vol = this.sfxVolume * (0.2 + intensity * 0.3);
+
+        // Double-thump heartbeat (lub-dub)
+        for (let i = 0; i < 2; i++) {
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+
+            const t = now + i * 0.12;
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(i === 0 ? 60 : 45, t);
+            osc.frequency.exponentialRampToValueAtTime(30, t + 0.1);
+
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(vol, t + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+            osc.start(t);
+            osc.stop(t + 0.15);
+        }
+    }
+
     playWaveAnnounce(waveNumber) {
         if (!this.isInitialized) return;
         const now = this.audioContext.currentTime;
