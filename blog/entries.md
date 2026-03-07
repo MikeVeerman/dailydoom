@@ -4,6 +4,27 @@
 
 ---
 
+## Day 18 - March 7, 2026
+
+**"Endless Waves"**
+
+The reactor never sleeps. Kill every enemy and more come — wave after wave, harder each time. Your body warns you when death is close, and your weapon finally moves like it weighs something.
+
+- **Enemy wave spawner system** -- Clearing all enemies no longer ends the level. Instead, a brief pause is followed by an ominous alarm and a center-screen "WAVE X INCOMING!" announcement. Each wave spawns more enemies with tougher compositions — early waves bring guards and imps, later waves introduce soldiers, berserkers, shield guards, and eventually demons and bosses. Spawn points are chosen far from the player, and difficulty settings scale all spawned enemies. The current wave number displays persistently in the top-right HUD. The game is now an endless survival challenge.
+
+- **Enhanced low health warning** -- The existing red vignette at low health now scales dynamically with how close you are to death. As health drops below 25%, the vignette pulses faster, grows wider (80px to 120px), and intensifies. A procedural heartbeat sound — a deep double-thump "lub-dub" — plays at an interval that shortens as health decreases (800ms at 25% down to 400ms near death). Both effects fade smoothly when health is restored. You don't just see the danger, you feel it.
+
+- **Weapon bob animation** -- The first-person weapon sprite now sways naturally while moving. A sinusoidal bob creates horizontal sway and vertical bounce that scales with movement speed — running amplifies the motion, crouching dampens it. When the player stops, the weapon smoothly returns to center. Subtle enough to add immersion without distracting from combat.
+
+*Lines of code: 17,800*
+*Tests passing: 43*
+*Sprite assets: 66*
+*Tickets closed: 3*
+
+**Status: The waves keep coming. Listen for your heartbeat — it's the only clock that matters.**
+
+---
+
 ## Day 17 - March 6, 2026
 
 **"Precision Kills"**
