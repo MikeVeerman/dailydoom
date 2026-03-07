@@ -139,6 +139,11 @@ class HUD {
             // Render kill combo display
             this.renderComboDisplay(player);
 
+            // Render wave indicator
+            if (gameEngine && gameEngine.waveSystem && gameEngine.waveSystem.active) {
+                this.renderWaveIndicator(gameEngine.waveSystem);
+            }
+
             // Render kill feed
             this.renderKillFeed();
 
@@ -1048,6 +1053,50 @@ class HUD {
         const timerColor = combo.timerProgress > 0.3 ? '#FFD700' : '#FF4444';
         this.ctx.fillStyle = timerColor;
         this.ctx.fillRect(barX, barY, barWidth * combo.timerProgress, barHeight);
+    }
+
+    renderWaveIndicator(waveSystem) {
+        const w = this.canvas.width;
+        const ctx = this.ctx;
+
+        // Wave number display (top-right area, below FPS)
+        const x = w - 20;
+        const y = 45;
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(x - 110, y - 14, 112, 20);
+
+        ctx.font = 'bold 14px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#FF4444';
+        ctx.fillText(`WAVE ${waveSystem.currentWave}`, x, y);
+
+        // "WAVE INCOMING" center-screen announcement
+        if (waveSystem.state === 'announcing') {
+            const elapsed = performance.now() - waveSystem.announceTime;
+            const alpha = Math.min(1, 1 - (elapsed / waveSystem.announceDuration) * 0.5);
+            const pulse = 1 + 0.05 * Math.sin(elapsed * 0.01);
+            const fontSize = Math.round(32 * pulse);
+
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.font = `bold ${fontSize}px monospace`;
+            ctx.textAlign = 'center';
+
+            // Shadow
+            ctx.fillStyle = '#000000';
+            ctx.fillText(`WAVE ${waveSystem.currentWave}`, w / 2 + 2, 182);
+
+            // Text
+            ctx.fillStyle = '#FF4444';
+            ctx.fillText(`WAVE ${waveSystem.currentWave}`, w / 2, 180);
+
+            ctx.font = 'bold 18px monospace';
+            ctx.fillStyle = '#FFAA00';
+            ctx.fillText('INCOMING!', w / 2, 210);
+
+            ctx.restore();
+        }
     }
 
     renderSecretsCounter(map) {

@@ -1494,6 +1494,32 @@ class SoundEngine {
         return buffer;
     }
     
+    playWaveAnnounce(waveNumber) {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Ominous descending alarm — two low tones
+        const baseFreq = 200 + Math.min(waveNumber, 10) * 20;
+        for (let i = 0; i < 2; i++) {
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+
+            osc.type = 'sawtooth';
+            const t = now + i * 0.25;
+            osc.frequency.setValueAtTime(baseFreq, t);
+            osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, t + 0.2);
+
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.4, t + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+
+            osc.start(t);
+            osc.stop(t + 0.25);
+        }
+    }
+
     // Set master volume
     setMasterVolume(volume) {
         this.masterVolume = Math.max(0, Math.min(1, volume));
