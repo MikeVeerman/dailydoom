@@ -37,6 +37,10 @@ class Enemy {
         this.barkCooldown = 2000; // Minimum 2s between barks
         this.hasPlayedAlert = false;
 
+        // Knockback velocity (from explosions)
+        this.knockbackVX = 0;
+        this.knockbackVY = 0;
+
         // Death animation
         this.dying = false;
         this.deathTime = 0;
@@ -69,6 +73,22 @@ class Enemy {
             this.originalUpdate(deltaTime, player, map);
             // Move toward the target set by original AI
             this.moveTowardsTarget(deltaTime, map);
+        }
+
+        // Apply knockback
+        if (Math.abs(this.knockbackVX) > 0.5 || Math.abs(this.knockbackVY) > 0.5) {
+            const kbNewX = this.x + this.knockbackVX * deltaTime;
+            const kbNewY = this.y + this.knockbackVY * deltaTime;
+            if (map && !map.isWallAtPosition(kbNewX, this.y)) {
+                this.x = kbNewX;
+            }
+            if (map && !map.isWallAtPosition(this.x, kbNewY)) {
+                this.y = kbNewY;
+            }
+            this.knockbackVX *= 0.85;
+            this.knockbackVY *= 0.85;
+            if (Math.abs(this.knockbackVX) < 0.5) this.knockbackVX = 0;
+            if (Math.abs(this.knockbackVY) < 0.5) this.knockbackVY = 0;
         }
 
         this.updateFacing(player);
@@ -272,6 +292,16 @@ class Enemy {
         return true;
     }
     
+    applyKnockback(sourceX, sourceY, force) {
+        const dx = this.x - sourceX;
+        const dy = this.y - sourceY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 0) {
+            this.knockbackVX += (dx / dist) * force;
+            this.knockbackVY += (dy / dist) * force;
+        }
+    }
+
     takeDamage(damage) {
         let actualDamage = damage;
 

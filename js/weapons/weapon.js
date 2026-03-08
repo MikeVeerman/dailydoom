@@ -246,7 +246,7 @@ class Weapon {
             const splashRadius = stats.splashRadius;
             const splashDamage = this.damage * 0.5;
 
-            // Damage all enemies in splash radius
+            // Damage all enemies in splash radius + knockback
             map.enemies.forEach(enemy => {
                 if (!enemy.active || enemy.dying) return;
                 if (enemy === hit.enemy) return; // Already took direct hit
@@ -260,20 +260,32 @@ class Weapon {
                     if (window.game && window.game.hud) {
                         window.game.hud.addDamageNumber(enemy.x, enemy.y, dmg, false);
                     }
+                    if (enemy.applyKnockback) {
+                        enemy.applyKnockback(hit.hitPoint.x, hit.hitPoint.y, 500 * falloff);
+                    }
                 }
             });
 
-            // Self damage if player is too close
+            // Knockback on direct-hit enemy too
+            if (hit.enemy && hit.enemy.applyKnockback) {
+                hit.enemy.applyKnockback(hit.hitPoint.x, hit.hitPoint.y, 500);
+            }
+
+            // Self damage + knockback if player is too close
             const playerDist = Math.sqrt(
                 (player.x - hit.hitPoint.x) ** 2 + (player.y - hit.hitPoint.y) ** 2
             );
             if (playerDist < splashRadius) {
-                const selfDmg = Math.round(splashDamage * (1 - playerDist / splashRadius) * (stats.selfDamageMultiplier || 1));
+                const falloff = 1 - (playerDist / splashRadius);
+                const selfDmg = Math.round(splashDamage * falloff * (stats.selfDamageMultiplier || 1));
                 if (selfDmg > 0) {
                     player.takeDamage(selfDmg);
                     if (window.game && window.game.hud) {
                         window.game.hud.onPlayerDamageFrom(hit.hitPoint.x, hit.hitPoint.y);
                     }
+                }
+                if (player.applyKnockback) {
+                    player.applyKnockback(hit.hitPoint.x, hit.hitPoint.y, 400 * falloff);
                 }
             }
         }
@@ -502,14 +514,21 @@ class Weapon {
                     if (window.game && window.game.hud) {
                         window.game.hud.addDamageNumber(enemy.x, enemy.y, dmg, false);
                     }
+                    if (enemy.applyKnockback) {
+                        enemy.applyKnockback(burstX, burstY, 500 * falloff);
+                    }
                 }
             });
 
-            // Self damage
+            // Self damage + knockback
             const playerDist = Math.sqrt((player.x - burstX) ** 2 + (player.y - burstY) ** 2);
             if (playerDist < splashRadius) {
-                const selfDmg = Math.round(splashDamage * (1 - playerDist / splashRadius) * 0.5);
+                const falloff = 1 - (playerDist / splashRadius);
+                const selfDmg = Math.round(splashDamage * falloff * 0.5);
                 if (selfDmg > 0) player.takeDamage(selfDmg);
+                if (player.applyKnockback) {
+                    player.applyKnockback(burstX, burstY, 400 * falloff);
+                }
             }
 
             if (this.ammo === 0) this.startReload();

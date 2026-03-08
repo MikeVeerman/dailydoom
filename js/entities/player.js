@@ -109,6 +109,10 @@ class Player {
         this.onGround = true;
         this.canJump = true;
         
+        // Knockback velocity (from explosions)
+        this.knockbackVX = 0;
+        this.knockbackVY = 0;
+
         // Animation and effects
         this.bobOffset = 0;
         this.bobSpeed = 8;
@@ -279,11 +283,38 @@ class Player {
         this.updatePhysics(deltaTime);
     }
     
+    applyKnockback(sourceX, sourceY, force) {
+        const dx = this.x - sourceX;
+        const dy = this.y - sourceY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 0) {
+            this.knockbackVX += (dx / dist) * force;
+            this.knockbackVY += (dy / dist) * force;
+        }
+    }
+
     updatePosition(deltaTime, map) {
         // Store original position for collision resolution
         const originalX = this.x;
         const originalY = this.y;
-        
+
+        // Apply knockback velocity
+        if (Math.abs(this.knockbackVX) > 0.5 || Math.abs(this.knockbackVY) > 0.5) {
+            const kbNewX = this.x + this.knockbackVX * deltaTime;
+            if (!this.checkCollision(kbNewX, this.y, map)) {
+                this.x = kbNewX;
+            }
+            const kbNewY = this.y + this.knockbackVY * deltaTime;
+            if (!this.checkCollision(this.x, kbNewY, map)) {
+                this.y = kbNewY;
+            }
+            // Decay knockback
+            this.knockbackVX *= 0.85;
+            this.knockbackVY *= 0.85;
+            if (Math.abs(this.knockbackVX) < 0.5) this.knockbackVX = 0;
+            if (Math.abs(this.knockbackVY) < 0.5) this.knockbackVY = 0;
+        }
+
         // Try to move on X axis
         const newX = this.x + this.velocityX;
         if (!this.checkCollision(newX, this.y, map)) {
