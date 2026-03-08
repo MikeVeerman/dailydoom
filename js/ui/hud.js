@@ -1366,34 +1366,55 @@ class HUD {
     renderMinimap(player, gameEngine) {
         const map = gameEngine.map;
         const size = 150;
+        const radius = size / 2;
         const padding = 10;
-        const mapX = this.canvas.width - size - padding;
-        const mapY = padding;
+        const centerX = this.canvas.width - radius - padding;
+        const centerY = radius + padding;
 
         // Update fog of war
         this.updateFogOfWar(player, map);
 
-        // Semi-transparent background
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        this.ctx.fillRect(mapX, mapY, size, size);
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-        this.ctx.strokeRect(mapX, mapY, size, size);
+        this.ctx.save();
 
-        const cellW = size / map.width;
-        const cellH = size / map.height;
+        // Circular clip region
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        this.ctx.clip();
 
-        // Draw walls and floors (only revealed tiles)
-        for (let gy = 0; gy < map.height; gy++) {
-            for (let gx = 0; gx < map.width; gx++) {
+        // Dark background
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillRect(centerX - radius, centerY - radius, size, size);
+
+        // Scale: pixels per world unit (show ~10 tiles around player)
+        const viewRange = 10; // tiles visible in each direction
+        const scale = radius / (viewRange * map.tileSize);
+
+        // Rotate so player's facing direction points up on screen
+        this.ctx.translate(centerX, centerY);
+        this.ctx.rotate(-player.angle - Math.PI / 2);
+
+        // Player world position as origin offset
+        const playerTileX = player.x / map.tileSize;
+        const playerTileY = player.y / map.tileSize;
+
+        // Determine tile range to render (with margin for rotation)
+        const tileRadius = Math.ceil(viewRange * 1.5);
+        const startGX = Math.max(0, Math.floor(playerTileX - tileRadius));
+        const endGX = Math.min(map.width - 1, Math.ceil(playerTileX + tileRadius));
+        const startGY = Math.max(0, Math.floor(playerTileY - tileRadius));
+        const endGY = Math.min(map.height - 1, Math.ceil(playerTileY + tileRadius));
+
+        const cellSize = map.tileSize * scale;
+
+        // Draw walls and floors
+        for (let gy = startGY; gy <= endGY; gy++) {
+            for (let gx = startGX; gx <= endGX; gx++) {
+                const rx = (gx * map.tileSize - player.x) * scale;
+                const ry = (gy * map.tileSize - player.y) * scale;
+
                 if (!this.isTileRevealed(gx, gy)) {
-                    // Fog: dark tile
                     this.ctx.fillStyle = 'rgba(10, 10, 10, 0.8)';
-                    this.ctx.fillRect(
-                        mapX + gx * cellW,
-                        mapY + gy * cellH,
-                        Math.ceil(cellW),
-                        Math.ceil(cellH)
-                    );
+                    this.ctx.fillRect(rx, ry, Math.ceil(cellSize) + 1, Math.ceil(cellSize) + 1);
                     continue;
                 }
                 if (map.grid[gy][gx] > 0) {
@@ -1409,63 +1430,52 @@ class HUD {
                         case 10: this.ctx.fillStyle = '#AA7733'; break;
                         default: this.ctx.fillStyle = '#444444'; break;
                     }
-                    this.ctx.fillRect(
-                        mapX + gx * cellW,
-                        mapY + gy * cellH,
-                        Math.ceil(cellW),
-                        Math.ceil(cellH)
-                    );
+                    this.ctx.fillRect(rx, ry, Math.ceil(cellSize) + 1, Math.ceil(cellSize) + 1);
                 }
             }
         }
 
-        // Draw acid tiles (only in revealed areas)
+        // Draw acid tiles
         if (map.acidTiles) {
             this.ctx.fillStyle = 'rgba(0, 255, 0, 0.4)';
             for (const key of map.acidTiles) {
                 const [ax, ay] = key.split(',').map(Number);
                 if (!this.isTileRevealed(ax, ay)) continue;
-                this.ctx.fillRect(
-                    mapX + ax * cellW,
-                    mapY + ay * cellH,
-                    Math.ceil(cellW),
-                    Math.ceil(cellH)
-                );
+                const rx = (ax * map.tileSize - player.x) * scale;
+                const ry = (ay * map.tileSize - player.y) * scale;
+                this.ctx.fillRect(rx, ry, Math.ceil(cellSize) + 1, Math.ceil(cellSize) + 1);
             }
         }
 
-        // Draw lava tiles (only in revealed areas)
+        // Draw lava tiles
         if (map.lavaTiles) {
             this.ctx.fillStyle = 'rgba(255, 100, 0, 0.4)';
             for (const key of map.lavaTiles) {
                 const [lx, ly] = key.split(',').map(Number);
                 if (!this.isTileRevealed(lx, ly)) continue;
-                this.ctx.fillRect(
-                    mapX + lx * cellW,
-                    mapY + ly * cellH,
-                    Math.ceil(cellW),
-                    Math.ceil(cellH)
-                );
+                const rx = (lx * map.tileSize - player.x) * scale;
+                const ry = (ly * map.tileSize - player.y) * scale;
+                this.ctx.fillRect(rx, ry, Math.ceil(cellSize) + 1, Math.ceil(cellSize) + 1);
             }
         }
 
-        // Draw barrels (only in revealed areas)
+        // Draw barrels
         if (map.barrels) {
             for (const barrel of map.barrels) {
                 if (!barrel.active) continue;
                 const bgx = Math.floor(barrel.x / map.tileSize);
                 const bgy = Math.floor(barrel.y / map.tileSize);
                 if (!this.isTileRevealed(bgx, bgy)) continue;
-                const bx = mapX + (barrel.x / map.tileSize) * cellW;
-                const by = mapY + (barrel.y / map.tileSize) * cellH;
+                const rx = (barrel.x - player.x) * scale;
+                const ry = (barrel.y - player.y) * scale;
                 this.ctx.fillStyle = '#CC4400';
                 this.ctx.beginPath();
-                this.ctx.arc(bx, by, Math.max(cellW * 0.5, 2), 0, Math.PI * 2);
+                this.ctx.arc(rx, ry, Math.max(cellSize * 0.4, 2), 0, Math.PI * 2);
                 this.ctx.fill();
             }
         }
 
-        // Draw weapon pickups (only in revealed areas)
+        // Draw weapon pickups
         if (gameEngine.pickupManager) {
             const pickups = gameEngine.pickupManager.getActivePickups();
             for (const pickup of pickups) {
@@ -1473,50 +1483,65 @@ class HUD {
                 const pgx = Math.floor(pickup.x / map.tileSize);
                 const pgy = Math.floor(pickup.y / map.tileSize);
                 if (!this.isTileRevealed(pgx, pgy)) continue;
-                const wx = mapX + (pickup.x / map.tileSize) * cellW;
-                const wy = mapY + (pickup.y / map.tileSize) * cellH;
+                const rx = (pickup.x - player.x) * scale;
+                const ry = (pickup.y - player.y) * scale;
                 this.ctx.fillStyle = pickup.properties.color;
                 this.ctx.beginPath();
-                this.ctx.arc(wx, wy, Math.max(cellW * 0.5, 2), 0, Math.PI * 2);
+                this.ctx.arc(rx, ry, Math.max(cellSize * 0.4, 2), 0, Math.PI * 2);
                 this.ctx.fill();
             }
         }
 
-        // Draw enemies (only in revealed areas)
-        const enemies = map.enemies;
-        for (const enemy of enemies) {
+        // Draw enemies
+        for (const enemy of map.enemies) {
             if (!enemy.active) continue;
             const egx = Math.floor(enemy.x / map.tileSize);
             const egy = Math.floor(enemy.y / map.tileSize);
             if (!this.isTileRevealed(egx, egy)) continue;
-            const ex = mapX + (enemy.x / map.tileSize) * cellW;
-            const ey = mapY + (enemy.y / map.tileSize) * cellH;
+            const rx = (enemy.x - player.x) * scale;
+            const ry = (enemy.y - player.y) * scale;
             this.ctx.fillStyle = enemy.type === 'boss' ? '#FFD700' : '#FF4444';
             this.ctx.beginPath();
-            this.ctx.arc(ex, ey, Math.max(cellW * 0.6, 2), 0, Math.PI * 2);
+            this.ctx.arc(rx, ry, Math.max(cellSize * 0.4, 2.5), 0, Math.PI * 2);
             this.ctx.fill();
         }
 
-        // Draw player position and facing direction
-        const px = mapX + (player.x / map.tileSize) * cellW;
-        const py = mapY + (player.y / map.tileSize) * cellH;
-
-        // Player direction line
-        const dirLen = 8;
-        this.ctx.strokeStyle = '#00FF00';
-        this.ctx.lineWidth = 2;
+        // Player is always at center, facing up
+        // Draw FOV cone (pointing up = forward in rotated space)
+        this.ctx.fillStyle = 'rgba(0, 255, 0, 0.08)';
         this.ctx.beginPath();
-        this.ctx.moveTo(px, py);
-        this.ctx.lineTo(px + Math.cos(player.angle) * dirLen, py + Math.sin(player.angle) * dirLen);
-        this.ctx.stroke();
-
-        // Player dot
-        this.ctx.fillStyle = '#00FF00';
-        this.ctx.beginPath();
-        this.ctx.arc(px, py, 3, 0, Math.PI * 2);
+        this.ctx.moveTo(0, 0);
+        this.ctx.arc(0, 0, radius * 0.8, -Math.PI / 2 - Math.PI / 6, -Math.PI / 2 + Math.PI / 6);
+        this.ctx.closePath();
         this.ctx.fill();
 
-        // Reset line width
+        // Player direction indicator (triangle pointing up = forward)
+        this.ctx.fillStyle = '#00FF00';
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, -6);
+        this.ctx.lineTo(-4, 4);
+        this.ctx.lineTo(4, 4);
+        this.ctx.closePath();
+        this.ctx.fill();
+
+        this.ctx.restore();
+
+        // Draw circular border (after restore so it's not rotated)
+        this.ctx.strokeStyle = 'rgba(0, 255, 0, 0.4)';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        this.ctx.stroke();
+
+        // North indicator (north = -Y in world space)
+        const northScreenAngle = -(Math.PI + player.angle);
+        const northX = centerX + Math.cos(northScreenAngle) * (radius - 8);
+        const northY = centerY + Math.sin(northScreenAngle) * (radius - 8);
+        this.ctx.font = 'bold 10px monospace';
+        this.ctx.fillStyle = '#FF4444';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('N', northX, northY + 4);
+
         this.ctx.lineWidth = 1;
     }
 
