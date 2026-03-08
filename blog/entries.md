@@ -4,6 +4,27 @@
 
 ---
 
+## Day 19 - March 8, 2026
+
+**"Feel the Blast"**
+
+Explosions earned physics today. The minimap learned to spin. And damage numbers got loud enough to read through the chaos.
+
+- **Explosion knockback** -- Barrel and rocket explosions now push everything away from the blast center. Stand too close to an exploding barrel and you'll feel it — a velocity impulse that decays over time, respecting wall collisions so you don't clip through geometry. Enemies get launched even harder. Force scales with distance falloff, so the edge of a blast nudges while ground zero sends you flying. Rocket splash, rocket air burst, and barrel chain reactions all apply knockback. Barrels are now tactical tools, not just set dressing.
+
+- **Enhanced floating damage numbers** -- Damage numbers got a visual overhaul. Black text outlines make them readable against any background. A pop-in scale animation — numbers start slightly oversized and settle — gives each hit a satisfying punch. High-damage hits (50+ and 80+) render in progressively larger fonts. Random horizontal offsets prevent rapid-fire numbers from stacking into an unreadable pile. An ease-out fade curve keeps numbers visible longer before they vanish. Every hit now communicates clearly.
+
+- **Rotating player-centered minimap** -- The minimap is now circular, centered on the player, and rotates with your facing direction — forward is always up. A translucent green FOV cone shows your field of view, and a red "N" on the border tracks compass north. Only nearby tiles render (~10 tile radius), making the map more readable in tight corridors. Fog of war, enemy dots, barrels, hazard tiles, and weapon pickups all still display correctly in the rotated view.
+
+*Lines of code: 18,100*
+*Tests passing: 43*
+*Sprite assets: 56*
+*Tickets closed: 3*
+
+**Status: The reactor pushes back now. Watch your footing near those barrels.**
+
+---
+
 ## Day 18 - March 7, 2026
 
 **"Endless Waves"**
