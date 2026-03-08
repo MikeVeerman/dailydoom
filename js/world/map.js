@@ -362,7 +362,7 @@ class GameMap {
             window.soundEngine.playExplosion();
         }
 
-        // Damage player
+        // Damage player + knockback
         if (window.game && window.game.player) {
             const player = window.game.player;
             const dx = player.x - barrel.x;
@@ -373,10 +373,14 @@ class GameMap {
                 const dmg = Math.round(barrel.explodeDamage * falloff);
                 player.takeDamage(dmg);
                 if (window.game.hud) window.game.hud.onPlayerDamageFrom(barrel.x, barrel.y);
+                // Knockback: 400 force at center, scaled by falloff
+                if (player.applyKnockback) {
+                    player.applyKnockback(barrel.x, barrel.y, 400 * falloff);
+                }
             }
         }
 
-        // Damage enemies
+        // Damage enemies + knockback
         this.enemies.forEach(enemy => {
             if (!enemy.active) return;
             const dx = enemy.x - barrel.x;
@@ -388,6 +392,10 @@ class GameMap {
                 enemy.takeDamage(dmg);
                 if (window.game && window.game.hud) {
                     window.game.hud.addDamageNumber(enemy.x, enemy.y, dmg, false);
+                }
+                // Knockback: 500 force at center, scaled by falloff
+                if (enemy.applyKnockback) {
+                    enemy.applyKnockback(barrel.x, barrel.y, 500 * falloff);
                 }
             }
         });
