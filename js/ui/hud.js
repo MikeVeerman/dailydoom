@@ -1226,6 +1226,7 @@ class HUD {
             worldX, worldY, damage, isCritical, isHeadshot: isHeadshot || false,
             spawnTime: Date.now(),
             duration: 1000,
+            offsetX: (Math.random() - 0.5) * 30, // Random horizontal offset to prevent overlap
             offsetY: 0
         });
     }
@@ -1264,26 +1265,39 @@ class HUD {
             while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
             if (Math.abs(angleDiff) > renderer.fov / 2) continue;
 
-            const screenX = this.canvas.width / 2 + (angleDiff / renderer.fov) * this.canvas.width;
+            const baseScreenX = this.canvas.width / 2 + (angleDiff / renderer.fov) * this.canvas.width;
+            const screenX = baseScreenX + (dn.offsetX || 0);
             const wallHeight = (renderer.wallHeight * renderer.projectionDistance) / distance;
             const baseY = renderer.halfHeight - wallHeight / 2;
-            const screenY = baseY - 20 - (progress * 40); // Float upward
+            const screenY = baseY - 20 - (progress * 50); // Float upward
 
-            const alpha = 1 - progress;
-            const fontSize = dn.isHeadshot ? 22 : (dn.isCritical ? 20 : 14);
+            const alpha = 1 - progress * progress; // Ease-out fade (stays visible longer)
+            // Scale font size: bigger for high damage, headshots, crits
+            let fontSize = dn.isHeadshot ? 22 : (dn.isCritical ? 20 : 14);
+            if (dn.damage >= 80) fontSize += 4;
+            else if (dn.damage >= 50) fontSize += 2;
+            // Pop-in scale effect: start large and settle
+            const scale = progress < 0.15 ? 1 + (1 - progress / 0.15) * 0.3 : 1;
+            const scaledSize = Math.round(fontSize * scale);
 
-            this.ctx.font = `bold ${fontSize}px monospace`;
+            this.ctx.font = `bold ${scaledSize}px monospace`;
             this.ctx.textAlign = 'center';
+            this.ctx.lineWidth = 3;
+            this.ctx.strokeStyle = `rgba(0, 0, 0, ${alpha * 0.8})`;
+            const text = dn.damage.toString();
             if (dn.isHeadshot) {
+                this.ctx.strokeText(text, screenX, screenY);
                 this.ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
-                this.ctx.fillText(dn.damage.toString(), screenX, screenY);
-                this.ctx.font = 'bold 10px monospace';
-                this.ctx.fillText('HEADSHOT', screenX, screenY - 14);
+                this.ctx.fillText(text, screenX, screenY);
+                this.ctx.font = `bold ${Math.round(10 * scale)}px monospace`;
+                this.ctx.strokeText('HEADSHOT', screenX, screenY - scaledSize);
+                this.ctx.fillText('HEADSHOT', screenX, screenY - scaledSize);
             } else {
                 this.ctx.fillStyle = dn.isCritical
                     ? `rgba(255, 255, 0, ${alpha})`
                     : `rgba(255, 100, 100, ${alpha})`;
-                this.ctx.fillText(dn.damage.toString(), screenX, screenY);
+                this.ctx.strokeText(text, screenX, screenY);
+                this.ctx.fillText(text, screenX, screenY);
             }
         }
     }
