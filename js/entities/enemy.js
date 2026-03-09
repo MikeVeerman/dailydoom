@@ -353,15 +353,48 @@ class Enemy {
                 window.game.hud.emitBloodParticles(this.x, this.y, 15);
             }
 
-            // 30% chance to drop an ammo crate
-            if (Math.random() < 0.3 && window.game && window.game.pickupManager) {
-                window.game.pickupManager.spawnAmmoCrate(this.x, this.y);
+            // Loot drops based on enemy type (ammo via spawnAmmoCrate + health/armor)
+            if (window.game && window.game.pickupManager) {
+                this.dropLoot();
             }
         }
 
         return actualDamage;
     }
     
+    // Drop loot on death based on enemy type
+    dropLoot() {
+        const pm = window.game.pickupManager;
+        // Loot tables: { ammo, health, healthLarge, armor } as drop chances (0-1)
+        const lootTable = {
+            guard:        { ammo: 0.30, health: 0.20, healthLarge: 0,    armor: 0.05 },
+            imp:          { ammo: 0.25, health: 0.15, healthLarge: 0,    armor: 0    },
+            soldier:      { ammo: 0.40, health: 0.20, healthLarge: 0.05, armor: 0.10 },
+            demon:        { ammo: 0.25, health: 0.30, healthLarge: 0.10, armor: 0.15 },
+            berserker:    { ammo: 0.20, health: 0.35, healthLarge: 0.10, armor: 0.10 },
+            spitter:      { ammo: 0.35, health: 0.15, healthLarge: 0,    armor: 0.05 },
+            shield_guard: { ammo: 0.30, health: 0.20, healthLarge: 0.05, armor: 0.25 },
+            boss:         { ammo: 0.80, health: 0.60, healthLarge: 0.40, armor: 0.50 }
+        };
+
+        const table = lootTable[this.type] || lootTable.guard;
+        // Small random offset so drops don't stack exactly
+        const ox = (Math.random() - 0.5) * 20;
+        const oy = (Math.random() - 0.5) * 20;
+
+        if (Math.random() < table.ammo) {
+            pm.spawnAmmoCrate(this.x + ox, this.y + oy);
+        }
+        if (Math.random() < table.healthLarge) {
+            pm.spawnHealthDrop(this.x - ox, this.y - oy, 'large');
+        } else if (Math.random() < table.health) {
+            pm.spawnHealthDrop(this.x - ox, this.y - oy, 'small');
+        }
+        if (Math.random() < table.armor) {
+            pm.spawnArmorDrop(this.x + oy, this.y - ox);
+        }
+    }
+
     // Try to play a bark sound, respecting cooldown
     tryBark(barkType) {
         const now = Date.now();

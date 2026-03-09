@@ -561,6 +561,21 @@ class PickupManager {
         return pickup;
     }
 
+    // Spawn a health pickup at a given position
+    spawnHealthDrop(x, y, size = 'small') {
+        const type = size === 'large' ? 'health_large' : 'health';
+        const pickup = this.addPickup(x, y, type);
+        console.log(`Health drop: ${type} at (${Math.round(x)}, ${Math.round(y)})`);
+        return pickup;
+    }
+
+    // Spawn an armor pickup at a given position
+    spawnArmorDrop(x, y) {
+        const pickup = this.addPickup(x, y, 'armor');
+        console.log(`Armor drop: armor at (${Math.round(x)}, ${Math.round(y)})`);
+        return pickup;
+    }
+
     // Spawn weapon mod pickups at strategic locations
     spawnModPickups(map) {
         const tileSize = map.tileSize;
