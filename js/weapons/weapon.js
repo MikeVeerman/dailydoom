@@ -287,7 +287,7 @@ class Weapon {
                 if (selfDmg > 0) {
                     player.takeDamage(selfDmg);
                     if (window.game && window.game.hud) {
-                        window.game.hud.onPlayerDamageFrom(hit.hitPoint.x, hit.hitPoint.y);
+                        window.game.hud.onPlayerDamageFrom(hit.hitPoint.x, hit.hitPoint.y, selfDmg);
                     }
                 }
                 if (player.applyKnockback) {

@@ -57,7 +57,7 @@ class Projectile {
             if (player.takeDamage(this.damage)) {
                 // Trigger HUD damage flash from projectile direction
                 if (window.game && window.game.hud) {
-                    window.game.hud.onPlayerDamageFrom(this.x, this.y);
+                    window.game.hud.onPlayerDamageFrom(this.x, this.y, this.damage);
                 }
                 if (window.soundEngine && window.soundEngine.isInitialized) {
                     window.soundEngine.playPlayerHit();
