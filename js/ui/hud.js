@@ -73,6 +73,10 @@ class HUD {
         this.hitMarkerDuration = 150; // ms
         this.hitMarkerType = 'normal'; // 'normal', 'headshot', 'critical'
 
+        // Big damage flash tracking
+        this.bigDamageTime = 0;
+        this.bigDamageDuration = 300; // ms
+
         // Low health heartbeat tracking
         this.lastHeartbeatTime = 0;
 
@@ -797,6 +801,45 @@ class HUD {
             this.ctx.fillStyle = gradRight;
             this.ctx.fillRect(w - edgeSize, 0, edgeSize, h);
         }
+
+        // Big damage flash: white-red burst when taking >20 damage
+        const bigDamageElapsed = now - this.bigDamageTime;
+        if (bigDamageElapsed < this.bigDamageDuration) {
+            const progress = bigDamageElapsed / this.bigDamageDuration;
+            // White flash fades to red, then transparent
+            const whiteAlpha = Math.max(0, (1 - progress * 2)) * 0.3;
+            const redAlpha = Math.max(0, (1 - progress)) * 0.25;
+            if (whiteAlpha > 0) {
+                this.ctx.fillStyle = `rgba(255, 255, 255, ${whiteAlpha})`;
+                this.ctx.fillRect(0, 0, w, h);
+            }
+            this.ctx.fillStyle = `rgba(255, 50, 0, ${redAlpha})`;
+            this.ctx.fillRect(0, 0, w, h);
+        }
+
+        // Armor tint: subtle blue overlay when armor > 50
+        if (player.armor && player.armor > 50) {
+            const armorIntensity = Math.min((player.armor - 50) / 50, 1); // 0 at 50, 1 at 100
+            const armorAlpha = armorIntensity * 0.06;
+            const edgeSize = 50;
+
+            // Bottom-only subtle blue glow
+            const gradArmor = this.ctx.createLinearGradient(0, h, 0, h - edgeSize);
+            gradArmor.addColorStop(0, `rgba(0, 120, 255, ${armorAlpha})`);
+            gradArmor.addColorStop(1, 'rgba(0, 120, 255, 0)');
+            this.ctx.fillStyle = gradArmor;
+            this.ctx.fillRect(0, h - edgeSize, w, edgeSize);
+        }
+
+        // Power-up glow: golden shimmer when any power-up is active
+        if (player.getActivePowerups) {
+            const powerups = player.getActivePowerups();
+            if (powerups.length > 0) {
+                const glowAlpha = (Math.sin(now * 0.006) * 0.5 + 0.5) * 0.05;
+                this.ctx.fillStyle = `rgba(255, 215, 0, ${glowAlpha})`;
+                this.ctx.fillRect(0, 0, w, h);
+            }
+        }
     }
     
     playLowHealthHeartbeat(player, now) {
@@ -1264,13 +1307,17 @@ class HUD {
     }
 
     // Called when player takes damage from a known source position
-    onPlayerDamageFrom(sourceX, sourceY) {
+    onPlayerDamageFrom(sourceX, sourceY, damageAmount) {
         this.lastDamageTime = Date.now();
         this.damageIndicators.push({
             sourceX,
             sourceY,
             time: Date.now()
         });
+        // Trigger big damage flash for heavy hits
+        if (damageAmount && damageAmount > 20) {
+            this.bigDamageTime = Date.now();
+        }
     }
 
     // Add a floating damage number
