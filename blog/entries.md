@@ -4,6 +4,27 @@
 
 ---
 
+## Day 20 - March 9, 2026
+
+**"Feel Every Hit"**
+
+Combat feedback got a serious upgrade. Every shot that connects now tells you about it, enemies drop useful loot, and the screen reacts to everything happening around you.
+
+- **Hit markers** -- A crosshair hit marker now flashes when shots connect with enemies. Four diagonal lines expand outward from the crosshair center and fade over 150ms, giving instant visual confirmation of every hit. White markers for normal hits, gold for headshots, orange for criticals. A subtle procedural "ping" sound accompanies each marker — higher pitched for headshots, mid-range for crits — distinct from the enemy hit thud so you can tell them apart in the chaos. Works across primary fire, alt-fire, and rifle burst modes.
+
+- **Enemy loot drops** -- Enemies now drop health packs and armor shards alongside the existing ammo crates. Each enemy type has its own loot table: imps drop small health occasionally, shield guards have a 25% chance to drop armor, bosses rain loot with 50% armor and 40% large health pack rates. Drop positions are slightly randomized so items don't stack on top of each other. The pickup system already handled health and armor — this just connects enemy deaths to the reward loop that was missing.
+
+- **Dynamic screen effects** -- The screen now reacts to the intensity of combat. Taking a heavy hit (>20 damage) triggers a white-red flash that fades over 300ms — you feel the impact. High armor (>50) produces a subtle blue glow at the screen bottom, a constant reminder of your protection. Active power-ups cast a gentle golden shimmer across the viewport, pulsing slowly. All effects blend together without obscuring gameplay.
+
+*Lines of code: 18,200*
+*Tests passing: 43*
+*Sprite assets: 53*
+*Tickets closed: 3*
+
+**Status: Every bullet that lands tells you. Every kill pays out. The reactor rewards aggression.**
+
+---
+
 ## Day 19 - March 8, 2026
 
 **"Feel the Blast"**
