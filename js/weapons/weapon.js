@@ -198,6 +198,12 @@ class Weapon {
                 window.game.hud.addDamageNumber(hit.enemy.x, hit.enemy.y, actualDamage, isCritical || isHeadshot, isHeadshot);
             }
 
+            // Hit marker
+            if (window.game && window.game.hud && window.game.hud.triggerHitMarker) {
+                const markerType = isHeadshot ? 'headshot' : (isCritical ? 'critical' : 'normal');
+                window.game.hud.triggerHitMarker(markerType);
+            }
+
             // Headshot sound
             if (isHeadshot && window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playHeadshot) {
                 window.soundEngine.playHeadshot();
@@ -570,6 +576,9 @@ class Weapon {
             if (window.game && window.game.hud) {
                 window.game.hud.emitBloodParticles(hit.enemy.x, hit.enemy.y, wasAlive && hit.enemy.dying ? 12 : 5);
                 window.game.hud.addDamageNumber(hit.enemy.x, hit.enemy.y, actualDamage, isCritical || isHeadshot, isHeadshot);
+                if (window.game.hud.triggerHitMarker) {
+                    window.game.hud.triggerHitMarker(isHeadshot ? 'headshot' : (isCritical ? 'critical' : 'normal'));
+                }
             }
             if (isHeadshot && window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playHeadshot) {
                 window.soundEngine.playHeadshot();
@@ -652,6 +661,9 @@ class Weapon {
             if (window.game && window.game.hud) {
                 window.game.hud.emitBloodParticles(hit.enemy.x, hit.enemy.y, 5);
                 window.game.hud.addDamageNumber(hit.enemy.x, hit.enemy.y, actualDamage, isCritical || isHeadshot, isHeadshot);
+                if (window.game.hud.triggerHitMarker) {
+                    window.game.hud.triggerHitMarker(isHeadshot ? 'headshot' : (isCritical ? 'critical' : 'normal'));
+                }
             }
         }
         if (hit.barrel && hit.barrel.active) {

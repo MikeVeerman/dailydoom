@@ -68,6 +68,11 @@ class HUD {
         this.inHazardZone = false;
         this.hazardType = null; // 'acid' or 'lava'
 
+        // Hit markers
+        this.hitMarkerTime = 0;
+        this.hitMarkerDuration = 150; // ms
+        this.hitMarkerType = 'normal'; // 'normal', 'headshot', 'critical'
+
         // Low health heartbeat tracking
         this.lastHeartbeatTime = 0;
 
@@ -335,21 +340,21 @@ class HUD {
     
     renderCrosshair() {
         if (!this.showCrosshair) return;
-        
+
         const centerX = this.canvas.width / 2;
         const centerY = this.canvas.height / 2;
         const size = 10;
         const gap = 3;
-        
+
         this.ctx.strokeStyle = '#FFFFFF';
         this.ctx.lineWidth = 2;
-        
+
         // Crosshair lines
         this.ctx.beginPath();
         // Top line
         this.ctx.moveTo(centerX, centerY - gap - size);
         this.ctx.lineTo(centerX, centerY - gap);
-        // Bottom line  
+        // Bottom line
         this.ctx.moveTo(centerX, centerY + gap);
         this.ctx.lineTo(centerX, centerY + gap + size);
         // Left line
@@ -359,10 +364,58 @@ class HUD {
         this.ctx.moveTo(centerX + gap, centerY);
         this.ctx.lineTo(centerX + gap + size, centerY);
         this.ctx.stroke();
-        
+
         // Center dot
         this.ctx.fillStyle = '#FFFFFF';
         this.ctx.fillRect(centerX - 1, centerY - 1, 2, 2);
+
+        // Hit marker overlay
+        const now = Date.now();
+        const elapsed = now - this.hitMarkerTime;
+        if (elapsed < this.hitMarkerDuration) {
+            const progress = elapsed / this.hitMarkerDuration;
+            const alpha = 1 - progress;
+            const expand = progress * 4; // slight expansion over time
+            const markerSize = 8 + expand;
+            const markerGap = 4 + expand;
+
+            // Color based on hit type
+            let color;
+            if (this.hitMarkerType === 'headshot') {
+                color = `rgba(255, 215, 0, ${alpha})`; // gold
+            } else if (this.hitMarkerType === 'critical') {
+                color = `rgba(255, 100, 0, ${alpha})`; // orange
+            } else {
+                color = `rgba(255, 255, 255, ${alpha})`; // white
+            }
+
+            this.ctx.strokeStyle = color;
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            // Top-left to center
+            this.ctx.moveTo(centerX - markerGap - markerSize, centerY - markerGap - markerSize);
+            this.ctx.lineTo(centerX - markerGap, centerY - markerGap);
+            // Top-right to center
+            this.ctx.moveTo(centerX + markerGap + markerSize, centerY - markerGap - markerSize);
+            this.ctx.lineTo(centerX + markerGap, centerY - markerGap);
+            // Bottom-left to center
+            this.ctx.moveTo(centerX - markerGap - markerSize, centerY + markerGap + markerSize);
+            this.ctx.lineTo(centerX - markerGap, centerY + markerGap);
+            // Bottom-right to center
+            this.ctx.moveTo(centerX + markerGap + markerSize, centerY + markerGap + markerSize);
+            this.ctx.lineTo(centerX + markerGap, centerY + markerGap);
+            this.ctx.stroke();
+        }
+    }
+
+    triggerHitMarker(type = 'normal') {
+        this.hitMarkerTime = Date.now();
+        this.hitMarkerType = type;
+
+        // Play hit marker sound
+        if (window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playHitMarker) {
+            window.soundEngine.playHitMarker(type);
+        }
     }
     
     loadWeaponImages() {

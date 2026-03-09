@@ -362,6 +362,45 @@ class SoundEngine {
     }
 
     // Enemy hit/damage sound
+    playHitMarker(type = 'normal') {
+        if (!this.isInitialized) return;
+
+        const now = this.audioContext.currentTime;
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(this.masterGain);
+
+        // Short high-pitched ping — distinct from enemy hit thud
+        oscillator.type = 'sine';
+        if (type === 'headshot') {
+            oscillator.frequency.setValueAtTime(1800, now);
+            oscillator.frequency.exponentialRampToValueAtTime(2400, now + 0.06);
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, now + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+            oscillator.start(now);
+            oscillator.stop(now + 0.12);
+        } else if (type === 'critical') {
+            oscillator.frequency.setValueAtTime(1400, now);
+            oscillator.frequency.exponentialRampToValueAtTime(1800, now + 0.06);
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(this.sfxVolume * 0.25, now + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+            oscillator.start(now);
+            oscillator.stop(now + 0.1);
+        } else {
+            oscillator.frequency.setValueAtTime(1200, now);
+            oscillator.frequency.exponentialRampToValueAtTime(1500, now + 0.04);
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(this.sfxVolume * 0.2, now + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+            oscillator.start(now);
+            oscillator.stop(now + 0.08);
+        }
+    }
+
     playEnemyHit() {
         if (!this.isInitialized) return;
         
