@@ -41,6 +41,10 @@ class Enemy {
         this.knockbackVX = 0;
         this.knockbackVY = 0;
 
+        // Attack telegraph
+        this.attackTellTime = 0; // timestamp when attack telegraph starts
+        this.attackTellDuration = 300; // ms of telegraph before attack lands
+
         // Death animation
         this.dying = false;
         this.deathTime = 0;
@@ -207,22 +211,45 @@ class Enemy {
     }
     
     attack(player) {
-        // Basic attack with cooldown
+        // Basic attack with cooldown and telegraph
         const now = Date.now();
         if (!this.lastAttackTime) this.lastAttackTime = 0;
 
         if (now - this.lastAttackTime > 2000) { // 2 second cooldown
-            this.tryBark('attack');
-            const damage = 15; // Default fallback damage
-            if (player.takeDamage(damage)) {
-                if (window.game && window.game.hud) {
-                    window.game.hud.onPlayerDamageFrom(this.x, this.y, damage);
+            // Start telegraph if not already telegraphing
+            if (!this.attackTellTime || now - this.attackTellTime > this.attackTellDuration) {
+                this.attackTellTime = now;
+
+                // Warning sound
+                if (window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playAttackWarning) {
+                    window.soundEngine.playAttackWarning();
                 }
-                if (window.soundEngine && window.soundEngine.isInitialized) {
-                    window.soundEngine.playPlayerHit();
-                }
+
+                // Delay the actual attack by telegraph duration
+                setTimeout(() => {
+                    if (!this.active || this.dying) return;
+                    const dist = this.getDistanceToPlayer(player);
+                    if (dist > this.attackRange * 1.5) return; // Player escaped
+
+                    this.tryBark('attack');
+                    const damage = 15;
+                    if (player.takeDamage(damage)) {
+                        if (window.game && window.game.hud) {
+                            window.game.hud.onPlayerDamageFrom(this.x, this.y, damage);
+                            window.game.hud.triggerScreenShake(8);
+                        }
+                        if (window.soundEngine && window.soundEngine.isInitialized) {
+                            window.soundEngine.playPlayerHit();
+                        }
+                        // Melee knockback
+                        if (player.applyKnockback) {
+                            player.applyKnockback(this.x, this.y, 300);
+                        }
+                    }
+                }, this.attackTellDuration);
+
+                this.lastAttackTime = now;
             }
-            this.lastAttackTime = now;
         }
     }
     

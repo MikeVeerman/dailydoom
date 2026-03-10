@@ -549,7 +549,6 @@ class EnhancedEnemyAI {
     
     performAttack(player) {
         if (this.hasLineOfSight(player, window.game.map)) {
-            this.enemy.tryBark('attack');
             let damage = this.behavior.damage;
 
             // Berserker rage: double damage when below 40% health
@@ -557,8 +556,9 @@ class EnhancedEnemyAI {
                 damage = Math.round(damage * 2);
             }
 
-            // Ranged enemies fire projectiles instead of hitscan
+            // Ranged enemies fire projectiles instead of hitscan (no telegraph needed)
             if (this.behavior.rangedAttack || this.behavior.strafeBehavior) {
+                this.enemy.tryBark('attack');
                 if (window.game && window.game.projectileManager) {
                     const speed = this.behavior.rangedAttack ? 150 : 200;
                     const color = this.behavior.rangedAttack ? '#44FF44' : '#FFAA00';
@@ -575,19 +575,40 @@ class EnhancedEnemyAI {
                 return;
             }
 
-            // Deal damage to player (with invincibility frame check)
-            if (player.takeDamage(damage)) {
-                // Trigger HUD damage flash
-                if (window.game && window.game.hud) {
-                    window.game.hud.onPlayerDamageFrom(this.enemy.x, this.enemy.y, damage);
-                }
+            // Melee attack with telegraph
+            const now = Date.now();
+            this.enemy.attackTellTime = now;
 
-                // Play attack and pain sounds
-                if (window.soundEngine && window.soundEngine.isInitialized) {
-                    this.playAttackSound();
-                    window.soundEngine.playPlayerHit();
-                }
+            // Warning sound
+            if (window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playAttackWarning) {
+                window.soundEngine.playAttackWarning();
             }
+
+            // Delay melee attack by telegraph duration
+            const tellDuration = this.enemy.attackTellDuration || 300;
+            const finalDamage = damage;
+            setTimeout(() => {
+                if (!this.enemy.active || this.enemy.dying) return;
+                const dist = this.getDistanceToPlayer(player);
+                if (dist > this.enemy.attackRange * 1.5) return;
+
+                this.enemy.tryBark('attack');
+
+                if (player.takeDamage(finalDamage)) {
+                    if (window.game && window.game.hud) {
+                        window.game.hud.onPlayerDamageFrom(this.enemy.x, this.enemy.y, finalDamage);
+                        window.game.hud.triggerScreenShake(8);
+                    }
+                    if (window.soundEngine && window.soundEngine.isInitialized) {
+                        this.playAttackSound();
+                        window.soundEngine.playPlayerHit();
+                    }
+                    // Melee knockback
+                    if (player.applyKnockback) {
+                        player.applyKnockback(this.enemy.x, this.enemy.y, 300);
+                    }
+                }
+            }, tellDuration);
         }
     }
     

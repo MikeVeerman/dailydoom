@@ -996,6 +996,21 @@ class Renderer {
             this.ctx.globalAlpha = 1.0;
             this.ctx.imageSmoothingEnabled = prevSmoothing;
 
+            // Attack telegraph overlay (orange pulse before melee attack)
+            if (!entity.dying && entity.attackTellTime) {
+                const tellElapsed = Date.now() - entity.attackTellTime;
+                const tellDuration = entity.attackTellDuration || 300;
+                if (tellElapsed < tellDuration) {
+                    // Pulsing orange glow that intensifies as attack approaches
+                    const progress = tellElapsed / tellDuration;
+                    const pulse = 0.2 + 0.3 * Math.sin(progress * Math.PI * 4) * progress;
+                    this.ctx.globalAlpha = pulse;
+                    this.ctx.fillStyle = '#FF6600';
+                    this.ctx.fillRect(spriteX, spriteY, spriteSize, adjustedHeight);
+                    this.ctx.globalAlpha = 1.0;
+                }
+            }
+
             // Hit flash overlay (red tint for 150ms after being hit)
             if (!entity.dying && entity.hitFlashTime && Date.now() - entity.hitFlashTime < 150) {
                 this.ctx.globalAlpha = 0.4;
