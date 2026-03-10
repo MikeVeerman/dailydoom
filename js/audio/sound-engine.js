@@ -515,6 +515,29 @@ class SoundEngine {
         oscillator.stop(now + 0.15);
     }
     
+    playAttackWarning() {
+        if (!this.isInitialized) return;
+
+        const now = this.audioContext.currentTime;
+
+        // Short ascending pitch warning chirp
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.linearRampToValueAtTime(800, now + 0.1);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.15, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+        osc.start(now);
+        osc.stop(now + 0.12);
+    }
+
     playWeaponSwitch() {
         if (!this.isInitialized) return;
 
