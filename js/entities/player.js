@@ -721,16 +721,21 @@ class Player {
             window.soundEngine.playPlayerDeath();
         }
 
-        // Respawn after delay
-        setTimeout(() => {
-            this.health = this.maxHealth;
-            this.armor = 0;
-            this.isDead = false;
-            this.x = 160;
-            this.y = 160;
-            this.angle = 0;
-            console.log('Player respawned!');
-        }, 2000);
+        // Show death stats screen via game engine
+        if (window.game && window.game.onPlayerDeath) {
+            window.game.onPlayerDeath();
+        } else {
+            // Fallback: auto-respawn after delay
+            setTimeout(() => {
+                this.health = this.maxHealth;
+                this.armor = 0;
+                this.isDead = false;
+                this.x = 160;
+                this.y = 160;
+                this.angle = 0;
+                console.log('Player respawned!');
+            }, 2000);
+        }
     }
     
     isAlive() {

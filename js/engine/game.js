@@ -40,7 +40,10 @@ class GameEngine {
 
         // High score persistence
         this.STORAGE_KEY = 'dailydoom_highscores';
+        this.BEST_RUN_KEY = 'dailydoom_bestrun';
         this.currentScore = 0;
+        this.showDeathScreen = false;
+        this.deathScreenTime = 0;
 
         // Dynamic difficulty scaling
         this.difficultyScaler = {
@@ -305,7 +308,7 @@ class GameEngine {
     
     update(deltaTime) {
         // Skip updates while player is dead or level is complete
-        if (this.player.isDead || this.levelComplete) return;
+        if (this.player.isDead || this.levelComplete || this.showDeathScreen) return;
 
         // Update game systems
         this.player.update(deltaTime, this.map);
@@ -550,6 +553,182 @@ class GameEngine {
         return scores.length > 0 ? scores[0] : null;
     }
 
+    // ========== BEST RUN RECORDS ==========
+
+    getBestRun() {
+        try {
+            const data = localStorage.getItem(this.BEST_RUN_KEY);
+            return data ? JSON.parse(data) : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    saveBestRun(stats, elapsed) {
+        try {
+            const prev = this.getBestRun() || {};
+            const accuracy = stats.shotsFired > 0 ? Math.round((stats.shotsHit / stats.shotsFired) * 100) : 0;
+            const headshotPct = stats.shotsHit > 0 ? Math.round((stats.headshots / stats.shotsHit) * 100) : 0;
+            const comboInfo = this.player.getComboInfo ? this.player.getComboInfo() : null;
+            const bestStreak = comboInfo ? comboInfo.bestStreak : 0;
+
+            const newBests = {};
+            const record = {
+                kills: stats.enemiesKilled,
+                accuracy: accuracy,
+                headshots: stats.headshots || 0,
+                headshotPct: headshotPct,
+                bestStreak: bestStreak,
+                damageDealt: Math.round(stats.damageDealt),
+                survivalTime: Math.floor(elapsed),
+                level: this.player.level
+            };
+
+            // Check for new records
+            for (const key of Object.keys(record)) {
+                if (prev[key] === undefined || record[key] > prev[key]) {
+                    newBests[key] = true;
+                }
+            }
+
+            // Save best of each stat
+            const merged = {};
+            for (const key of Object.keys(record)) {
+                merged[key] = Math.max(record[key], prev[key] || 0);
+            }
+            localStorage.setItem(this.BEST_RUN_KEY, JSON.stringify(merged));
+
+            return newBests;
+        } catch (e) {
+            return {};
+        }
+    }
+
+    // ========== DEATH SCREEN ==========
+
+    onPlayerDeath() {
+        this.showDeathScreen = true;
+        this.deathScreenTime = performance.now();
+
+        // Calculate and save best run records
+        const elapsed = (performance.now() - this.levelStartTime) / 1000;
+        this._deathNewBests = this.saveBestRun(this.player.stats, elapsed);
+        this._deathElapsed = elapsed;
+    }
+
+    renderDeathScreen() {
+        const ctx = this.canvas.getContext('2d');
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Red-tinted dark overlay
+        ctx.fillStyle = 'rgba(80, 0, 0, 0.8)';
+        ctx.fillRect(0, 0, w, h);
+
+        // Title
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FF4444';
+        ctx.font = 'bold 36px monospace';
+        ctx.fillText('YOU DIED', w / 2, h * 0.10);
+
+        // Stats panel
+        const stats = this.player.stats;
+        const elapsed = this._deathElapsed || 0;
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = Math.floor(elapsed % 60);
+        const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        const accuracy = stats.shotsFired > 0 ? Math.round((stats.shotsHit / stats.shotsFired) * 100) : 0;
+        const headshots = stats.headshots || 0;
+        const headshotPct = stats.shotsHit > 0 ? Math.round((headshots / stats.shotsHit) * 100) : 0;
+        const comboInfo = this.player.getComboInfo ? this.player.getComboInfo() : null;
+        const bestStreak = comboInfo ? comboInfo.bestStreak : 0;
+        const newBests = this._deathNewBests || {};
+
+        const panelX = w * 0.2;
+        const panelY = h * 0.15;
+        const panelW = w * 0.6;
+        const panelH = h * 0.58;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(panelX, panelY, panelW, panelH);
+        ctx.strokeStyle = '#FF4444';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(panelX, panelY, panelW, panelH);
+
+        ctx.font = '16px monospace';
+        const startX = panelX + 20;
+        let y = panelY + 32;
+        const lineH = 28;
+
+        const statLines = [
+            ['Survival Time', timeStr, 'survivalTime'],
+            ['Enemies Killed', `${stats.enemiesKilled}`, 'kills'],
+            ['Accuracy', `${accuracy}%`, 'accuracy'],
+            ['Headshots', `${headshots} (${headshotPct}%)`, 'headshots'],
+            ['Damage Dealt', `${Math.round(stats.damageDealt)}`, 'damageDealt'],
+            ['Damage Taken', `${Math.round(stats.damageTaken)}`, null],
+            ['Best Combo', `${bestStreak}x`, 'bestStreak'],
+            ['Level Reached', `${this.player.level}`, 'level'],
+            ['Secrets Found', `${this.map.secretsFound}/${this.map.totalSecrets}`, null]
+        ];
+
+        for (const [label, value, bestKey] of statLines) {
+            ctx.fillStyle = '#AAAAAA';
+            ctx.textAlign = 'left';
+            ctx.fillText(label, startX, y);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'right';
+            ctx.fillText(value, panelX + panelW - 20, y);
+
+            // NEW BEST indicator
+            if (bestKey && newBests[bestKey]) {
+                ctx.fillStyle = '#FFD700';
+                ctx.font = 'bold 11px monospace';
+                ctx.textAlign = 'right';
+                ctx.fillText('NEW BEST', panelX + panelW - 20, y + 14);
+                ctx.font = '16px monospace';
+            }
+            y += lineH + (bestKey && newBests[bestKey] ? 10 : 0);
+        }
+
+        // Restart button
+        const btnW = 200;
+        const btnH = 45;
+        const btnX = (w - btnW) / 2;
+        const btnY = panelY + panelH + 15;
+
+        ctx.fillStyle = '#CC3300';
+        ctx.fillRect(btnX, btnY, btnW, btnH);
+        ctx.strokeStyle = '#FF4444';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(btnX, btnY, btnW, btnH);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 20px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('TRY AGAIN', w / 2, btnY + 30);
+
+        // Store button bounds for click handling
+        this._deathRestartBtn = { x: btnX, y: btnY, w: btnW, h: btnH };
+
+        // Attach click handler once
+        if (!this._deathClickBound) {
+            this._deathClickBound = true;
+            this.canvas.addEventListener('click', (e) => {
+                if (!this.showDeathScreen || !this._deathRestartBtn) return;
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                const mx = (e.clientX - rect.left) * scaleX;
+                const my = (e.clientY - rect.top) * scaleY;
+                const btn = this._deathRestartBtn;
+                if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+                    this.showDeathScreen = false;
+                    this.restartLevel();
+                }
+            });
+        }
+    }
+
     // ========== DYNAMIC DIFFICULTY SCALING ==========
 
     updateDifficultyScaling() {
@@ -634,6 +813,7 @@ class GameEngine {
     restartLevel() {
         console.log('Restarting level...');
         this.levelComplete = false;
+        this.showDeathScreen = false;
 
         // Re-initialize map and enemies
         this.map = new GameMap();
@@ -704,6 +884,11 @@ class GameEngine {
         // Render level completion screen
         if (this.levelComplete) {
             this.renderCompletionScreen();
+        }
+
+        // Render death stats screen
+        if (this.showDeathScreen) {
+            this.renderDeathScreen();
         }
 
         // Render debug information if enabled (last layer)
