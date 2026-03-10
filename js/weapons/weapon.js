@@ -784,6 +784,13 @@ class WeaponManager {
 
         // Only pistol is unlocked at start; others must be picked up
         this.unlockedWeapons = new Set(['pistol']);
+
+        // Weapon switch animation state
+        this.switchState = 'ready'; // ready, lowering, raising
+        this.switchProgress = 0; // 0 to 1
+        this.switchDuration = 300; // ms total (150 lower + 150 raise)
+        this.switchStartTime = 0;
+        this.pendingWeapon = null; // weapon to switch to after lowering
     }
 
     getCurrentWeapon() {
@@ -803,20 +810,41 @@ class WeaponManager {
         return false;
     }
 
-    switchWeapon(weaponType) {
-        if (this.weapons[weaponType] && this.unlockedWeapons.has(weaponType)) {
+    switchWeapon(weaponType, animated = false) {
+        if (!this.weapons[weaponType] || !this.unlockedWeapons.has(weaponType)) return false;
+        if (weaponType === this.currentWeapon) return false;
+
+        if (!animated || this.switchState !== 'ready') {
+            // Instant switch (for programmatic/test use, or if already switching)
             this.currentWeapon = weaponType;
+            this.switchState = 'ready';
+            this.switchProgress = 0;
+            this.pendingWeapon = null;
             console.log(`Switched to ${weaponType}`);
             return true;
         }
-        return false;
+
+        // Start lowering animation
+        this.switchState = 'lowering';
+        this.switchStartTime = Date.now();
+        this.pendingWeapon = weaponType;
+
+        // Play weapon switch sound
+        if (window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playWeaponSwitch) {
+            window.soundEngine.playWeaponSwitch();
+        }
+
+        console.log(`Switching to ${weaponType}...`);
+        return true;
     }
     
     fire(player, enemies, map) {
+        if (this.switchState !== 'ready') return false;
         return this.getCurrentWeapon().fire(player, enemies, map);
     }
 
     altFire(player, enemies, map) {
+        if (this.switchState !== 'ready') return false;
         return this.getCurrentWeapon().altFire(player, enemies, map);
     }
 
@@ -827,6 +855,31 @@ class WeaponManager {
     update() {
         // Update all weapons (for reload timers, etc.)
         Object.values(this.weapons).forEach(weapon => weapon.update());
+
+        // Update weapon switch animation
+        if (this.switchState !== 'ready') {
+            const elapsed = Date.now() - this.switchStartTime;
+            const halfDuration = this.switchDuration / 2;
+
+            if (this.switchState === 'lowering') {
+                this.switchProgress = Math.min(elapsed / halfDuration, 1);
+                if (this.switchProgress >= 1) {
+                    // Lowered fully — swap weapon and start raising
+                    this.currentWeapon = this.pendingWeapon;
+                    this.pendingWeapon = null;
+                    this.switchState = 'raising';
+                    this.switchStartTime = Date.now();
+                    this.switchProgress = 1;
+                    console.log(`Switched to ${this.currentWeapon}`);
+                }
+            } else if (this.switchState === 'raising') {
+                this.switchProgress = Math.max(1 - elapsed / halfDuration, 0);
+                if (this.switchProgress <= 0) {
+                    this.switchState = 'ready';
+                    this.switchProgress = 0;
+                }
+            }
+        }
     }
     
     getHUDInfo() {
@@ -840,7 +893,9 @@ class WeaponManager {
             muzzleFlash: weapon.muzzleFlash,
             mods: weapon.mods,
             altFireLabel: altStats ? altStats.label : null,
-            canAltFire: weapon.canAltFire()
+            canAltFire: weapon.canAltFire(),
+            switchProgress: this.switchProgress,
+            isSwitching: this.switchState !== 'ready'
         };
     }
 }
