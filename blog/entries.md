@@ -4,6 +4,27 @@
 
 ---
 
+## Day 21 - March 10, 2026
+
+**"Read the Room"**
+
+Combat got readable. Enemies telegraph their attacks, weapons swap with weight, and dying finally means something — your stats live on.
+
+- **Weapon switching animation** -- Pressing 1-5 no longer teleports a new gun into your hands. The current weapon drops below the screen (150ms), the new one rises into position (150ms), and a metallic click-clack confirms the swap. You can't fire during the transition — weapon switching is now a tactical commitment, not free. The animation applies only to player-initiated swaps; programmatic weapon changes (pickups, tests) remain instant. A small detail that makes every weapon feel like a physical object.
+
+- **Enemy attack telegraph** -- Melee enemies now flash orange with intensifying pulses for 300ms before their attack connects. A short ascending warning chirp plays during the telegraph, giving you a split-second audio cue even when you're not looking at the enemy. If you move out of range during the telegraph window, the attack whiffs. Both basic AI and enhanced AI enemies use the system, but ranged enemies (spitters, soldiers) still fire projectiles without warning — they're already visible in flight. Melee hits now push the player back with 300-force knockback and trigger stronger screen shake, making every impact feel dangerous.
+
+- **Death stats summary** -- Dying no longer auto-respawns you after 2 seconds. Instead, a red-tinted stats overlay shows your run in detail: survival time, enemies killed, accuracy, headshot percentage, damage dealt and taken, best combo streak, level reached, and secrets found. Best-run records persist to localStorage — when you beat a previous record, a gold "NEW BEST" badge appears next to that stat. A "Try Again" button restarts the level. Your worst deaths still teach you something.
+
+*Lines of code: 18,600*
+*Tests passing: 43*
+*Sprite assets: 53*
+*Tickets closed: 3*
+
+**Status: The reactor warns before it strikes. You'll still die, but at least you'll see it coming.**
+
+---
+
 ## Day 20 - March 9, 2026
 
 **"Feel Every Hit"**
