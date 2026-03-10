@@ -515,6 +515,29 @@ class SoundEngine {
         oscillator.stop(now + 0.15);
     }
     
+    playWeaponSwitch() {
+        if (!this.isInitialized) return;
+
+        const now = this.audioContext.currentTime;
+
+        // Quick metallic click-clack
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.setValueAtTime(600, now + 0.03);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.2, now + 0.005);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+        osc.start(now);
+        osc.stop(now + 0.08);
+    }
+
     // Player pain/hit sound
     playPlayerHit() {
         if (!this.isInitialized) return;

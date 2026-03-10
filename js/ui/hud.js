@@ -476,10 +476,13 @@ class HUD {
             if (Math.abs(this.weaponBobY) < 0.3) this.weaponBobY = 0;
         }
 
+        // Weapon switch animation offset (slides weapon down off screen)
+        const switchOffset = (weaponInfo.switchProgress || 0) * 250;
+
         // First-person weapon view (larger, bottom-right of screen)
         const fpsWeaponSize = 200;
         const fpsX = this.canvas.width / 2 + 50 + this.weaponBobX;
-        const fpsY = this.canvas.height - fpsWeaponSize + 20 - this.weaponRecoilOffset + this.weaponBobY;
+        const fpsY = this.canvas.height - fpsWeaponSize + 20 - this.weaponRecoilOffset + this.weaponBobY + switchOffset;
 
         // Choose between gun and melee first-person sprite
         const fpsSprite = (weaponName === 'PUNCH') ? this.fpsMeleeSprite : this.fpsGunSprite;
