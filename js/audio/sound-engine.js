@@ -585,6 +585,71 @@ class SoundEngine {
         oscillator.stop(now + 0.3);
     }
 
+    // Armor absorbs damage - metallic clang
+    playArmorHit() {
+        if (!this.isInitialized) return;
+
+        const now = this.audioContext.currentTime;
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        const filter = this.audioContext.createBiquadFilter();
+
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(300, now + 0.08);
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(600, now);
+        filter.Q.setValueAtTime(5, now);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.masterGain);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+        osc.start(now);
+        osc.stop(now + 0.15);
+    }
+
+    // Armor fully depleted - glass shatter
+    playArmorBreak() {
+        if (!this.isInitialized) return;
+
+        const now = this.audioContext.currentTime;
+
+        // Noise burst for shatter texture
+        const noiseBuffer = this.createNoiseBuffer(0.3);
+        if (noiseBuffer) {
+            const noise = this.audioContext.createBufferSource();
+            noise.buffer = noiseBuffer;
+            const noiseGain = this.audioContext.createGain();
+            const noiseFilter = this.audioContext.createBiquadFilter();
+            noiseFilter.type = 'highpass';
+            noiseFilter.frequency.setValueAtTime(2000, now);
+            noise.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(this.masterGain);
+            noiseGain.gain.setValueAtTime(this.sfxVolume * 0.35, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            noise.start(now);
+        }
+
+        // Descending metallic tone
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.25);
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        gain.gain.setValueAtTime(this.sfxVolume * 0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+    }
+
     // Player death sound
     playPlayerDeath() {
         if (!this.isInitialized) return;
