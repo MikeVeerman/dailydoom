@@ -47,6 +47,9 @@ class HUD {
         this.killFeedMax = 4;
         this.killFeedDuration = 3000; // 3 seconds
 
+        // Crosshair rotation (for chaingun)
+        this.crosshairRotation = 0;
+
         // Weapon recoil animation
         this.weaponRecoilOffset = 0;
         this.weaponRecoilDecay = 0.85;
@@ -124,7 +127,7 @@ class HUD {
             this.renderWeaponInfo(player);
             this.renderAmmoCounter(player);
             this.renderWeaponSprite(player);
-            this.renderCrosshair();
+            this.renderCrosshair(player);
             
             if (this.showFPS && gameEngine) {
                 this.renderFPSCounter(gameEngine);
@@ -342,70 +345,206 @@ class HUD {
         }
     }
     
-    renderCrosshair() {
+    renderCrosshair(player) {
         if (!this.showCrosshair) return;
 
         const centerX = this.canvas.width / 2;
         const centerY = this.canvas.height / 2;
-        const size = 10;
-        const gap = 3;
+
+        // Get current weapon type for weapon-specific crosshair
+        const weaponInfo = player && player.weaponManager ? player.weaponManager.getHUDInfo() : null;
+        const weaponName = weaponInfo ? weaponInfo.weaponName : 'PISTOL';
+        const isFiring = weaponInfo ? weaponInfo.muzzleFlash : false;
 
         this.ctx.strokeStyle = '#FFFFFF';
         this.ctx.lineWidth = 2;
 
-        // Crosshair lines
-        this.ctx.beginPath();
-        // Top line
-        this.ctx.moveTo(centerX, centerY - gap - size);
-        this.ctx.lineTo(centerX, centerY - gap);
-        // Bottom line
-        this.ctx.moveTo(centerX, centerY + gap);
-        this.ctx.lineTo(centerX, centerY + gap + size);
-        // Left line
-        this.ctx.moveTo(centerX - gap - size, centerY);
-        this.ctx.lineTo(centerX - gap, centerY);
-        // Right line
-        this.ctx.moveTo(centerX + gap, centerY);
-        this.ctx.lineTo(centerX + gap + size, centerY);
-        this.ctx.stroke();
+        switch (weaponName) {
+            case 'SHOTGUN':
+                this.drawShotgunCrosshair(centerX, centerY);
+                break;
+            case 'RIFLE':
+                this.drawRifleCrosshair(centerX, centerY);
+                break;
+            case 'ROCKET':
+                this.drawRocketCrosshair(centerX, centerY);
+                break;
+            case 'CHAINGUN':
+                this.drawChaingunCrosshair(centerX, centerY, isFiring);
+                break;
+            case 'PUNCH':
+                this.drawPunchCrosshair(centerX, centerY);
+                break;
+            default: // PISTOL
+                this.drawPistolCrosshair(centerX, centerY);
+                break;
+        }
 
+        // Hit marker overlay (shared across all weapons)
+        this.renderHitMarker(centerX, centerY);
+    }
+
+    drawPistolCrosshair(cx, cy) {
+        // Small precise dot with thin cross lines
+        this.ctx.lineWidth = 1;
+        const size = 6;
+        const gap = 4;
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx, cy - gap - size);
+        this.ctx.lineTo(cx, cy - gap);
+        this.ctx.moveTo(cx, cy + gap);
+        this.ctx.lineTo(cx, cy + gap + size);
+        this.ctx.moveTo(cx - gap - size, cy);
+        this.ctx.lineTo(cx - gap, cy);
+        this.ctx.moveTo(cx + gap, cy);
+        this.ctx.lineTo(cx + gap + size, cy);
+        this.ctx.stroke();
         // Center dot
         this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.fillRect(centerX - 1, centerY - 1, 2, 2);
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, 1.5, 0, Math.PI * 2);
+        this.ctx.fill();
+    }
 
-        // Hit marker overlay
+    drawShotgunCrosshair(cx, cy) {
+        // Spread circle with tick marks showing spread area
+        const radius = 16;
+        this.ctx.lineWidth = 1.5;
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        this.ctx.stroke();
+        // Four tick marks at cardinal directions
+        const tickLen = 4;
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx, cy - radius - tickLen);
+        this.ctx.lineTo(cx, cy - radius + tickLen);
+        this.ctx.moveTo(cx, cy + radius - tickLen);
+        this.ctx.lineTo(cx, cy + radius + tickLen);
+        this.ctx.moveTo(cx - radius - tickLen, cy);
+        this.ctx.lineTo(cx - radius + tickLen, cy);
+        this.ctx.moveTo(cx + radius - tickLen, cy);
+        this.ctx.lineTo(cx + radius + tickLen, cy);
+        this.ctx.stroke();
+        // Small center dot
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.fillRect(cx - 1, cy - 1, 2, 2);
+    }
+
+    drawRifleCrosshair(cx, cy) {
+        // Tight precision cross with gap in center, thin lines
+        this.ctx.lineWidth = 1;
+        const innerGap = 5;
+        const outerLen = 12;
+        this.ctx.beginPath();
+        // Top
+        this.ctx.moveTo(cx, cy - innerGap - outerLen);
+        this.ctx.lineTo(cx, cy - innerGap);
+        // Bottom
+        this.ctx.moveTo(cx, cy + innerGap);
+        this.ctx.lineTo(cx, cy + innerGap + outerLen);
+        // Left
+        this.ctx.moveTo(cx - innerGap - outerLen, cy);
+        this.ctx.lineTo(cx - innerGap, cy);
+        // Right
+        this.ctx.moveTo(cx + innerGap, cy);
+        this.ctx.lineTo(cx + innerGap + outerLen, cy);
+        this.ctx.stroke();
+        // Small horizontal hash marks on top and bottom lines for precision feel
+        this.ctx.beginPath();
+        const hashY = innerGap + outerLen * 0.5;
+        this.ctx.moveTo(cx - 2, cy - hashY);
+        this.ctx.lineTo(cx + 2, cy - hashY);
+        this.ctx.moveTo(cx - 2, cy + hashY);
+        this.ctx.lineTo(cx + 2, cy + hashY);
+        this.ctx.stroke();
+    }
+
+    drawRocketCrosshair(cx, cy) {
+        // Circle with center dot (hinting at splash radius)
+        const radius = 12;
+        this.ctx.lineWidth = 1.5;
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        this.ctx.stroke();
+        // Center dot
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        // Inner dashed circle hinting at blast area
+        this.ctx.setLineDash([3, 3]);
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+        this.ctx.stroke();
+        this.ctx.setLineDash([]);
+    }
+
+    drawChaingunCrosshair(cx, cy, isFiring) {
+        // Rotating diagonal lines that spin while firing
+        if (isFiring) {
+            this.crosshairRotation += 0.3;
+        } else {
+            // Slow decay when not firing
+            this.crosshairRotation *= 0.95;
+        }
+        const rot = this.crosshairRotation;
+        const size = 10;
+        const gap = 4;
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        for (let i = 0; i < 4; i++) {
+            const angle = rot + (i * Math.PI / 2);
+            const innerX = cx + Math.cos(angle) * gap;
+            const innerY = cy + Math.sin(angle) * gap;
+            const outerX = cx + Math.cos(angle) * (gap + size);
+            const outerY = cy + Math.sin(angle) * (gap + size);
+            this.ctx.moveTo(innerX, innerY);
+            this.ctx.lineTo(outerX, outerY);
+        }
+        this.ctx.stroke();
+        // Center dot
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, 1.5, 0, Math.PI * 2);
+        this.ctx.fill();
+    }
+
+    drawPunchCrosshair(cx, cy) {
+        // Simple small dot for melee - minimal HUD
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, 2, 0, Math.PI * 2);
+        this.ctx.fill();
+    }
+
+    renderHitMarker(centerX, centerY) {
         const now = Date.now();
         const elapsed = now - this.hitMarkerTime;
         if (elapsed < this.hitMarkerDuration) {
             const progress = elapsed / this.hitMarkerDuration;
             const alpha = 1 - progress;
-            const expand = progress * 4; // slight expansion over time
+            const expand = progress * 4;
             const markerSize = 8 + expand;
             const markerGap = 4 + expand;
 
-            // Color based on hit type
             let color;
             if (this.hitMarkerType === 'headshot') {
-                color = `rgba(255, 215, 0, ${alpha})`; // gold
+                color = `rgba(255, 215, 0, ${alpha})`;
             } else if (this.hitMarkerType === 'critical') {
-                color = `rgba(255, 100, 0, ${alpha})`; // orange
+                color = `rgba(255, 100, 0, ${alpha})`;
             } else {
-                color = `rgba(255, 255, 255, ${alpha})`; // white
+                color = `rgba(255, 255, 255, ${alpha})`;
             }
 
             this.ctx.strokeStyle = color;
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
-            // Top-left to center
             this.ctx.moveTo(centerX - markerGap - markerSize, centerY - markerGap - markerSize);
             this.ctx.lineTo(centerX - markerGap, centerY - markerGap);
-            // Top-right to center
             this.ctx.moveTo(centerX + markerGap + markerSize, centerY - markerGap - markerSize);
             this.ctx.lineTo(centerX + markerGap, centerY - markerGap);
-            // Bottom-left to center
             this.ctx.moveTo(centerX - markerGap - markerSize, centerY + markerGap + markerSize);
             this.ctx.lineTo(centerX - markerGap, centerY + markerGap);
-            // Bottom-right to center
             this.ctx.moveTo(centerX + markerGap + markerSize, centerY + markerGap + markerSize);
             this.ctx.lineTo(centerX + markerGap, centerY + markerGap);
             this.ctx.stroke();
