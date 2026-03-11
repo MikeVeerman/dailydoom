@@ -691,6 +691,22 @@ class Player {
             const armorAbsorbed = Math.min(damage * 0.5, this.armor);
             actualDamage -= armorAbsorbed;
             this.armor -= armorAbsorbed;
+
+            // Armor hit feedback
+            if (window.game && window.game.hud) {
+                if (this.armor <= 0) {
+                    window.game.hud.onArmorBreak(armorAbsorbed);
+                } else {
+                    window.game.hud.onArmorHit(armorAbsorbed);
+                }
+            }
+            if (window.soundEngine && window.soundEngine.isInitialized) {
+                if (this.armor <= 0) {
+                    window.soundEngine.playArmorBreak();
+                } else {
+                    window.soundEngine.playArmorHit();
+                }
+            }
         }
 
         this.health = Math.max(0, this.health - actualDamage);

@@ -80,6 +80,12 @@ class HUD {
         this.bigDamageTime = 0;
         this.bigDamageDuration = 300; // ms
 
+        // Armor hit feedback
+        this.armorHitTime = 0;
+        this.armorHitDuration = 300; // ms
+        this.armorBreakTime = 0;
+        this.armorBreakDuration = 500; // ms
+
         // Low health heartbeat tracking
         this.lastHeartbeatTime = 0;
 
@@ -959,6 +965,51 @@ class HUD {
             this.ctx.fillRect(0, 0, w, h);
         }
 
+        // Armor hit flash: blue screen-edge flash when armor absorbs damage
+        const armorHitElapsed = now - this.armorHitTime;
+        if (armorHitElapsed < this.armorHitDuration) {
+            const alpha = (1 - armorHitElapsed / this.armorHitDuration) * 0.25;
+            const edgeArmor = 40;
+            const edges = [
+                { x1: 0, y1: 0, x2: 0, y2: edgeArmor, rx: 0, ry: 0, rw: w, rh: edgeArmor },
+                { x1: 0, y1: h, x2: 0, y2: h - edgeArmor, rx: 0, ry: h - edgeArmor, rw: w, rh: edgeArmor },
+                { x1: 0, y1: 0, x2: edgeArmor, y2: 0, rx: 0, ry: 0, rw: edgeArmor, rh: h },
+                { x1: w, y1: 0, x2: w - edgeArmor, y2: 0, rx: w - edgeArmor, ry: 0, rw: edgeArmor, rh: h }
+            ];
+            for (const e of edges) {
+                const grad = this.ctx.createLinearGradient(e.x1, e.y1, e.x2, e.y2);
+                grad.addColorStop(0, `rgba(50, 150, 255, ${alpha})`);
+                grad.addColorStop(1, 'rgba(50, 150, 255, 0)');
+                this.ctx.fillStyle = grad;
+                this.ctx.fillRect(e.rx, e.ry, e.rw, e.rh);
+            }
+        }
+
+        // Armor break flash: stronger blue burst when armor fully depletes
+        const armorBreakElapsed = now - this.armorBreakTime;
+        if (armorBreakElapsed < this.armorBreakDuration) {
+            const progress = armorBreakElapsed / this.armorBreakDuration;
+            const alpha = (1 - progress) * 0.35;
+            // Full-screen blue flash that fades
+            this.ctx.fillStyle = `rgba(30, 120, 255, ${alpha * (1 - progress)})`;
+            this.ctx.fillRect(0, 0, w, h);
+            // Blue edge vignette
+            const edgeArmor = 60;
+            const edges = [
+                { x1: 0, y1: 0, x2: 0, y2: edgeArmor, rx: 0, ry: 0, rw: w, rh: edgeArmor },
+                { x1: 0, y1: h, x2: 0, y2: h - edgeArmor, rx: 0, ry: h - edgeArmor, rw: w, rh: edgeArmor },
+                { x1: 0, y1: 0, x2: edgeArmor, y2: 0, rx: 0, ry: 0, rw: edgeArmor, rh: h },
+                { x1: w, y1: 0, x2: w - edgeArmor, y2: 0, rx: w - edgeArmor, ry: 0, rw: edgeArmor, rh: h }
+            ];
+            for (const e of edges) {
+                const grad = this.ctx.createLinearGradient(e.x1, e.y1, e.x2, e.y2);
+                grad.addColorStop(0, `rgba(50, 150, 255, ${alpha})`);
+                grad.addColorStop(1, 'rgba(50, 150, 255, 0)');
+                this.ctx.fillStyle = grad;
+                this.ctx.fillRect(e.rx, e.ry, e.rw, e.rh);
+            }
+        }
+
         // Armor tint: subtle blue overlay when armor > 50
         if (player.armor && player.armor > 50) {
             const armorIntensity = Math.min((player.armor - 50) / 50, 1); // 0 at 50, 1 at 100
@@ -1459,6 +1510,48 @@ class HUD {
         // Trigger big damage flash for heavy hits
         if (damageAmount && damageAmount > 20) {
             this.bigDamageTime = Date.now();
+        }
+    }
+
+    // Called when armor absorbs damage
+    onArmorHit(absorbed) {
+        this.armorHitTime = Date.now();
+        // Emit blue shard particles from screen center (player position)
+        if (window.game && window.game.player) {
+            const p = window.game.player;
+            for (let i = 0; i < 6; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 30 + Math.random() * 40;
+                this.addParticle(
+                    p.x, p.y,
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed,
+                    `rgba(${50 + Math.floor(Math.random() * 50)}, ${150 + Math.floor(Math.random() * 80)}, 255, 1)`,
+                    2 + Math.random() * 2,
+                    300 + Math.random() * 200
+                );
+            }
+        }
+    }
+
+    // Called when armor is fully depleted
+    onArmorBreak(absorbed) {
+        this.armorBreakTime = Date.now();
+        // Larger blue particle burst for armor break
+        if (window.game && window.game.player) {
+            const p = window.game.player;
+            for (let i = 0; i < 15; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 40 + Math.random() * 60;
+                this.addParticle(
+                    p.x, p.y,
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed,
+                    `rgba(${30 + Math.floor(Math.random() * 60)}, ${120 + Math.floor(Math.random() * 100)}, 255, 1)`,
+                    3 + Math.random() * 3,
+                    400 + Math.random() * 300
+                );
+            }
         }
     }
 
