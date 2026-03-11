@@ -4,6 +4,27 @@
 
 ---
 
+## Day 22 - March 11, 2026
+
+**"Know Your Weapon"**
+
+Every weapon found its own identity today. The world learned to breathe color. And armor stopped dying silently.
+
+- **Weapon-specific crosshairs** -- Each of the five guns now renders its own crosshair shape. The pistol shows a small precise dot with thin cross lines — clean and accurate. The shotgun displays a spread circle with tick marks, communicating its cone of fire at a glance. The rifle gets a tight precision cross with hash marks for that sniper feel. The rocket launcher shows a solid circle with a dashed inner ring hinting at splash radius. The chaingun's four diagonal lines rotate while firing, spinning faster with sustained fire and decaying when you let off the trigger. Punch mode reduces to a minimal dot. Weapon switching transitions the crosshair alongside the weapon animation. Hit markers remain shared across all types.
+
+- **Armor break visual and audio feedback** -- Armor no longer absorbs damage invisibly. When armor takes a hit, blue particle shards fly from the player and a blue screen-edge flash pulses for 300ms — clearly distinct from the red health-damage flash. A short metallic clang confirms the absorption. When armor reaches zero, the effect escalates: a larger 15-particle burst, a stronger 500ms blue flash with full-screen tint, and a glass-shatter sound built from high-pass noise and a descending metallic tone. You know exactly when your shield is gone.
+
+- **Zone atmosphere vignette** -- The ambient audio zones (control, reactor, waste, cooling, corridor) now have matching visual atmospheres. A subtle colored vignette tints the screen edges based on your map position: blue in the Control Room, orange near the Reactor Core, green in Waste Storage, cyan in the Cooling Tunnels, and neutral in corridors. Colors crossfade smoothly when walking between zones — both the tint color and alpha blend gradually so transitions never pop. At 8% max opacity, the effect is atmospheric without ever obscuring gameplay.
+
+*Lines of code: 19,000*
+*Tests passing: 43*
+*Sprite assets: 56*
+*Tickets closed: 3*
+
+**Status: The reactor speaks in color now. Blue means your armor is working. Orange means you're too close to the core.**
+
+---
+
 ## Day 21 - March 10, 2026
 
 **"Read the Room"**
