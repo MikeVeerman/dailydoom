@@ -86,6 +86,11 @@ class HUD {
         this.armorBreakTime = 0;
         this.armorBreakDuration = 500; // ms
 
+        // Zone vignette
+        this.currentZoneTint = null;
+        this.zoneTintAlpha = 0;
+        this.targetZoneTint = null;
+
         // Low health heartbeat tracking
         this.lastHeartbeatTime = 0;
 
@@ -188,6 +193,9 @@ class HUD {
 
             // Render low ammo warning
             this.renderLowAmmoWarning(player);
+
+            // Render zone atmosphere vignette
+            this.renderZoneVignette(player);
 
             // Render damage flash effect
             this.renderDamageFlash(player);
@@ -894,6 +902,78 @@ class HUD {
             this.ctx.fillStyle = gradRight;
             this.ctx.fillRect(w - edgeSize, 0, edgeSize, h);
         }
+    }
+
+    renderZoneVignette(player) {
+        // Get current zone from sound engine
+        const se = window.soundEngine;
+        if (!se || !se.getAmbientZone) return;
+
+        const zone = se.getAmbientZone(player.x, player.y);
+
+        // Zone color mapping (r, g, b)
+        const zoneColors = {
+            control: [80, 140, 255],   // blue (electronics)
+            reactor: [255, 120, 40],   // orange (heat)
+            waste:   [80, 255, 80],    // green (toxic)
+            cooling: [100, 220, 255],  // cyan (cold)
+            corridor: null             // no tint
+        };
+
+        const targetColor = zoneColors[zone] || null;
+
+        // Crossfade: smoothly transition alpha
+        if (targetColor) {
+            this.targetZoneTint = targetColor;
+            this.zoneTintAlpha = Math.min(this.zoneTintAlpha + 0.02, 1);
+        } else if (this.zoneTintAlpha > 0) {
+            this.zoneTintAlpha = Math.max(this.zoneTintAlpha - 0.02, 0);
+        }
+
+        if (this.zoneTintAlpha <= 0 || !this.targetZoneTint) return;
+
+        // Update current tint color (blend toward target)
+        if (!this.currentZoneTint) {
+            this.currentZoneTint = [...this.targetZoneTint];
+        } else {
+            for (let i = 0; i < 3; i++) {
+                this.currentZoneTint[i] += (this.targetZoneTint[i] - this.currentZoneTint[i]) * 0.05;
+            }
+        }
+
+        const [r, g, b] = this.currentZoneTint;
+        const alpha = this.zoneTintAlpha * 0.08; // Very subtle
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const edgeSize = 60;
+
+        // Top edge
+        const gradTop = this.ctx.createLinearGradient(0, 0, 0, edgeSize);
+        gradTop.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha})`);
+        gradTop.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        this.ctx.fillStyle = gradTop;
+        this.ctx.fillRect(0, 0, w, edgeSize);
+
+        // Bottom edge
+        const gradBottom = this.ctx.createLinearGradient(0, h, 0, h - edgeSize);
+        gradBottom.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha})`);
+        gradBottom.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        this.ctx.fillStyle = gradBottom;
+        this.ctx.fillRect(0, h - edgeSize, w, edgeSize);
+
+        // Left edge
+        const gradLeft = this.ctx.createLinearGradient(0, 0, edgeSize, 0);
+        gradLeft.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha})`);
+        gradLeft.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        this.ctx.fillStyle = gradLeft;
+        this.ctx.fillRect(0, 0, edgeSize, h);
+
+        // Right edge
+        const gradRight = this.ctx.createLinearGradient(w, 0, w - edgeSize, 0);
+        gradRight.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha})`);
+        gradRight.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        this.ctx.fillStyle = gradRight;
+        this.ctx.fillRect(w - edgeSize, 0, edgeSize, h);
     }
 
     renderDamageFlash(player) {
