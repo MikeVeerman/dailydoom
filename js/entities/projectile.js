@@ -64,6 +64,26 @@ class Projectile {
                 }
             }
             this.active = false;
+            return;
+        }
+
+        // Check enemy collision (infighting - projectiles can hit other enemies)
+        if (window.game && window.game.map && window.game.map.enemies) {
+            for (const enemy of window.game.map.enemies) {
+                if (!enemy.active || enemy.dying) continue;
+                if (enemy === this.owner) continue; // Don't hit the enemy that fired it
+                const edx = this.x - enemy.x;
+                const edy = this.y - enemy.y;
+                const eDist = Math.sqrt(edx * edx + edy * edy);
+                if (eDist < this.radius + 16) { // 16 = enemy collision radius
+                    enemy.takeDamage(this.damage, this.owner);
+                    if (window.game && window.game.hud) {
+                        window.game.hud.addDamageNumber(enemy.x, enemy.y, this.damage, false);
+                    }
+                    this.active = false;
+                    return;
+                }
+            }
         }
     }
 }

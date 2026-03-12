@@ -195,7 +195,19 @@ class EnhancedEnemyAI {
     update(deltaTime, player, map, allEnemies) {
         // Update alert level
         this.updateAlertLevel(player);
-        
+
+        // Clear dead infight targets
+        if (this.enemy.infightTarget && (!this.enemy.infightTarget.active || this.enemy.infightTarget.dying)) {
+            this.enemy.infightTarget = null;
+        }
+
+        // Infighting: chase/attack the enemy that hit us
+        if (this.enemy.infightTarget) {
+            this.infightBehavior(deltaTime, map);
+            this.enhancedMovement(deltaTime, map, allEnemies);
+            return;
+        }
+
         // Behavior selection based on current state and behavior type
         switch (this.enemy.state) {
             case 'idle':
@@ -217,7 +229,7 @@ class EnhancedEnemyAI {
                 this.investigateBehavior(player, deltaTime, map);
                 break;
         }
-        
+
         // Apply movement with enhanced pathfinding
         this.enhancedMovement(deltaTime, map, allEnemies);
     }
@@ -547,6 +559,51 @@ class EnhancedEnemyAI {
         return { x: separationX, y: separationY };
     }
     
+    infightBehavior(deltaTime, map) {
+        const target = this.enemy.infightTarget;
+        const dx = target.x - this.enemy.x;
+        const dy = target.y - this.enemy.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < this.enemy.attackRange) {
+            // Attack the infight target
+            const now = Date.now();
+            if (now - this.lastAttackTime > this.behavior.attackCooldown) {
+                this.lastAttackTime = now;
+                let damage = this.behavior.damage;
+                if (this.behavior.berserkerRage && this.rageActive) {
+                    damage = Math.round(damage * 2);
+                }
+
+                this.enemy.tryBark('attack');
+
+                // Ranged enemies fire projectiles at infight target
+                if (this.behavior.rangedAttack || this.behavior.strafeBehavior) {
+                    if (window.game && window.game.projectileManager) {
+                        const speed = this.behavior.rangedAttack ? 150 : 200;
+                        const color = this.behavior.rangedAttack ? '#44FF44' : '#FFAA00';
+                        window.game.projectileManager.spawn(
+                            this.enemy.x, this.enemy.y,
+                            target.x, target.y,
+                            damage, speed, color, this.enemy
+                        );
+                    }
+                } else {
+                    // Melee attack on infight target
+                    target.takeDamage(damage, this.enemy);
+                    if (window.game && window.game.hud) {
+                        window.game.hud.addDamageNumber(target.x, target.y, damage, false);
+                        window.game.hud.emitBloodParticles(target.x, target.y, 5);
+                    }
+                }
+            }
+        } else {
+            // Chase the infight target
+            this.enemy.targetX = target.x;
+            this.enemy.targetY = target.y;
+        }
+    }
+
     performAttack(player) {
         if (this.hasLineOfSight(player, window.game.map)) {
             let damage = this.behavior.damage;
