@@ -1172,6 +1172,7 @@ class HUD {
         for (const ind of this.damageIndicators) {
             const elapsed = now - ind.time;
             const alpha = 1 - (elapsed / this.damageIndicatorDuration);
+            const intensity = ind.intensity || 1.0;
 
             // Calculate angle from player to damage source
             const angleToSource = Math.atan2(
@@ -1186,8 +1187,10 @@ class HUD {
             while (relAngle < -Math.PI) relAngle += Math.PI * 2;
 
             // Draw a red wedge/arc on screen edge pointing toward damage source
+            // Scale arc width and thickness based on damage intensity
             const radius = Math.min(w, h) * 0.42;
-            const arcWidth = 0.4; // radians (~23 degrees)
+            const arcWidth = 0.3 + 0.3 * intensity; // wider arc for more damage
+            const thickness = 16 + 12 * intensity; // thicker for more damage
 
             this.ctx.save();
             this.ctx.translate(cx, cy);
@@ -1198,10 +1201,10 @@ class HUD {
             // Draw wedge pointing right (toward source), at edge of screen
             this.ctx.beginPath();
             this.ctx.arc(0, 0, radius, -arcWidth / 2, arcWidth / 2);
-            this.ctx.arc(0, 0, radius - 20, arcWidth / 2, -arcWidth / 2, true);
+            this.ctx.arc(0, 0, radius - thickness, arcWidth / 2, -arcWidth / 2, true);
             this.ctx.closePath();
 
-            this.ctx.fillStyle = `rgba(255, 30, 0, ${alpha * 0.7})`;
+            this.ctx.fillStyle = `rgba(255, 30, 0, ${alpha * Math.min(0.5 + 0.3 * intensity, 0.9)})`;
             this.ctx.fill();
 
             this.ctx.restore();
@@ -1585,7 +1588,8 @@ class HUD {
         this.damageIndicators.push({
             sourceX,
             sourceY,
-            time: Date.now()
+            time: Date.now(),
+            intensity: damageAmount ? Math.min(damageAmount / 30, 2.0) : 1.0
         });
         // Trigger big damage flash for heavy hits
         if (damageAmount && damageAmount > 20) {
