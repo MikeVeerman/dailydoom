@@ -1513,6 +1513,45 @@ class SoundEngine {
         osc.stop(now + 0.2);
     }
 
+    playCriticalHit() {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Deep crunch impact sound
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.4, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+        osc.start(now);
+        osc.stop(now + 0.25);
+
+        // Layered high-frequency crack
+        const osc2 = this.audioContext.createOscillator();
+        const gain2 = this.audioContext.createGain();
+        osc2.connect(gain2);
+        gain2.connect(this.masterGain);
+
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(1200, now);
+        osc2.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+
+        gain2.gain.setValueAtTime(0, now);
+        gain2.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, now + 0.01);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+        osc2.start(now);
+        osc2.stop(now + 0.15);
+    }
+
     playComboTier(comboCount) {
         if (!this.isInitialized) return;
         const now = this.audioContext.currentTime;

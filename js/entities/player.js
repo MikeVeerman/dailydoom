@@ -45,6 +45,7 @@ class Player {
             shotsFired: 0,
             shotsHit: 0,
             headshots: 0,
+            criticalHits: 0,
             damageTaken: 0,
             damageDealt: 0,
             itemsCollected: 0,

@@ -149,10 +149,18 @@ class Weapon {
                 if (player.stats) player.stats.headshots++;
             }
 
-            // Critical hit (10% chance for 2x damage, stacks with headshot)
-            let isCritical = Math.random() < 0.1;
+            // Critical hit: per-weapon crit chance, boosted by combo
+            const critChances = { pistol: 0.15, shotgun: 0.10, rifle: 0.20, rocket: 0, chaingun: 0.05 };
+            let critChance = critChances[this.type] || 0.10;
+            // Combo multiplier boosts crit chance
+            if (player.getComboInfo) {
+                const combo = player.getComboInfo();
+                if (combo.active) critChance += combo.count * 0.03;
+            }
+            let isCritical = Math.random() < critChance;
             if (isCritical) {
                 actualDamage *= 2;
+                if (player.stats) player.stats.criticalHits = (player.stats.criticalHits || 0) + 1;
             }
 
             // Apply damage boost if active
@@ -207,6 +215,16 @@ class Weapon {
             // Headshot sound
             if (isHeadshot && window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playHeadshot) {
                 window.soundEngine.playHeadshot();
+            }
+
+            // Critical hit sound and crosshair text
+            if (isCritical) {
+                if (window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playCriticalHit) {
+                    window.soundEngine.playCriticalHit();
+                }
+                if (window.game && window.game.hud && window.game.hud.showCrosshairText) {
+                    window.game.hud.showCrosshairText('CRITICAL', '#FFD700');
+                }
             }
 
             console.log(`${isHeadshot ? 'HEADSHOT! ' : ''}${isCritical ? 'CRITICAL! ' : ''}Hit enemy for ${actualDamage} damage! Enemy health: ${hit.enemy.health}`);
@@ -550,8 +568,18 @@ class Weapon {
                 actualDamage *= 2;
                 if (player.stats) player.stats.headshots++;
             }
-            let isCritical = Math.random() < 0.1;
-            if (isCritical) actualDamage *= 2;
+            // Per-weapon crit chance with combo boost
+            const critChances = { pistol: 0.15, shotgun: 0.10, rifle: 0.20, rocket: 0, chaingun: 0.05 };
+            let critChance = critChances[this.type] || 0.10;
+            if (player.getComboInfo) {
+                const combo = player.getComboInfo();
+                if (combo.active) critChance += combo.count * 0.03;
+            }
+            let isCritical = Math.random() < critChance;
+            if (isCritical) {
+                actualDamage *= 2;
+                if (player.stats) player.stats.criticalHits = (player.stats.criticalHits || 0) + 1;
+            }
             if (player.hasDamageBoost && player.hasDamageBoost()) actualDamage *= 1.5;
             if (player.levelBonuses) actualDamage *= player.levelBonuses.damageMultiplier;
             actualDamage = Math.round(actualDamage);
@@ -567,7 +595,7 @@ class Weapon {
                 if (player.registerKill) player.registerKill();
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
                     const typeName = (hit.enemy.type || 'enemy').charAt(0).toUpperCase() + (hit.enemy.type || 'enemy').slice(1);
-                    const prefix = isHeadshot ? 'HEADSHOT!' : 'ALT!';
+                    const prefix = isHeadshot ? 'HEADSHOT!' : (isCritical ? 'CRITICAL!' : 'ALT!');
                     window.game.hud.addKillFeedMessage(`${prefix} Killed ${typeName} +${xpReward} XP`, isHeadshot ? '#FFD700' : '#00CCFF');
                 }
             }
@@ -639,8 +667,17 @@ class Weapon {
                 actualDamage *= 2;
                 if (player.stats) player.stats.headshots++;
             }
-            let isCritical = Math.random() < 0.1;
-            if (isCritical) actualDamage *= 2;
+            const critChances = { pistol: 0.15, shotgun: 0.10, rifle: 0.20, rocket: 0, chaingun: 0.05 };
+            let critChance = critChances[this.type] || 0.10;
+            if (player.getComboInfo) {
+                const combo = player.getComboInfo();
+                if (combo.active) critChance += combo.count * 0.03;
+            }
+            let isCritical = Math.random() < critChance;
+            if (isCritical) {
+                actualDamage *= 2;
+                if (player.stats) player.stats.criticalHits = (player.stats.criticalHits || 0) + 1;
+            }
             if (player.hasDamageBoost && player.hasDamageBoost()) actualDamage *= 1.5;
             if (player.levelBonuses) actualDamage *= player.levelBonuses.damageMultiplier;
             actualDamage = Math.round(actualDamage);

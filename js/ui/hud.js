@@ -86,6 +86,12 @@ class HUD {
         this.armorBreakTime = 0;
         this.armorBreakDuration = 500; // ms
 
+        // Crosshair text flash (e.g., "CRITICAL")
+        this.crosshairText = null;
+        this.crosshairTextTime = 0;
+        this.crosshairTextDuration = 600; // ms
+        this.crosshairTextColor = '#FFD700';
+
         // Zone vignette
         this.currentZoneTint = null;
         this.zoneTintAlpha = 0;
@@ -139,7 +145,8 @@ class HUD {
             this.renderAmmoCounter(player);
             this.renderWeaponSprite(player);
             this.renderCrosshair(player);
-            
+            this.renderCrosshairText();
+
             if (this.showFPS && gameEngine) {
                 this.renderFPSCounter(gameEngine);
             }
@@ -359,6 +366,36 @@ class HUD {
         }
     }
     
+    renderCrosshairText() {
+        if (!this.crosshairText) return;
+        const elapsed = Date.now() - this.crosshairTextTime;
+        if (elapsed > this.crosshairTextDuration) {
+            this.crosshairText = null;
+            return;
+        }
+        const alpha = 1 - (elapsed / this.crosshairTextDuration);
+        const rise = elapsed * 0.05; // float upward
+        const cx = this.canvas.width / 2;
+        const cy = this.canvas.height / 2 - 30 - rise;
+
+        this.ctx.save();
+        this.ctx.font = 'bold 16px monospace';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillStyle = this.crosshairTextColor.replace(')', `, ${alpha})`).replace('rgb', 'rgba');
+        // Fallback for hex colors
+        if (this.crosshairTextColor.startsWith('#')) {
+            const r = parseInt(this.crosshairTextColor.slice(1, 3), 16);
+            const g = parseInt(this.crosshairTextColor.slice(3, 5), 16);
+            const b = parseInt(this.crosshairTextColor.slice(5, 7), 16);
+            this.ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        this.ctx.shadowBlur = 4;
+        this.ctx.fillText(this.crosshairText, cx, cy);
+        this.ctx.restore();
+    }
+
     renderCrosshair(player) {
         if (!this.showCrosshair) return;
 
@@ -1575,6 +1612,13 @@ class HUD {
             this.ctx.fillText(msg.text, this.canvas.width - 15, y);
             this.ctx.globalAlpha = 1.0;
         }
+    }
+
+    // Show brief text flash near crosshair (e.g., "CRITICAL")
+    showCrosshairText(text, color) {
+        this.crosshairText = text;
+        this.crosshairTextTime = Date.now();
+        this.crosshairTextColor = color || '#FFD700';
     }
 
     // Called when player takes damage
