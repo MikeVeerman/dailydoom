@@ -49,7 +49,10 @@ class Enemy {
         this.dying = false;
         this.deathTime = 0;
         this.deathDuration = 600; // ms for death animation
-        
+
+        // Infighting: enemy that last damaged this enemy
+        this.infightTarget = null;
+
         // Enhanced AI system
         this.enhancedAI = null;
         if (window.EnhancedEnemyAI) {
@@ -100,8 +103,33 @@ class Enemy {
     
     originalUpdate(deltaTime, player, map) {
         const now = Date.now();
+
+        // Clear dead infight targets
+        if (this.infightTarget && (!this.infightTarget.active || this.infightTarget.dying)) {
+            this.infightTarget = null;
+        }
+
+        // Infighting: chase and attack the infight target instead of player
+        if (this.infightTarget) {
+            const target = this.infightTarget;
+            const dist = Math.sqrt((target.x - this.x) ** 2 + (target.y - this.y) ** 2);
+            if (dist < this.attackRange) {
+                if (!this.lastAttackTime || now - this.lastAttackTime > 2000) {
+                    this.lastAttackTime = now;
+                    target.takeDamage(15, this);
+                    if (window.game && window.game.hud) {
+                        window.game.hud.addDamageNumber(target.x, target.y, 15, false);
+                    }
+                }
+            } else {
+                this.targetX = target.x;
+                this.targetY = target.y;
+            }
+            return;
+        }
+
         const playerDistance = this.getDistanceToPlayer(player);
-        
+
         // State machine
         switch (this.state) {
             case 'idle':
@@ -278,17 +306,20 @@ class Enemy {
     }
     
     updateFacing(player) {
-        // Face towards player if chasing/attacking, otherwise face movement direction
+        // Face towards infight target if infighting, player if chasing/attacking, otherwise movement direction
         let targetX, targetY;
-        
-        if (this.state === 'chase' || this.state === 'attack') {
+
+        if (this.infightTarget && this.infightTarget.active && !this.infightTarget.dying) {
+            targetX = this.infightTarget.x;
+            targetY = this.infightTarget.y;
+        } else if (this.state === 'chase' || this.state === 'attack') {
             targetX = player.x;
             targetY = player.y;
         } else {
             targetX = this.targetX;
             targetY = this.targetY;
         }
-        
+
         this.angle = Math.atan2(targetY - this.y, targetX - this.x);
     }
     
@@ -329,7 +360,7 @@ class Enemy {
         }
     }
 
-    takeDamage(damage) {
+    takeDamage(damage, attacker) {
         let actualDamage = damage;
 
         // Front shield: reduce damage if hit from front
@@ -354,6 +385,12 @@ class Enemy {
 
         this.health -= actualDamage;
 
+        // Infighting: if damaged by another enemy, switch aggro target
+        if (attacker && attacker !== this && attacker.active && !attacker.dying) {
+            this.infightTarget = attacker;
+            this.state = 'chase';
+        }
+
         // Play hit sound
         if (window.soundEngine && window.soundEngine.isInitialized) {
             window.soundEngine.playEnemyHit();
@@ -368,7 +405,34 @@ class Enemy {
             this.dying = true;
             this.deathTime = Date.now();
             this.state = 'dying';
-            console.log(`${this.type} destroyed!`);
+
+            // Track infighting kill for player credit
+            const killedByEnemy = attacker && attacker.active;
+            if (killedByEnemy) {
+                console.log(`${this.type} killed by ${attacker.type} (infighting)!`);
+            } else {
+                console.log(`${this.type} destroyed!`);
+            }
+
+            // Player gets XP credit for infighting kills
+            if (killedByEnemy && window.game && window.game.player) {
+                const player = window.game.player;
+                const xpTable = { imp: 15, guard: 20, soldier: 30, demon: 40, berserker: 35, spitter: 25, shield_guard: 45, boss: 200 };
+                const xpReward = Math.round((xpTable[this.type] || 20) * 0.5); // Half XP for infighting kills
+                if (player.addXP) player.addXP(xpReward);
+                if (player.stats) player.stats.enemiesKilled++;
+                player.registerKill();
+
+                // Kill feed for infighting
+                if (window.game.hud && window.game.hud.addKillFeedMessage) {
+                    const victimName = (this.type || 'enemy').charAt(0).toUpperCase() + (this.type || 'enemy').slice(1);
+                    const killerName = (attacker.type || 'enemy').charAt(0).toUpperCase() + (attacker.type || 'enemy').slice(1);
+                    window.game.hud.addKillFeedMessage(`${killerName} killed ${victimName} +${xpReward} XP`, '#FF8800');
+                }
+
+                // Clear the attacker's infight target since victim is dead
+                attacker.infightTarget = null;
+            }
 
             // Play death sound
             if (window.soundEngine && window.soundEngine.isInitialized) {
