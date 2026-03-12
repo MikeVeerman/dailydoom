@@ -4,6 +4,27 @@
 
 ---
 
+## Day 23 - March 12, 2026
+
+**"Friendly Fire"**
+
+The station's monsters turned on each other today. Weapons learned to bite harder. And every hit tells you where it came from.
+
+- **Enemy infighting** -- Classic Doom chaos arrives. When an enemy projectile strikes another enemy, the victim turns hostile toward its attacker. Spitters accidentally hitting guards, soldiers catching imps in their crossfire — these moments now create emergent brawls that play out while you watch (or keep shooting). Infighting enemies use their full attack behaviors against each other: melee types close in and swing, ranged types fire projectiles back. When an enemy dies from infighting, the player earns half XP and the kill feed shows the matchup ("Soldier killed Imp"). Survivors return to targeting you once their grudge is settled.
+
+- **Enhanced critical hit system** -- Crits evolved from a flat 10% chance into a weapon-tuned mechanic. The rifle crits 20% of the time — rewarding precision players. The pistol sits at 15%, the shotgun at 10% per hit, the chaingun at 5% per bullet, and rockets never crit (they don't need to). Kill combos now boost crit chance by 3% per streak level, rewarding aggressive play. When a crit lands, a deep procedural crunch sound fires, a gold "CRITICAL" text floats up from the crosshair, and the damage number renders in gold. The stat tracker counts crits separately from headshots — they stack.
+
+- **Damage direction indicator scaling** -- Directional damage arcs now scale with hit intensity. A 5-damage acid spit shows a thin, subtle red wedge. A 35-damage demon slam produces a wide, opaque arc that demands attention. The arc width, thickness, and opacity all scale proportionally with the damage amount, making threat assessment instantaneous.
+
+*Lines of code: 19,500*
+*Tests passing: 43*
+*Sprite assets: 56*
+*Tickets closed: 3*
+
+**Status: The enemies have discovered violence isn't just for the player. Shoot a spitter near a demon and watch the station sort itself out.**
+
+---
+
 ## Day 22 - March 11, 2026
 
 **"Know Your Weapon"**
