@@ -14,6 +14,9 @@ class Player {
         this.speed = 200; // Units per second
         this.runMultiplier = 1.5;
         this.turnSpeed = 3.0; // Radians per second
+        this.currentTurnVelocity = 0; // Current keyboard turn velocity
+        this.turnAcceleration = 12.0; // How fast turn ramps up (rad/s²)
+        this.turnDeceleration = 10.0; // How fast turn ramps down (rad/s²)
         this.lastFootstepTime = 0;
         this.footstepInterval = 400; // ms between footsteps
         
@@ -138,14 +141,35 @@ class Player {
     
     handleTurning(inputManager, deltaTime) {
         let turnAmount = 0;
-        
-        // Keyboard turning
+
+        // Keyboard turning with acceleration/deceleration
+        let targetVelocity = 0;
         if (inputManager.isKeyDown('turnLeft')) {
-            turnAmount -= this.turnSpeed * deltaTime;
+            targetVelocity -= this.turnSpeed;
         }
         if (inputManager.isKeyDown('turnRight')) {
-            turnAmount += this.turnSpeed * deltaTime;
+            targetVelocity += this.turnSpeed;
         }
+
+        if (targetVelocity !== 0) {
+            // Accelerate toward target
+            const accel = this.turnAcceleration * deltaTime;
+            if (this.currentTurnVelocity < targetVelocity) {
+                this.currentTurnVelocity = Math.min(this.currentTurnVelocity + accel, targetVelocity);
+            } else {
+                this.currentTurnVelocity = Math.max(this.currentTurnVelocity - accel, targetVelocity);
+            }
+        } else {
+            // Decelerate toward zero
+            const decel = this.turnDeceleration * deltaTime;
+            if (this.currentTurnVelocity > 0) {
+                this.currentTurnVelocity = Math.max(this.currentTurnVelocity - decel, 0);
+            } else if (this.currentTurnVelocity < 0) {
+                this.currentTurnVelocity = Math.min(this.currentTurnVelocity + decel, 0);
+            }
+        }
+
+        turnAmount = this.currentTurnVelocity * deltaTime;
         
         // Mouse turning (with smoothing)
         if (inputManager.isMouseLocked()) {
