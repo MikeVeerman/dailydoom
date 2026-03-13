@@ -1978,16 +1978,17 @@ class HUD {
         this.ctx.closePath();
         this.ctx.fill();
 
+        this.ctx.restore();
+
         // Player direction indicator (triangle pointing up = forward)
+        // Drawn after restore so it stays fixed pointing up
         this.ctx.fillStyle = '#00FF00';
         this.ctx.beginPath();
-        this.ctx.moveTo(0, -6);
-        this.ctx.lineTo(-4, 4);
-        this.ctx.lineTo(4, 4);
+        this.ctx.moveTo(centerX, centerY - 6);
+        this.ctx.lineTo(centerX - 4, centerY + 4);
+        this.ctx.lineTo(centerX + 4, centerY + 4);
         this.ctx.closePath();
         this.ctx.fill();
-
-        this.ctx.restore();
 
         // Draw circular border (after restore so it's not rotated)
         this.ctx.strokeStyle = 'rgba(0, 255, 0, 0.4)';
