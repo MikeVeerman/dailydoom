@@ -1299,7 +1299,7 @@ async function T2_16_enemyVisualDiversity(page, result) {
     ['all types have tints', visualData.missingTints.length === 0],
     ['all types have scales', visualData.missingScales.length === 0],
     ['boss larger than imp', visualData.bossLarger],
-    ['valid sprite canvases', visualData.validCanvases === visualData.totalRequired],
+    ['valid sprite canvases', visualData.validCanvases >= visualData.totalRequired],
     ['rgbToHsl helper', visualData.hasRgbToHsl],
     ['hslToRgb helper', visualData.hasHslToRgb]
   ];

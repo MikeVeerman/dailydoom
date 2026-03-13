@@ -759,7 +759,8 @@ class Weapon {
     getKillXP(enemy) {
         const xpTable = {
             imp: 15, guard: 20, soldier: 30, demon: 40,
-            berserker: 35, spitter: 25, shield_guard: 45, boss: 200
+            berserker: 35, spitter: 25, shield_guard: 45, boss: 200,
+            phantom: 30, exploder: 20, sniper: 35
         };
         return xpTable[enemy.type] || 20;
     }
