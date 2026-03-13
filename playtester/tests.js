@@ -657,7 +657,10 @@ async function T2_08_enemyDamageSystem(page, result) {
     const hasPlayerHitSound = window.soundEngine && typeof window.soundEngine.playPlayerHit === 'function';
 
     // Test invincibility frames by simulating damage
+    player.health = player.maxHealth; // Ensure player is alive
+    player.armor = 0; // Clear armor so damage goes directly to health
     const healthBefore = player.health;
+    player.lastDamageTime = 0; // Reset so first hit is not blocked
     player.takeDamage(10);
     const healthAfterFirst = player.health;
     player.takeDamage(10); // Should be blocked by invincibility frames
@@ -1319,6 +1322,15 @@ async function T2_17_enemyMovement(page, result) {
   // T2-17: Enemy movement system - enemies actively move (issue: #29)
   // Pass condition: Enemies change position over time, different speeds per type
   await page.waitForTimeout(1000);
+
+  // Ensure player is alive so game loop continues updating
+  await page.evaluate(() => {
+    if (window.game && window.game.player) {
+      window.game.player.health = window.game.player.maxHealth;
+      window.game.player.isDead = false;
+      window.game.showDeathScreen = false;
+    }
+  });
 
   const movementData = await page.evaluate(() => {
     if (!window.game || !window.game.map || !window.game.map.enemies) {
