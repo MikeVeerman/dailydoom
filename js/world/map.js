@@ -363,6 +363,11 @@ class GameMap {
         if (!barrel.active) return;
         barrel.active = false;
 
+        // Explosion dynamic light
+        if (window.game && window.game.renderer && window.game.renderer.addDynamicLight) {
+            window.game.renderer.addDynamicLight(barrel.x, barrel.y, 1.0, 0.5, 0, 5, 400);
+        }
+
         // Play explosion sound + particles
         if (window.game && window.game.hud) {
             window.game.hud.emitExplosionParticles(barrel.x, barrel.y, 20);

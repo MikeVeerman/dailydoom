@@ -52,6 +52,12 @@ class Renderer {
         this.imageData = this.ctx.createImageData(this.width, this.height);
         this.pixelBuffer = new Uint32Array(this.imageData.data.buffer);
         
+        // Dynamic lighting system
+        this.lightGrid = null; // Per-tile RGB light accumulation
+        this._staticLightGrid = null; // Cached static lights (acid/lava)
+        this._staticLightDirty = true;
+        this.dynamicLights = []; // Transient lights (muzzle flash, explosions)
+
         // Precalculated values for performance
         this.cosTable = [];
         this.sinTable = [];
@@ -109,6 +115,137 @@ class Renderer {
         return false;
     }
 
+    // Build static lightmap from acid/lava tiles (only when tiles change)
+    buildStaticLightGrid() {
+        const w = this.map.width;
+        const h = this.map.height;
+        this._staticLightGrid = [];
+        for (let y = 0; y < h; y++) {
+            this._staticLightGrid[y] = [];
+            for (let x = 0; x < w; x++) {
+                this._staticLightGrid[y][x] = { r: 0, g: 0, b: 0 };
+            }
+        }
+
+        // Light sources from hazard tiles
+        const lightSources = [];
+        if (this.map.acidTiles) {
+            for (const key of this.map.acidTiles) {
+                const [ax, ay] = key.split(',').map(Number);
+                lightSources.push({ x: ax, y: ay, r: 0, g: 0.6, b: 0, radius: 3 });
+            }
+        }
+        if (this.map.lavaTiles) {
+            for (const key of this.map.lavaTiles) {
+                const [lx, ly] = key.split(',').map(Number);
+                lightSources.push({ x: lx, y: ly, r: 0.8, g: 0.25, b: 0, radius: 3 });
+            }
+        }
+
+        // Accumulate light from each source
+        for (const light of lightSources) {
+            const minX = Math.max(0, light.x - light.radius);
+            const maxX = Math.min(w - 1, light.x + light.radius);
+            const minY = Math.max(0, light.y - light.radius);
+            const maxY = Math.min(h - 1, light.y + light.radius);
+            for (let ty = minY; ty <= maxY; ty++) {
+                for (let tx = minX; tx <= maxX; tx++) {
+                    const dist = Math.sqrt((tx - light.x) ** 2 + (ty - light.y) ** 2);
+                    if (dist <= light.radius) {
+                        const falloff = 1 - (dist / light.radius);
+                        const intensity = falloff * falloff;
+                        this._staticLightGrid[ty][tx].r += light.r * intensity;
+                        this._staticLightGrid[ty][tx].g += light.g * intensity;
+                        this._staticLightGrid[ty][tx].b += light.b * intensity;
+                    }
+                }
+            }
+        }
+        this._staticLightDirty = false;
+    }
+
+    // Build per-frame lightmap combining static + dynamic lights
+    updateLightGrid() {
+        const w = this.map.width;
+        const h = this.map.height;
+
+        // Rebuild static lights if needed
+        if (this._staticLightDirty || !this._staticLightGrid) {
+            this.buildStaticLightGrid();
+        }
+
+        // Initialize from static grid
+        if (!this.lightGrid) {
+            this.lightGrid = [];
+            for (let y = 0; y < h; y++) {
+                this.lightGrid[y] = [];
+                for (let x = 0; x < w; x++) {
+                    this.lightGrid[y][x] = { r: 0, g: 0, b: 0 };
+                }
+            }
+        }
+
+        // Copy static to working grid
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const s = this._staticLightGrid[y][x];
+                this.lightGrid[y][x].r = s.r;
+                this.lightGrid[y][x].g = s.g;
+                this.lightGrid[y][x].b = s.b;
+            }
+        }
+
+        // Add dynamic lights
+        const now = Date.now();
+        for (let i = this.dynamicLights.length - 1; i >= 0; i--) {
+            const dl = this.dynamicLights[i];
+            const elapsed = now - dl.startTime;
+            if (elapsed > dl.duration) {
+                this.dynamicLights.splice(i, 1);
+                continue;
+            }
+            const fade = 1 - (elapsed / dl.duration);
+            const tileX = Math.floor(dl.x / this.map.tileSize);
+            const tileY = Math.floor(dl.y / this.map.tileSize);
+            const radius = dl.radius;
+            const minX = Math.max(0, tileX - radius);
+            const maxX = Math.min(w - 1, tileX + radius);
+            const minY = Math.max(0, tileY - radius);
+            const maxY = Math.min(h - 1, tileY + radius);
+            for (let ty = minY; ty <= maxY; ty++) {
+                for (let tx = minX; tx <= maxX; tx++) {
+                    const dist = Math.sqrt((tx - tileX) ** 2 + (ty - tileY) ** 2);
+                    if (dist <= radius) {
+                        const falloff = 1 - (dist / radius);
+                        const intensity = falloff * fade;
+                        this.lightGrid[ty][tx].r += dl.r * intensity;
+                        this.lightGrid[ty][tx].g += dl.g * intensity;
+                        this.lightGrid[ty][tx].b += dl.b * intensity;
+                    }
+                }
+            }
+        }
+    }
+
+    // Add a temporary dynamic light
+    addDynamicLight(worldX, worldY, r, g, b, radius, duration) {
+        this.dynamicLights.push({
+            x: worldX, y: worldY,
+            r, g, b, radius, duration,
+            startTime: Date.now()
+        });
+    }
+
+    // Sample light at a world position (tile-based, no interpolation for speed)
+    sampleLight(worldX, worldY) {
+        const tx = Math.floor(worldX / this.map.tileSize);
+        const ty = Math.floor(worldY / this.map.tileSize);
+        if (ty >= 0 && ty < this.map.height && tx >= 0 && tx < this.map.width && this.lightGrid) {
+            return this.lightGrid[ty][tx];
+        }
+        return { r: 0, g: 0, b: 0 };
+    }
+
     render(player) {
         // Clear screen
         this.clearScreen();
@@ -117,7 +254,11 @@ class Renderer {
         const totalHazardCount = (this.map.acidTiles ? this.map.acidTiles.size : 0) + (this.map.lavaTiles ? this.map.lavaTiles.size : 0);
         if (!this._acidLookup || totalHazardCount !== this._acidTileCount) {
             this.buildAcidLookup();
+            this._staticLightDirty = true;
         }
+
+        // Update per-frame lightmap
+        this.updateLightGrid();
 
         // Cache time for acid animation
         this._acidTime = Date.now() / 400;
@@ -234,10 +375,13 @@ class Renderer {
         const textureName = this.wallTypeTextures[wallType] || 'stone';
         const texture = this.textures[textureName];
 
-        // Apply shading based on distance and wall side
-        const shadingFactor = Math.max(0.2, 1 - (distance / this.maxRenderDistance));
+        // Apply shading based on distance and wall side (darker ambient)
+        const shadingFactor = Math.max(0.08, 1 - (distance / this.maxRenderDistance));
         const sideFactor = hitSide === 0 ? 1.0 : 0.7; // Darken horizontal walls
         const totalShading = shadingFactor * sideFactor;
+
+        // Sample dynamic lighting at wall hit position
+        const wallLight = this.sampleLight(hitX, hitY);
 
         // Calculate texture U coordinate (horizontal position on texture)
         let textureU;
@@ -249,9 +393,22 @@ class Renderer {
             textureU = (hitX % this.wallHeight) / this.wallHeight;
         }
 
-        // Render ceiling (above wall on screen)
-        for (let y = 0; y < wallTop && y < this.height; y++) {
-            this.setPixel(x, Math.floor(y), this.hexToRgb(this.floorColor));
+        // Render ceiling (above wall on screen) with distance-based dimming
+        {
+            const rayAngle = rayResult.angle;
+            const cosAngle = Math.cos(rayAngle);
+            const sinAngle = Math.sin(rayAngle);
+            const cosCorrection = Math.cos(rayAngle - player.angle);
+            const ceilDistCoeff = (this.wallHeight / 2) * this.projectionDistance;
+            const ceilR = 0x66, ceilG = 0x66, ceilB = 0x66;
+            for (let y = 0; y < wallTop && y < this.height; y++) {
+                const rowDist = ceilDistCoeff / (this.halfHeight - y);
+                const shade = Math.max(0.08, 1 - (rowDist / cosCorrection / this.maxRenderDistance));
+                const r = Math.floor(ceilR * shade);
+                const g = Math.floor(ceilG * shade);
+                const b = Math.floor(ceilB * shade);
+                this.setPixel(x, Math.floor(y), 0xFF000000 | (b << 16) | (g << 8) | r);
+            }
         }
 
         // Render textured wall (use door-adjusted bounds for doors)
@@ -259,26 +416,26 @@ class Renderer {
         const renderBottom = doorProgress > 0 ? doorWallBottom : wallBottom;
 
         if (texture && texture.complete) {
-            this.renderTexturedWallSlice(x, renderTop, renderBottom, textureU, texture, totalShading);
+            this.renderTexturedWallSlice(x, renderTop, renderBottom, textureU, texture, totalShading, wallLight);
         } else {
             // Fallback to solid color if texture not loaded
             let wallColor = this.wallColors[wallType] || '#FFFFFF';
-            const color = this.applyShading(wallColor, totalShading);
+            const color = this.applyShadingWithLight(wallColor, totalShading, wallLight);
 
             for (let y = Math.max(0, renderTop); y < Math.min(this.height, renderBottom); y++) {
                 this.setPixel(x, Math.floor(y), color);
             }
         }
         
-        // Render floor (below wall on screen, or below door gap)
+        // Render floor (below wall on screen, or below door gap) with distance dimming + lighting
         const floorStartY = doorProgress > 0 ? Math.ceil(doorWallBottom) : Math.ceil(wallBottom);
-        if (this._acidTileCount > 0) {
+        {
             const rayAngle = rayResult.angle;
             const cosAngle = Math.cos(rayAngle);
             const sinAngle = Math.sin(rayAngle);
             const cosCorrection = Math.cos(rayAngle - player.angle);
-            const baseFloorColor = this.hexToRgb(this.floorColor);
             const floorDistCoeff = (this.wallHeight / 2) * this.projectionDistance;
+            const baseR = 0x33, baseG = 0x33, baseB = 0x33;
             for (let y = Math.max(0, floorStartY); y < this.height; y++) {
                 const rowDist = floorDistCoeff / (y - this.halfHeight);
                 const actualDist = rowDist / cosCorrection;
@@ -286,43 +443,59 @@ class Renderer {
                 const floorWorldY = player.y + actualDist * sinAngle;
                 const mapX = Math.floor(floorWorldX / this.wallHeight);
                 const mapY = Math.floor(floorWorldY / this.wallHeight);
-                const hazardType = this._acidLookup[mapY] && this._acidLookup[mapY][mapX];
+                const shade = Math.max(0.08, 1 - (rowDist / this.maxRenderDistance));
+                const hazardType = this._acidLookup && this._acidLookup[mapY] && this._acidLookup[mapY][mapX];
                 if (hazardType > 0) {
-                    const shade = Math.max(0.3, 1 - (rowDist / this.maxRenderDistance));
                     const pulse = 0.85 + 0.15 * Math.sin(this._acidTime + mapX * 3.7 + mapY * 5.3);
                     const s = shade * pulse;
                     let r, g, b;
-                    if (hazardType === 2) { // Lava: orange
+                    if (hazardType === 2) {
                         r = Math.floor(220 * s);
                         g = Math.floor(80 * s);
                         b = Math.floor(10 * s);
-                    } else { // Acid: green
+                    } else {
                         r = Math.floor(15 * s);
                         g = Math.floor(180 * s);
                         b = Math.floor(10 * s);
                     }
                     this.setPixel(x, y, 0xFF000000 | (b << 16) | (g << 8) | r);
                 } else {
-                    this.setPixel(x, y, baseFloorColor);
+                    const light = this.sampleLight(floorWorldX, floorWorldY);
+                    let r = Math.min(255, Math.floor(baseR * shade + light.r * 180 * shade));
+                    let g = Math.min(255, Math.floor(baseG * shade + light.g * 180 * shade));
+                    let b = Math.min(255, Math.floor(baseB * shade + light.b * 180 * shade));
+                    this.setPixel(x, y, 0xFF000000 | (b << 16) | (g << 8) | r);
                 }
-            }
-        } else {
-            for (let y = Math.max(0, floorStartY); y < this.height; y++) {
-                this.setPixel(x, Math.floor(y), this.hexToRgb(this.ceilingColor));
             }
         }
     }
 
     renderFloorCeiling(x, player, rayAngle) {
-        for (let y = 0; y < this.halfHeight; y++) {
-            this.setPixel(x, y, this.hexToRgb(this.ceilingColor));
+        // Ceiling with distance dimming
+        const ceilDistCoeff = (this.wallHeight / 2) * this.projectionDistance;
+        const ceilR = 0x66, ceilG = 0x66, ceilB = 0x66;
+        if (player && rayAngle !== undefined) {
+            const cosCorrection = Math.cos(rayAngle - player.angle);
+            for (let y = 0; y < this.halfHeight; y++) {
+                const rowDist = ceilDistCoeff / (this.halfHeight - y);
+                const shade = Math.max(0.08, 1 - (rowDist / cosCorrection / this.maxRenderDistance));
+                const r = Math.floor(ceilR * shade);
+                const g = Math.floor(ceilG * shade);
+                const b = Math.floor(ceilB * shade);
+                this.setPixel(x, y, 0xFF000000 | (b << 16) | (g << 8) | r);
+            }
+        } else {
+            for (let y = 0; y < this.halfHeight; y++) {
+                this.setPixel(x, y, this.hexToRgb(this.ceilingColor));
+            }
         }
-        if (this._acidTileCount > 0 && player && rayAngle !== undefined) {
+        // Floor with distance dimming + lighting
+        if (player && rayAngle !== undefined) {
             const cosAngle = Math.cos(rayAngle);
             const sinAngle = Math.sin(rayAngle);
             const cosCorrection = Math.cos(rayAngle - player.angle);
-            const baseFloorColor = this.hexToRgb(this.floorColor);
             const floorDistCoeff = (this.wallHeight / 2) * this.projectionDistance;
+            const baseR = 0x33, baseG = 0x33, baseB = 0x33;
             for (let y = Math.ceil(this.halfHeight); y < this.height; y++) {
                 const rowDist = floorDistCoeff / (y - this.halfHeight);
                 const actualDist = rowDist / cosCorrection;
@@ -330,24 +503,28 @@ class Renderer {
                 const floorWorldY = player.y + actualDist * sinAngle;
                 const mapX = Math.floor(floorWorldX / this.wallHeight);
                 const mapY = Math.floor(floorWorldY / this.wallHeight);
-                const hazardType = this._acidLookup[mapY] && this._acidLookup[mapY][mapX];
+                const shade = Math.max(0.08, 1 - (rowDist / this.maxRenderDistance));
+                const hazardType = this._acidLookup && this._acidLookup[mapY] && this._acidLookup[mapY][mapX];
                 if (hazardType > 0) {
-                    const shade = Math.max(0.3, 1 - (rowDist / this.maxRenderDistance));
                     const pulse = 0.85 + 0.15 * Math.sin(this._acidTime + mapX * 3.7 + mapY * 5.3);
                     const s = shade * pulse;
                     let r, g, b;
-                    if (hazardType === 2) { // Lava: orange
+                    if (hazardType === 2) {
                         r = Math.floor(220 * s);
                         g = Math.floor(80 * s);
                         b = Math.floor(10 * s);
-                    } else { // Acid: green
+                    } else {
                         r = Math.floor(15 * s);
                         g = Math.floor(180 * s);
                         b = Math.floor(10 * s);
                     }
                     this.setPixel(x, y, 0xFF000000 | (b << 16) | (g << 8) | r);
                 } else {
-                    this.setPixel(x, y, baseFloorColor);
+                    const light = this.sampleLight(floorWorldX, floorWorldY);
+                    let r = Math.min(255, Math.floor(baseR * shade + light.r * 180 * shade));
+                    let g = Math.min(255, Math.floor(baseG * shade + light.g * 180 * shade));
+                    let b = Math.min(255, Math.floor(baseB * shade + light.b * 180 * shade));
+                    this.setPixel(x, y, 0xFF000000 | (b << 16) | (g << 8) | r);
                 }
             }
         } else {
@@ -381,8 +558,18 @@ class Renderer {
         const b = Math.floor(parseInt(hexColor.slice(5, 7), 16) * factor);
         return 0xFF000000 | (b << 16) | (g << 8) | r;
     }
+
+    applyShadingWithLight(hexColor, factor, light) {
+        const br = parseInt(hexColor.slice(1, 3), 16);
+        const bg = parseInt(hexColor.slice(3, 5), 16);
+        const bb = parseInt(hexColor.slice(5, 7), 16);
+        const r = Math.min(255, Math.floor(br * factor + light.r * 180 * factor));
+        const g = Math.min(255, Math.floor(bg * factor + light.g * 180 * factor));
+        const b = Math.min(255, Math.floor(bb * factor + light.b * 180 * factor));
+        return 0xFF000000 | (b << 16) | (g << 8) | r;
+    }
     
-    renderTexturedWallSlice(x, wallTop, wallBottom, textureU, texture, shading) {
+    renderTexturedWallSlice(x, wallTop, wallBottom, textureU, texture, shading, light) {
         // Get texture dimensions
         const textureWidth = texture.width;
         const textureHeight = texture.height;
@@ -421,11 +608,17 @@ class Renderer {
             let g = this.cachedTextureData.data[pixelIndex + 1]; 
             let b = this.cachedTextureData.data[pixelIndex + 2];
             
-            // Apply shading
-            r = Math.floor(r * shading);
-            g = Math.floor(g * shading);
-            b = Math.floor(b * shading);
-            
+            // Apply shading + colored light
+            if (light && (light.r > 0 || light.g > 0 || light.b > 0)) {
+                r = Math.min(255, Math.floor(r * shading + light.r * 180 * shading));
+                g = Math.min(255, Math.floor(g * shading + light.g * 180 * shading));
+                b = Math.min(255, Math.floor(b * shading + light.b * 180 * shading));
+            } else {
+                r = Math.floor(r * shading);
+                g = Math.floor(g * shading);
+                b = Math.floor(b * shading);
+            }
+
             // Convert to the format expected by setPixel (ARGB)
             const color = 0xFF000000 | (b << 16) | (g << 8) | r;
             

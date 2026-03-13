@@ -106,6 +106,13 @@ class Weapon {
         this.muzzleFlash = true;
         this.muzzleFlashStart = now;
 
+        // Muzzle flash dynamic light
+        if (window.game && window.game.renderer && window.game.renderer.addDynamicLight) {
+            const lightX = player.x + Math.cos(player.angle) * 20;
+            const lightY = player.y + Math.sin(player.angle) * 20;
+            window.game.renderer.addDynamicLight(lightX, lightY, 1.0, 0.9, 0.6, 4, 120);
+        }
+
         // Muzzle flash particles and screen shake
         if (window.game && window.game.hud) {
             const muzzleX = player.x + Math.cos(player.angle) * 20;
@@ -261,10 +268,13 @@ class Weapon {
         // Rocket launcher splash damage
         const stats = this.getWeaponStats(this.type);
         if (stats.splashRadius && hit.hitPoint) {
-            // Explosion particles
+            // Explosion particles + dynamic light
             if (window.game && window.game.hud) {
                 window.game.hud.emitExplosionParticles(hit.hitPoint.x, hit.hitPoint.y, 15);
                 window.game.hud.triggerScreenShake(12);
+            }
+            if (window.game && window.game.renderer && window.game.renderer.addDynamicLight) {
+                window.game.renderer.addDynamicLight(hit.hitPoint.x, hit.hitPoint.y, 1.0, 0.5, 0, 5, 350);
             }
 
             const splashRadius = stats.splashRadius;
