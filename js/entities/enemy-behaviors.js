@@ -140,6 +140,66 @@ const EnemyBehaviors = {
         frontShield: true // 70% damage reduction from front
     },
 
+    // Phantom - partially invisible, appears when attacking
+    phantom: {
+        health: 50,
+        speed: 35,
+        detectionRange: 300,
+        attackRange: 50,
+        damage: 18,
+        attackCooldown: 1600,
+        patrolRadius: 120,
+        aggressiveness: 0.7,
+        intelligence: 0.8,
+
+        fleeHealthThreshold: 0.3,
+        groupBehavior: false,
+        callForHelp: false,
+        useCover: false,
+        phantomCloak: true // Partially invisible until attacking
+    },
+
+    // Exploder - suicide bomber that charges and detonates
+    exploder: {
+        health: 30,
+        speed: 55,
+        detectionRange: 250,
+        attackRange: 40,
+        damage: 60,
+        attackCooldown: 500,
+        patrolRadius: 80,
+        aggressiveness: 1.0,
+        intelligence: 0.2,
+
+        fleeHealthThreshold: 0, // Never flees
+        groupBehavior: false,
+        callForHelp: false,
+        useCover: false,
+        chargeAttack: true,
+        exploderSuicide: true // Detonates on contact, killing self
+    },
+
+    // Sniper - long range, low HP, repositions after firing
+    sniper: {
+        health: 45,
+        speed: 25,
+        detectionRange: 500,
+        attackRange: 450,
+        damage: 30,
+        attackCooldown: 3000,
+        patrolRadius: 100,
+        aggressiveness: 0.2,
+        intelligence: 0.9,
+
+        fleeHealthThreshold: 0.5,
+        groupBehavior: false,
+        callForHelp: false,
+        useCover: true,
+        retreatBehavior: true,
+        rangedAttack: true,
+        sniperRelocate: true // Relocates after firing
+    },
+
     // Boss enemy - massive health, multiple attack phases
     boss: {
         health: 500,
@@ -309,6 +369,11 @@ class EnhancedEnemyAI {
         if (distance < this.enemy.attackRange) {
             this.enemy.state = 'attack';
             return;
+        }
+
+        // Phantom: update cloak state
+        if (this.behavior.phantomCloak) {
+            this.enemy.cloaked = (this.enemy.state !== 'attack');
         }
 
         // Berserker rage during chase
@@ -605,6 +670,41 @@ class EnhancedEnemyAI {
     }
 
     performAttack(player) {
+        // Exploder: suicide attack - deal splash damage and die
+        if (this.behavior.exploderSuicide) {
+            const dist = this.getDistanceToPlayer(player);
+            if (dist < this.enemy.attackRange * 1.5) {
+                this.enemy.tryBark('attack');
+                const damage = this.behavior.damage;
+                if (player.takeDamage(damage)) {
+                    if (window.game && window.game.hud) {
+                        window.game.hud.onPlayerDamageFrom(this.enemy.x, this.enemy.y, damage);
+                        window.game.hud.triggerScreenShake(15);
+                    }
+                    if (window.soundEngine && window.soundEngine.isInitialized) {
+                        window.soundEngine.playPlayerHit();
+                    }
+                    if (player.applyKnockback) {
+                        player.applyKnockback(this.enemy.x, this.enemy.y, 500);
+                    }
+                }
+                // Explosion effects
+                if (window.game && window.game.hud) {
+                    window.game.hud.emitBloodParticles(this.enemy.x, this.enemy.y, 20);
+                    window.game.hud.triggerScreenShake(12);
+                }
+                if (window.soundEngine && window.soundEngine.isInitialized) {
+                    window.soundEngine.playExplosion();
+                }
+                // Kill self
+                this.enemy.health = 0;
+                this.enemy.dying = true;
+                this.enemy.deathTime = Date.now();
+                this.enemy.state = 'dying';
+            }
+            return;
+        }
+
         if (this.hasLineOfSight(player, window.game.map)) {
             let damage = this.behavior.damage;
 
@@ -627,6 +727,15 @@ class EnhancedEnemyAI {
                     // Play projectile fire sound
                     if (window.soundEngine && window.soundEngine.isInitialized) {
                         this.playAttackSound();
+                    }
+
+                    // Sniper: relocate after firing
+                    if (this.behavior.sniperRelocate) {
+                        const relocAngle = Math.random() * Math.PI * 2;
+                        const relocDist = 100 + Math.random() * 80;
+                        this.enemy.targetX = this.enemy.x + Math.cos(relocAngle) * relocDist;
+                        this.enemy.targetY = this.enemy.y + Math.sin(relocAngle) * relocDist;
+                        this.enemy.state = 'chase'; // Move to new position
                     }
                 }
                 return;

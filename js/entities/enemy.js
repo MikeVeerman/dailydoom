@@ -417,7 +417,7 @@ class Enemy {
             // Player gets XP credit for infighting kills
             if (killedByEnemy && window.game && window.game.player) {
                 const player = window.game.player;
-                const xpTable = { imp: 15, guard: 20, soldier: 30, demon: 40, berserker: 35, spitter: 25, shield_guard: 45, boss: 200 };
+                const xpTable = { imp: 15, guard: 20, soldier: 30, demon: 40, berserker: 35, spitter: 25, shield_guard: 45, boss: 200, phantom: 30, exploder: 20, sniper: 35 };
                 const xpReward = Math.round((xpTable[this.type] || 20) * 0.5); // Half XP for infighting kills
                 if (player.addXP) player.addXP(xpReward);
                 if (player.stats) player.stats.enemiesKilled++;
@@ -465,7 +465,10 @@ class Enemy {
             berserker:    { ammo: 0.20, health: 0.35, healthLarge: 0.10, armor: 0.10 },
             spitter:      { ammo: 0.35, health: 0.15, healthLarge: 0,    armor: 0.05 },
             shield_guard: { ammo: 0.30, health: 0.20, healthLarge: 0.05, armor: 0.25 },
-            boss:         { ammo: 0.80, health: 0.60, healthLarge: 0.40, armor: 0.50 }
+            boss:         { ammo: 0.80, health: 0.60, healthLarge: 0.40, armor: 0.50 },
+            phantom:      { ammo: 0.20, health: 0.25, healthLarge: 0,    armor: 0.05 },
+            exploder:     { ammo: 0.15, health: 0.10, healthLarge: 0,    armor: 0    },
+            sniper:       { ammo: 0.45, health: 0.15, healthLarge: 0,    armor: 0.10 }
         };
 
         const table = lootTable[this.type] || lootTable.guard;

@@ -507,7 +507,8 @@ class Renderer {
         // Enemy type scale factors
         this.enemyScales = {
             imp: 0.6, guard: 0.7, soldier: 0.65, demon: 0.8,
-            berserker: 0.7, spitter: 0.55, shield_guard: 0.75, boss: 1.0
+            berserker: 0.7, spitter: 0.55, shield_guard: 0.75, boss: 1.0,
+            phantom: 0.6, exploder: 0.55, sniper: 0.6
         };
 
         // Per-type enemy sprites (from Anarch oldschool FPS resources, CC0)
@@ -520,7 +521,10 @@ class Renderer {
             berserker:    { idle: 'berserker_idle.png', attack: 'berserker_attack.png', walk: 'berserker_walk.png' },
             spitter:      { idle: 'spitter_idle.png', attack: 'spitter_attack.png' },
             shield_guard: { idle: 'shield_guard_idle.png' },
-            boss:         { idle: 'boss_idle.png', attack: 'boss_attack.png', walk: 'boss_walk.png' }
+            boss:         { idle: 'boss_idle.png', attack: 'boss_attack.png', walk: 'boss_walk.png' },
+            phantom:      { idle: 'imp_idle_new.png', attack: 'imp_attack.png', walk: 'imp_walk.png' },
+            exploder:     { idle: 'berserker_idle.png', attack: 'berserker_attack.png', walk: 'berserker_walk.png' },
+            sniper:       { idle: 'soldier_idle.png', attack: 'soldier_attack.png' }
         };
 
         for (const [type, files] of Object.entries(enemySpriteMap)) {
@@ -572,7 +576,10 @@ class Renderer {
             berserker:    { hue: 30,  sat: 1.3, bright: 1.1 },
             spitter:      { hue: 120, sat: 1.1, bright: 1.0 },
             shield_guard: { hue: 200, sat: 0.9, bright: 1.2 },
-            boss:         { hue: 50,  sat: 0.7, bright: 1.3 }
+            boss:         { hue: 50,  sat: 0.7, bright: 1.3 },
+            phantom:      { hue: 260, sat: 0.6, bright: 0.7 },
+            exploder:     { hue: 10,  sat: 1.4, bright: 1.2 },
+            sniper:       { hue: 60,  sat: 0.8, bright: 0.8 }
         };
 
         // Load legacy imp sprite as fallback
@@ -972,8 +979,13 @@ class Renderer {
             }
 
             // Apply death animation transforms
-            const deathAlpha = entity.dying ? 1 - deathProgress * 0.8 : 1;
+            let deathAlpha = entity.dying ? 1 - deathProgress * 0.8 : 1;
             const deathScaleY = entity.dying ? 1 - deathProgress * 0.7 : 1;
+
+            // Phantom cloak: partially invisible when not attacking
+            if (entity.cloaked && !entity.dying) {
+                deathAlpha *= 0.15 + 0.1 * Math.sin(Date.now() * 0.005);
+            }
             const adjustedHeight = spriteSize * deathScaleY;
 
             // Draw the sprite with bottom aligned to floor, pixel-art crisp
