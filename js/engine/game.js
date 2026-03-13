@@ -78,7 +78,11 @@ class GameEngine {
                 { x: 20, y: 8 },
                 { x: 8, y: 4 },
                 { x: 16, y: 12 },
-                { x: 4, y: 12 }
+                { x: 4, y: 12 },
+                { x: 18, y: 16 },
+                { x: 12, y: 4 },
+                { x: 4, y: 20 },
+                { x: 16, y: 20 }
             ]
         };
 
@@ -436,9 +440,9 @@ class GameEngine {
         const diffSettings = window.DIFFICULTY ? window.DIFFICULTY[difficulty] : null;
 
         // Wave composition scales with wave number
-        const baseCount = 3 + Math.floor(waveNumber * 1.5);
-        const count = difficulty === 'nightmare' ? baseCount + 2 :
-                      difficulty === 'easy' ? Math.max(2, baseCount - 2) : baseCount;
+        const baseCount = 6 + Math.floor(waveNumber * 3);
+        const count = difficulty === 'nightmare' ? baseCount + 4 :
+                      difficulty === 'easy' ? Math.max(3, baseCount - 4) : baseCount;
 
         // Enemy types available per wave (harder types appear in later waves)
         const earlyTypes = ['guard', 'imp', 'exploder'];

@@ -94,16 +94,26 @@ class GameMap {
         // Main corridor guards
         this.enemies.push(new Enemy(8 * this.tileSize, 8 * this.tileSize, 'guard'));
         this.enemies.push(new Enemy(5 * this.tileSize, 8.5 * this.tileSize, 'imp'));
+        this.enemies.push(new Enemy(6 * this.tileSize, 5 * this.tileSize, 'exploder'));
+        this.enemies.push(new Enemy(8 * this.tileSize, 4 * this.tileSize, 'phantom'));
 
         // Reactor Core — heavy resistance
         this.enemies.push(new Enemy(12 * this.tileSize, 11 * this.tileSize, 'demon'));
         this.enemies.push(new Enemy(11 * this.tileSize, 13 * this.tileSize, 'berserker'));
         this.enemies.push(new Enemy(14 * this.tileSize, 11 * this.tileSize, 'imp'));
+        this.enemies.push(new Enemy(13 * this.tileSize, 14 * this.tileSize, 'guard'));
+        this.enemies.push(new Enemy(14 * this.tileSize, 13 * this.tileSize, 'exploder'));
 
         // Containment Wing — tactical enemies
         this.enemies.push(new Enemy(20 * this.tileSize, 4 * this.tileSize, 'soldier'));
         this.enemies.push(new Enemy(20 * this.tileSize, 11 * this.tileSize, 'spitter'));
         this.enemies.push(new Enemy(20 * this.tileSize, 20 * this.tileSize, 'shield_guard'));
+        this.enemies.push(new Enemy(19 * this.tileSize, 8 * this.tileSize, 'sniper'));
+        this.enemies.push(new Enemy(17 * this.tileSize, 12 * this.tileSize, 'phantom'));
+
+        // Control room area
+        this.enemies.push(new Enemy(4 * this.tileSize, 14 * this.tileSize, 'imp'));
+        this.enemies.push(new Enemy(4 * this.tileSize, 19 * this.tileSize, 'guard'));
 
         // Boss in the south-east wing
         this.enemies.push(new Enemy(21 * this.tileSize, 21 * this.tileSize, 'boss'));
