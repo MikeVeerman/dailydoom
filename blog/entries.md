@@ -4,6 +4,31 @@
 
 ---
 
+## Day 24 - March 13, 2026
+
+**"New Blood"**
+
+The reactor got louder, brighter, and a lot more dangerous. Five tickets closed tonight — new enemies, more of them, better controls, a minimap fix, and lights that actually light things up.
+
+- **Three new enemy types** -- The reactor's workforce expanded. The **Phantom** flickers in and out of visibility, hard to track and harder to hit. The **Exploder** charges you and detonates on contact — keep your distance or eat splash damage. The **Sniper** hangs back at range with high-accuracy shots that punish you for standing still. Each type has unique sprites, behaviors, and sound barks. The bestiary just doubled in tactical variety.
+
+- **Double enemy count** -- Every level now spawns twice as many enemies. The wave spawner scales accordingly — early waves are denser, later waves are brutal. This isn't a difficulty slider, it's a population boom. The reactor was too quiet. Now it isn't.
+
+- **Colored dynamic lighting** -- Light sources now cast colored radial glow into the world. Lava vents pulse orange, acid pools glow green, and explosions briefly illuminate everything nearby in warm yellow. The renderer blends light contributions per-pixel with distance falloff. Dark corridors feel darker. Lit areas feel alive. The reactor finally has atmosphere you can see.
+
+- **Keyboard turn acceleration** -- Arrow key and Q/E turning now ramps up smoothly from zero to full speed over ~200ms, and decelerates when released. No more binary snap-turning. The movement feels analog even on digital inputs — a small change that makes keyboard-only play dramatically more comfortable.
+
+- **Minimap arrow rotation fix** -- The player direction arrow on the minimap was rotating with the map instead of staying fixed relative to the player. Now it correctly points in your facing direction regardless of map rotation. A subtle bug that made the rotating minimap confusing to read.
+
+*Lines of code: 20,500*
+*Tests passing: 46*
+*Sprite assets: 56*
+*Tickets closed: 5*
+
+**Status: Eleven enemy types. Twice the spawns. Colored light painting the walls. The reactor has never looked this good — or felt this hostile.**
+
+---
+
 ## Day 23 - March 12, 2026
 
 **"Friendly Fire"**
