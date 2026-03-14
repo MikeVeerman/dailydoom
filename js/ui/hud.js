@@ -1969,15 +1969,19 @@ class HUD {
             this.ctx.fill();
         }
 
-        // Player is always at center, facing up
-        // Draw FOV cone (pointing up = forward in rotated space)
+        this.ctx.restore();
+
+        // Draw FOV cone (fixed pointing up, matching arrow behavior)
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        this.ctx.clip();
         this.ctx.fillStyle = 'rgba(0, 255, 0, 0.08)';
         this.ctx.beginPath();
-        this.ctx.moveTo(0, 0);
-        this.ctx.arc(0, 0, radius * 0.8, -Math.PI / 2 - Math.PI / 6, -Math.PI / 2 + Math.PI / 6);
+        this.ctx.moveTo(centerX, centerY);
+        this.ctx.arc(centerX, centerY, radius * 0.8, -Math.PI / 2 - Math.PI / 6, -Math.PI / 2 + Math.PI / 6);
         this.ctx.closePath();
         this.ctx.fill();
-
         this.ctx.restore();
 
         // Player direction indicator (triangle pointing up = forward)
