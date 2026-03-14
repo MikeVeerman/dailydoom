@@ -450,10 +450,10 @@ class GameEngine {
                       difficulty === 'easy' ? Math.max(3, baseCount - 4) : baseCount;
 
         // Enemy types available per wave (harder types appear in later waves)
-        const earlyTypes = ['guard', 'imp', 'exploder'];
-        const midTypes = ['guard', 'imp', 'soldier', 'berserker', 'exploder', 'phantom'];
-        const lateTypes = ['guard', 'imp', 'soldier', 'berserker', 'spitter', 'shield_guard', 'phantom', 'sniper'];
-        const bossTypes = ['guard', 'imp', 'soldier', 'berserker', 'spitter', 'shield_guard', 'demon', 'boss', 'phantom', 'exploder', 'sniper'];
+        const earlyTypes = ['guard', 'imp', 'exploder', 'wargrin'];
+        const midTypes = ['guard', 'imp', 'soldier', 'berserker', 'exploder', 'phantom', 'wargrin'];
+        const lateTypes = ['guard', 'imp', 'soldier', 'berserker', 'spitter', 'shield_guard', 'phantom', 'sniper', 'wargrin', 'harkubus'];
+        const bossTypes = ['guard', 'imp', 'soldier', 'berserker', 'spitter', 'shield_guard', 'demon', 'boss', 'phantom', 'exploder', 'sniper', 'harkubus', 'wargrin'];
 
         let typePool;
         if (waveNumber <= 2) typePool = earlyTypes;

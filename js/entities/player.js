@@ -573,7 +573,7 @@ class Player {
 
             if (wasAlive && !closestEnemy.active) {
                 if (this.stats) this.stats.enemiesKilled++;
-                const xpTable = { imp: 15, guard: 20, soldier: 30, demon: 40, berserker: 35, spitter: 25, shield_guard: 45, boss: 200 };
+                const xpTable = { imp: 15, guard: 20, soldier: 30, demon: 40, berserker: 35, spitter: 25, shield_guard: 45, boss: 200, harkubus: 50, wargrin: 25 };
                 const xpReward = xpTable[closestEnemy.type] || 20;
                 if (this.addXP) this.addXP(xpReward);
                 this.registerKill();
