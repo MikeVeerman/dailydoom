@@ -701,7 +701,8 @@ class Renderer {
         this.enemyScales = {
             imp: 0.6, guard: 0.7, soldier: 0.65, demon: 0.8,
             berserker: 0.7, spitter: 0.55, shield_guard: 0.75, boss: 1.0,
-            phantom: 0.6, exploder: 0.55, sniper: 0.6
+            phantom: 0.6, exploder: 0.55, sniper: 0.6,
+            harkubus: 0.9, wargrin: 0.65
         };
 
         // Per-type enemy sprites (from Anarch oldschool FPS resources, CC0)
@@ -717,7 +718,9 @@ class Renderer {
             boss:         { idle: 'boss_idle.png', attack: 'boss_attack.png', walk: 'boss_walk.png' },
             phantom:      { idle: 'imp_idle_new.png', attack: 'imp_attack.png', walk: 'imp_walk.png' },
             exploder:     { idle: 'berserker_idle.png', attack: 'berserker_attack.png', walk: 'berserker_walk.png' },
-            sniper:       { idle: 'soldier_idle.png', attack: 'soldier_attack.png' }
+            sniper:       { idle: 'soldier_idle.png', attack: 'soldier_attack.png' },
+            harkubus:     { idle: 'harkubus_idle.png', attack: 'harkubus_attack.png', walk: 'harkubus_walk.png' },
+            wargrin:      { idle: 'wargrin_idle.png', attack: 'wargrin_attack.png', walk: 'wargrin_walk.png' }
         };
 
         for (const [type, files] of Object.entries(enemySpriteMap)) {
@@ -772,7 +775,9 @@ class Renderer {
             boss:         { hue: 50,  sat: 0.7, bright: 1.3 },
             phantom:      { hue: 260, sat: 0.6, bright: 0.7 },
             exploder:     { hue: 10,  sat: 1.4, bright: 1.2 },
-            sniper:       { hue: 60,  sat: 0.8, bright: 0.8 }
+            sniper:       { hue: 60,  sat: 0.8, bright: 0.8 },
+            harkubus:     { hue: 20,  sat: 0.9, bright: 0.9 },
+            wargrin:      { hue: 40,  sat: 1.0, bright: 1.0 }
         };
 
         // Load legacy imp sprite as fallback
