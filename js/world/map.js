@@ -180,6 +180,7 @@ class GameMap {
         this.addDoor(12, 15, 'none');   // Reactor Core south entrance
         this.addDoor(20, 7, 'none');    // Containment Wing south exit
         this.addDoor(12, 18, 'red');    // Red key door to south section
+        this.addDoor(4, 18, 'none');     // Waste Storage entrance
     }
 
     addDoor(mapX, mapY, keyRequired) {
