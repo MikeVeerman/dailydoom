@@ -184,6 +184,11 @@ class GameEngine {
         this.levelStartTime = performance.now();
         this.totalEnemyCount = this.map.enemies.length;
 
+        // Start wave system immediately — initial enemies are wave 1
+        this.waveSystem.active = true;
+        this.waveSystem.currentWave = 1;
+        this.waveSystem.state = 'fighting';
+
         // Initialize dynamic difficulty scaling
         this.initDifficultyScaler();
 
@@ -232,10 +237,10 @@ class GameEngine {
         this.levelStartTime = performance.now();
         this.totalEnemyCount = this.map.enemies.length;
 
-        // Reset wave system
-        this.waveSystem.active = false;
-        this.waveSystem.currentWave = 0;
-        this.waveSystem.state = 'idle';
+        // Reset wave system — start at wave 1 immediately
+        this.waveSystem.active = true;
+        this.waveSystem.currentWave = 1;
+        this.waveSystem.state = 'fighting';
 
         console.log('Level restarted');
     }
@@ -860,10 +865,10 @@ class GameEngine {
         this.totalEnemyCount = this.map.enemies.length;
         this.levelStartTime = performance.now();
 
-        // Reset wave system
-        this.waveSystem.active = false;
-        this.waveSystem.currentWave = 0;
-        this.waveSystem.state = 'idle';
+        // Reset wave system — start at wave 1 immediately
+        this.waveSystem.active = true;
+        this.waveSystem.currentWave = 1;
+        this.waveSystem.state = 'fighting';
 
         // Reset dynamic difficulty
         this.initDifficultyScaler();
