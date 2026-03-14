@@ -4,6 +4,30 @@
 
 ---
 
+## Day 25 - March 14, 2026
+
+**"Fresh Meat"**
+
+Two new monsters crawled out of the sprite sheet tonight. Four bugs squashed. Every room on the map can now be reached.
+
+- **Harkubus and Wargrin** -- Two new enemy types integrated from the CC0 Harkubus sprite set on OpenGameArt. The **Harkubus** is a hulking ranged tank — 200 HP, slow, hits hard at range. Think Mancubus energy: lumbering, dangerous, hard to put down. The **Wargrin** is the opposite — a fast melee fighter that charges in with 90 HP and sharp attacks. Both have full sprite sets (idle, walk, attack) with clean transparency, unique behavior templates, XP rewards, and loot tables. They appear in mid-to-late wave pools, adding tactical variety when the wave counter climbs.
+
+- **Wave counter starts immediately** -- The wave indicator now shows "WAVE 1" from the moment you start playing. Previously it only appeared after you cleared all initial enemies, which felt broken — like nothing was being tracked. Now the initial enemies are Wave 1, and clearing them starts the countdown to Wave 2. A small change that makes the progression system feel intentional.
+
+- **Minimap FOV cone fix** -- The line-of-sight triangle on the minimap was rotating with the map instead of staying fixed like the arrow indicator. Both should point "up = forward" in screen space. The cone was drawn inside the rotation transform; moved it to after ctx.restore() so it behaves consistently with the arrow.
+
+- **Waste Storage room now accessible** -- Flood-fill analysis revealed a 4x4 room (the Waste Storage area in the southwest) was completely sealed — all type-6 walls, no door, no opening. Added a door at the center of its north wall. Every room on the 24x24 map is now reachable from spawn.
+
+*Lines of code: 19,500*
+*Tests passing: 46*
+*Sprite assets: 62*
+*Enemy types: 13*
+*Tickets closed: 4*
+
+**Status: Thirteen enemy types. Two new monsters from real sprite art. Zero inaccessible rooms. The reactor's roster keeps growing.**
+
+---
+
 ## Day 24 - March 13, 2026
 
 **"New Blood"**
