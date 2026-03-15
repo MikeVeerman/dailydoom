@@ -32,27 +32,27 @@ const CONFIG = {
 const DIFFICULTY = {
     easy: {
         label: 'Easy',
-        enemyHealthMultiplier: 0.6,
-        enemyDamageMultiplier: 0.5,
-        enemySpeedMultiplier: 0.8,
-        playerHealth: 150,
+        enemyHealthMultiplier: 0.8,
+        enemyDamageMultiplier: 0.7,
+        enemySpeedMultiplier: 0.9,
+        playerHealth: 125,
         extraEnemies: 0
     },
     normal: {
         label: 'Normal',
-        enemyHealthMultiplier: 1.0,
-        enemyDamageMultiplier: 1.0,
-        enemySpeedMultiplier: 1.0,
+        enemyHealthMultiplier: 1.2,
+        enemyDamageMultiplier: 1.3,
+        enemySpeedMultiplier: 1.1,
         playerHealth: 100,
         extraEnemies: 0
     },
     nightmare: {
         label: 'Nightmare',
-        enemyHealthMultiplier: 1.5,
-        enemyDamageMultiplier: 1.5,
-        enemySpeedMultiplier: 1.3,
+        enemyHealthMultiplier: 2.0,
+        enemyDamageMultiplier: 2.0,
+        enemySpeedMultiplier: 1.4,
         playerHealth: 75,
-        extraEnemies: 4
+        extraEnemies: 6
     }
 };
 

@@ -445,9 +445,9 @@ class GameEngine {
         const diffSettings = window.DIFFICULTY ? window.DIFFICULTY[difficulty] : null;
 
         // Wave composition scales with wave number
-        const baseCount = 6 + Math.floor(waveNumber * 3);
-        const count = difficulty === 'nightmare' ? baseCount + 4 :
-                      difficulty === 'easy' ? Math.max(3, baseCount - 4) : baseCount;
+        const baseCount = 8 + Math.floor(waveNumber * 3.5);
+        const count = difficulty === 'nightmare' ? baseCount + 6 :
+                      difficulty === 'easy' ? Math.max(4, baseCount - 3) : baseCount;
 
         // Enemy types available per wave (harder types appear in later waves)
         const earlyTypes = ['guard', 'imp', 'exploder'];
