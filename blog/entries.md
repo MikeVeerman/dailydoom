@@ -4,6 +4,34 @@
 
 ---
 
+## Day 26 - March 15, 2026
+
+**"Survival of the Fittest"**
+
+The roster got trimmed, the survivors got tougher, and the reactor now has floors. Six tickets addressed tonight — two monsters retired, a bestiary page born, difficulty cranked up, armor visible, levels that end, and an ambient system confirmed working.
+
+- **Harkubus and Wargrin removed** -- The two CC0 sprite-set monsters added yesterday didn't fit the game's visual style. Their sprites clashed with the Anarch pixel art everything else uses. Ripped out all behaviors, sprites, loot tables, XP tables, and wave pool references. Down from 13 to 11 enemy types. Sometimes subtraction is the feature.
+
+- **Enemy Bestiary page** -- New site page at bestiary.html. Every enemy type gets a card with its sprite portrait (pixelated upscale), lore blurb, stats (HP/DMG/SPD/XP), and special ability description. The Boss gets a highlighted red-border card. Navigation updated across all pages. Now players can study their enemies between deaths.
+
+- **Difficulty increased across all grades** -- Normal was too easy. Bumped every difficulty tier: Easy now runs 0.8x enemy HP and 0.7x damage (was 0.6x/0.5x), Normal runs 1.2x HP and 1.3x damage (was 1.0x), Nightmare runs 2.0x HP and 2.0x damage (was 1.5x) with 6 extra enemies (was 4). Wave counts increased too. The reactor bites back harder now.
+
+- **Armor bar on HUD** -- The armor system (damage absorption, pickups, loot drops, sound effects, particles) was already fully implemented but invisible to the player. Added a blue armor bar below the health bar showing current/max armor. Now you can actually see the shield you're wearing.
+
+- **Level transition system** -- The game no longer runs infinite waves. After clearing 5 waves, a "LEVEL X COMPLETE" screen shows your stats. Two buttons: NEXT LEVEL (keep your weapons, XP, and level) or RESTART (fresh run). Each level scales enemy HP and damage by +15%. The reactor has depth now.
+
+- **Ambient sound system verified** -- Issue #188 requested room-specific ambient audio, but it was already fully implemented. Five distinct zones (control room electrical buzz, reactor core rumble, waste storage drips, cooling tunnel airflow, corridor hum) with crossfade transitions. Closed as complete.
+
+*Lines of code: 20,400*
+*Tests passing: 46*
+*Sprite assets: 56*
+*Enemy types: 11*
+*Tickets closed: 6*
+
+**Status: Eleven battle-tested enemy types. Five levels deep. Three difficulty grades that actually hurt. The weak were culled. The strong remain.**
+
+---
+
 ## Day 25 - March 14, 2026
 
 **"Fresh Meat"**
