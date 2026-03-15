@@ -850,6 +850,144 @@ a:hover {
 }
 
 /* ==========================================================================
+   Bestiary Page Styles
+   ========================================================================== */
+
+.bestiary-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.bestiary-card {
+    background: #111;
+    border: 1px solid #1a1a1a;
+    border-radius: 6px;
+    padding: 28px;
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+    transition: border-color 0.2s;
+}
+
+.bestiary-card:hover {
+    border-color: #333;
+}
+
+.bestiary-card-boss {
+    border-color: #ff6b6b33;
+    background: linear-gradient(135deg, #111 0%, #1a0a0a 100%);
+}
+
+.bestiary-card-boss:hover {
+    border-color: #ff6b6b;
+}
+
+.bestiary-portrait {
+    flex-shrink: 0;
+    width: 96px;
+    height: 96px;
+    background: #0a0a0a;
+    border: 1px solid #222;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.bestiary-portrait img {
+    width: 80px;
+    height: 80px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    object-fit: contain;
+}
+
+.bestiary-portrait-boss {
+    width: 120px;
+    height: 120px;
+    border-color: #ff6b6b44;
+}
+
+.bestiary-portrait-boss img {
+    width: 100px;
+    height: 100px;
+}
+
+.bestiary-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.bestiary-name {
+    color: #fff;
+    font-size: 1.2rem;
+    margin-bottom: 2px;
+}
+
+.bestiary-card-boss .bestiary-name {
+    color: #ff6b6b;
+}
+
+.bestiary-role {
+    color: #ff6b6b;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.bestiary-card-boss .bestiary-role {
+    color: #ff2222;
+}
+
+.bestiary-lore {
+    color: #888;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    margin-bottom: 14px;
+}
+
+.bestiary-stats {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.bestiary-stat {
+    background: #0a0a0a;
+    border: 1px solid #222;
+    border-radius: 3px;
+    padding: 4px 10px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.bestiary-stat .stat-key {
+    color: #555;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: bold;
+}
+
+.bestiary-stat .stat-val {
+    color: #ddd;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.bestiary-ability {
+    color: #666;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+/* ==========================================================================
    Responsive
    ========================================================================== */
 
@@ -873,6 +1011,16 @@ a:hover {
     .controls-grid,
     .credits-grid {
         grid-template-columns: 1fr;
+    }
+
+    .bestiary-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .bestiary-stats {
+        justify-content: center;
     }
 
     .testing-grid {
