@@ -219,44 +219,6 @@ const EnemyBehaviors = {
         chargeAttack: true,
         bossPhases: true, // Changes behavior at health thresholds
         summonMinions: true // Spawns additional enemies
-    },
-
-    // Harkubus - heavy ranged tank (from Harkubus sprite set, CC0)
-    harkubus: {
-        health: 200,
-        speed: 12,
-        detectionRange: 350,
-        attackRange: 300,
-        damage: 30,
-        attackCooldown: 2500,
-        patrolRadius: 50,
-        aggressiveness: 0.7,
-        intelligence: 0.5,
-
-        fleeHealthThreshold: 0,
-        groupBehavior: false,
-        callForHelp: false,
-        useCover: false,
-        rangedAttack: true
-    },
-
-    // Wargrin - fast melee fighter (from Harkubus sprite set, CC0)
-    wargrin: {
-        health: 90,
-        speed: 42,
-        detectionRange: 280,
-        attackRange: 50,
-        damage: 22,
-        attackCooldown: 1400,
-        patrolRadius: 100,
-        aggressiveness: 0.9,
-        intelligence: 0.5,
-
-        fleeHealthThreshold: 0.15,
-        groupBehavior: true,
-        callForHelp: true,
-        useCover: false,
-        chargeAttack: true
     }
 };
 
