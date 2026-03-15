@@ -258,8 +258,36 @@ class HUD {
         // Border
         this.ctx.strokeStyle = this.textColor;
         this.ctx.strokeRect(x, y, width, height);
+
+        // Armor bar (below health bar)
+        if (player.maxArmor > 0) {
+            const armorY = y + height + 6;
+            const armorHeight = 14;
+
+            // Armor bar background
+            this.ctx.fillStyle = this.backgroundColor;
+            this.ctx.fillRect(x - 5, armorY - 3, width + 10, armorHeight + 6);
+            this.ctx.fillStyle = '#333333';
+            this.ctx.fillRect(x, armorY, width, armorHeight);
+
+            // Armor bar fill
+            const armorPercent = player.armor / player.maxArmor;
+            const armorWidth = width * armorPercent;
+            this.ctx.fillStyle = '#0088FF';
+            this.ctx.fillRect(x, armorY, armorWidth, armorHeight);
+
+            // Armor text
+            this.ctx.fillStyle = this.textColor;
+            this.ctx.font = '10px monospace';
+            this.ctx.textAlign = 'left';
+            this.ctx.fillText(`ARMOR: ${player.armor}/${player.maxArmor}`, x, armorY - 4);
+
+            // Border
+            this.ctx.strokeStyle = this.textColor;
+            this.ctx.strokeRect(x, armorY, width, armorHeight);
+        }
     }
-    
+
     renderWeaponInfo(player) {
         const weaponInfo = player.weaponManager.getHUDInfo();
         const x = this.canvas.width - 250;
