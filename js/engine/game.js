@@ -37,6 +37,8 @@ class GameEngine {
         this.totalEnemyCount = 0;
         this.levelComplete = false;
         this.levelCompleteTime = 0;
+        this.currentLevel = 1;
+        this.wavesPerLevel = 5;
 
         // High score persistence
         this.STORAGE_KEY = 'dailydoom_highscores';
@@ -432,6 +434,18 @@ class GameEngine {
         if (ws.state === 'fighting') {
             const alive = this.map.enemies.filter(e => e.active && !e.dying);
             if (alive.length === 0) {
+                // Check if level is complete (all waves cleared)
+                if (ws.currentWave >= this.wavesPerLevel) {
+                    this.levelComplete = true;
+                    this.levelCompleteTime = performance.now();
+                    this.currentScore = this.calculateScore();
+                    this.saveHighScore(this.currentScore);
+                    if (window.soundEngine && window.soundEngine.isInitialized) {
+                        window.soundEngine.playLevelComplete();
+                    }
+                    console.log(`Level ${this.currentLevel} complete! Score: ${this.currentScore}`);
+                    return;
+                }
                 ws.lastWaveClearTime = now;
                 ws.state = 'waiting';
             }
@@ -489,11 +503,23 @@ class GameEngine {
                 }
             }
 
+            // Apply level scaling (15% harder per level)
+            if (this.currentLevel > 1) {
+                const levelScale = 1 + (this.currentLevel - 1) * 0.15;
+                enemy.health = Math.round(enemy.health * levelScale);
+                enemy.maxHealth = Math.round(enemy.maxHealth * levelScale);
+                if (enemy.enhancedAI && enemy.enhancedAI.behavior) {
+                    enemy.enhancedAI.behavior.damage = Math.round(
+                        enemy.enhancedAI.behavior.damage * levelScale
+                    );
+                }
+            }
+
             this.map.enemies.push(enemy);
         }
 
         this.totalEnemyCount += count;
-        console.log(`Wave ${waveNumber}: spawned ${count} enemies`);
+        console.log(`Level ${this.currentLevel} Wave ${waveNumber}: spawned ${count} enemies`);
     }
 
     // ========== HIGH SCORE SYSTEM ==========
@@ -874,6 +900,86 @@ class GameEngine {
         this.initDifficultyScaler();
     }
 
+    nextLevel() {
+        console.log(`Advancing to level ${this.currentLevel + 1}...`);
+        this.currentLevel++;
+        this.levelComplete = false;
+        this.showDeathScreen = false;
+
+        // Keep player progress (health, armor, weapons, XP, level)
+        const savedHealth = this.player.health;
+        const savedArmor = this.player.armor;
+        const savedLevel = this.player.level;
+        const savedXP = this.player.xp;
+        const savedWeaponManager = this.player.weaponManager;
+
+        // Re-initialize map
+        this.map = new GameMap();
+        this.player.x = this.map.spawnX;
+        this.player.y = this.map.spawnY;
+        this.player.angle = this.map.spawnAngle;
+        this.player.health = savedHealth;
+        this.player.armor = savedArmor;
+        this.player.isDead = false;
+        this.player.level = savedLevel;
+        this.player.xp = savedXP;
+        this.player.weaponManager = savedWeaponManager;
+
+        // Reset per-level stats but keep cumulative
+        this.player.stats = {
+            enemiesKilled: 0, shotsFired: 0, shotsHit: 0, headshots: 0,
+            damageTaken: 0, damageDealt: 0, itemsCollected: 0,
+            deaths: 0, timeSurvived: 0
+        };
+        this.player.combo = { count: 0, lastKillTime: 0, window: 3000, bestStreak: 0, totalComboKills: 0 };
+
+        // Re-initialize pickups
+        this.pickupManager = new PickupManager();
+        this.pickupManager.spawnWeaponPickups(this.map);
+        this.pickupManager.spawnRandomPickups(this.map, 6);
+        this.pickupManager.spawnModPickups(this.map);
+
+        // Clear projectiles
+        this.projectileManager.clear();
+
+        // Apply difficulty scaling per level (15% harder each level)
+        const levelScale = 1 + (this.currentLevel - 1) * 0.15;
+        this.map.enemies.forEach(enemy => {
+            enemy.health = Math.round(enemy.health * levelScale);
+            enemy.maxHealth = Math.round(enemy.maxHealth * levelScale);
+            enemy.speed = Math.round(enemy.speed * (1 + (this.currentLevel - 1) * 0.05));
+            if (enemy.enhancedAI && enemy.enhancedAI.behavior) {
+                enemy.enhancedAI.behavior.damage = Math.round(
+                    enemy.enhancedAI.behavior.damage * levelScale
+                );
+            }
+        });
+
+        // Re-apply base difficulty on top
+        if (window.CONFIG && window.CONFIG.difficulty) {
+            window.applyDifficulty(window.CONFIG.difficulty);
+        }
+
+        // Reset fog of war
+        if (this.hud) {
+            this.hud.resetFog();
+        }
+
+        // Update renderer with new map
+        this.renderer.map = this.map;
+
+        this.totalEnemyCount = this.map.enemies.length;
+        this.levelStartTime = performance.now();
+
+        // Reset wave system — start at wave 1
+        this.waveSystem.active = true;
+        this.waveSystem.currentWave = 1;
+        this.waveSystem.state = 'fighting';
+
+        // Reset dynamic difficulty
+        this.initDifficultyScaler();
+    }
+
     render() {
         // Apply screen shake offset
         const shake = this.hud.getScreenShakeOffset();
@@ -919,7 +1025,7 @@ class GameEngine {
         ctx.textAlign = 'center';
         ctx.fillStyle = '#FFD700';
         ctx.font = 'bold 36px monospace';
-        ctx.fillText('LEVEL COMPLETE', w / 2, h * 0.10);
+        ctx.fillText(`LEVEL ${this.currentLevel} COMPLETE`, w / 2, h * 0.10);
 
         // Score display
         ctx.font = 'bold 24px monospace';
@@ -1023,39 +1129,68 @@ class GameEngine {
             }
         }
 
-        // Play Again button
-        const btnW = 200;
-        const btnH = 45;
-        const btnX = (w - btnW) / 2;
+        // Next Level button
+        const btnW = 180;
+        const btnH = 40;
+        const btnGap = 16;
+        const totalBtnW = btnW * 2 + btnGap;
+        const btnStartX = (w - totalBtnW) / 2;
         const btnY = panelY + panelH + 15;
 
+        // Next Level button (primary)
+        const nextBtnX = btnStartX;
         ctx.fillStyle = '#CC3300';
-        ctx.fillRect(btnX, btnY, btnW, btnH);
+        ctx.fillRect(nextBtnX, btnY, btnW, btnH);
         ctx.strokeStyle = '#FFD700';
         ctx.lineWidth = 2;
-        ctx.strokeRect(btnX, btnY, btnW, btnH);
-
+        ctx.strokeRect(nextBtnX, btnY, btnW, btnH);
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 20px monospace';
+        ctx.font = 'bold 18px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('PLAY AGAIN', w / 2, btnY + 30);
+        ctx.fillText('NEXT LEVEL', nextBtnX + btnW / 2, btnY + 27);
+
+        // Restart button (secondary)
+        const restartBtnX = btnStartX + btnW + btnGap;
+        ctx.fillStyle = '#222222';
+        ctx.fillRect(restartBtnX, btnY, btnW, btnH);
+        ctx.strokeStyle = '#666666';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(restartBtnX, btnY, btnW, btnH);
+        ctx.fillStyle = '#AAAAAA';
+        ctx.font = 'bold 16px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('RESTART', restartBtnX + btnW / 2, btnY + 26);
 
         // Store button bounds for click handling
-        this._playAgainBtn = { x: btnX, y: btnY, w: btnW, h: btnH };
+        this._nextLevelBtn = { x: nextBtnX, y: btnY, w: btnW, h: btnH };
+        this._playAgainBtn = { x: restartBtnX, y: btnY, w: btnW, h: btnH };
 
         // Attach click handler once
         if (!this._completionClickBound) {
             this._completionClickBound = true;
             this.canvas.addEventListener('click', (e) => {
-                if (!this.levelComplete || !this._playAgainBtn) return;
+                if (!this.levelComplete) return;
                 const rect = this.canvas.getBoundingClientRect();
                 const scaleX = this.canvas.width / rect.width;
                 const scaleY = this.canvas.height / rect.height;
                 const mx = (e.clientX - rect.left) * scaleX;
                 const my = (e.clientY - rect.top) * scaleY;
-                const btn = this._playAgainBtn;
-                if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
-                    this.restartLevel();
+
+                // Check Next Level button
+                if (this._nextLevelBtn) {
+                    const btn = this._nextLevelBtn;
+                    if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+                        this.nextLevel();
+                        return;
+                    }
+                }
+                // Check Restart button
+                if (this._playAgainBtn) {
+                    const btn = this._playAgainBtn;
+                    if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+                        this.currentLevel = 1;
+                        this.restartLevel();
+                    }
                 }
             });
         }
