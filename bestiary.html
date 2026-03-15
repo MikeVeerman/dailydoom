@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bestiary - Daily Doom</title>
+    <link rel="stylesheet" href="css/site.css">
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-RRV1Y2CNFG"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-RRV1Y2CNFG');
+    </script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <span class="logo-daily">DAILY</span><span class="logo-doom">DOOM</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="controls.html" class="nav-link">Controls</a>
+                <a href="bestiary.html" class="nav-link active">Bestiary</a>
+                <a href="blog.html" class="nav-link">Blog</a>
+                <a href="credits.html" class="nav-link">Credits</a>
+                <a href="https://github.com/MikeVeerman/dailydoom" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Bestiary Header -->
+    <header class="blog-hero">
+        <div class="section-inner">
+            <h1 class="blog-hero-title">Bestiary</h1>
+            <p class="blog-hero-subtitle">
+                Know your enemy. A field guide to every hostile creature lurking in the reactor facility.
+            </p>
+        </div>
+    </header>
+
+    <!-- Bestiary Content -->
+    <main class="section blog-section">
+        <div class="section-inner">
+            <div class="bestiary-grid">
+
+                <!-- Imp -->
+                <div class="bestiary-card">
+                    <div class="bestiary-portrait">
+                        <img src="assets/sprites/enemies/imp_idle_new.png" alt="Imp">
+                    </div>
+                    <div class="bestiary-info">
+                        <h2 class="bestiary-name">Imp</h2>
+                        <p class="bestiary-role">Swarm Attacker</p>
+                        <p class="bestiary-lore">The lowest creatures in the facility's mutant hierarchy. What they lack in strength they make up for in numbers, swarming through corridors in packs to overwhelm their prey from all sides.</p>
+                        <div class="bestiary-stats">
+                            <div class="bestiary-stat"><span class="stat-key">HP</span><span class="stat-val">40</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">DMG</span><span class="stat-val">10</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">SPD</span><span class="stat-val">Fast</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">XP</span><span class="stat-val">15</span></div>
+                        </div>
+                        <p class="bestiary-ability">Swarm tactics &mdash; tries to surround the player</p>
+                    </div>
+                </div>
+
+                <!-- Guard -->
+                <div class="bestiary-card">
+                    <div class="bestiary-portrait">
+                        <img src="assets/sprites/enemies/guard_idle.png" alt="Guard">
+                    </div>
+                    <div class="bestiary-info">
+                        <h2 class="bestiary-name">Guard</h2>
+                        <p class="bestiary-role">Facility Patrol</p>
+                        <p class="bestiary-lore">Former security personnel, now corrupted by the reactor's influence. They still patrol in groups and call for reinforcements when threatened. A balanced combatant with no particular weakness.</p>
+                        <div class="bestiary-stats">
+                            <div class="bestiary-stat"><span class="stat-key">HP</span><span class="stat-val">80</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">DMG</span><span class="stat-val">15</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">SPD</span><span class="stat-val">Med</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">XP</span><span class="stat-val">20</span></div>
+                        </div>
+                        <p class="bestiary-ability">Group behavior &mdash; calls for help when engaged</p>
+                    </div>
+                </div>
+
+                <!-- Soldier -->
+                <div class="bestiary-card">
+                    <div class="bestiary-portrait">
+                        <img src="assets/sprites/enemies/soldier_idle.png" alt="Soldier">
+                    </div>
+                    <div class="bestiary-info">
+                        <h2 class="bestiary-name">Soldier</h2>
+                        <p class="bestiary-role">Tactical Combatant</p>
+                        <p class="bestiary-lore">Elite troops trained in tactical combat. They strafe to avoid fire, retreat when outgunned, and use cover intelligently. Their long detection range makes them hard to sneak past.</p>
+                        <div class="bestiary-stats">
+                            <div class="bestiary-stat"><span class="stat-key">HP</span><span class="stat-val">100</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">DMG</span><span class="stat-val">20</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">SPD</span><span class="stat-val">Med</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">XP</span><span class="stat-val">30</span></div>
+                        </div>
+                        <p class="bestiary-ability">Uses cover, strafes, and retreats tactically</p>
+                    </div>
+                </div>
+
+                <!-- Berserker -->
+                <div class="bestiary-card">
+                    <div class="bestiary-portrait">
+                        <img src="assets/sprites/enemies/berserker_idle.png" alt="Berserker">
+                    </div>
+                    <div class="bestiary-info">
+                        <h2 class="bestiary-name">Berserker</h2>
+                        <p class="bestiary-role">Enraged Brawler</p>
+                        <p class="bestiary-lore">Hulking mutants driven mad by pain. They charge relentlessly and never flee. When wounded below 40% health, they enter a berserker rage &mdash; doubling their damage and surging forward with terrifying speed.</p>
+                        <div class="bestiary-stats">
+                            <div class="bestiary-stat"><span class="stat-key">HP</span><span class="stat-val">120</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">DMG</span><span class="stat-val">25</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">SPD</span><span class="stat-val">Fast</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">XP</span><span class="stat-val">35</span></div>
+                        </div>
+                        <p class="bestiary-ability">Berserker rage at low HP &mdash; 2x damage, 1.6x speed</p>
+                    </div>
+                </div>
+
+                <!-- Spitter -->
+                <div class="bestiary-card">
+                    <div class="bestiary-portrait">
+                        <img src="assets/sprites/enemies/spitter_idle.png" alt="Spitter">
+                    </div>
+                    <div class="bestiary-info">
+                        <h2 class="bestiary-name">Spitter</h2>
+                        <p class="bestiary-role">Ranged Support</p>
+                        <p class="bestiary-lore">Mutated facility workers whose bodies now produce corrosive bile. They hang back at extreme range, lobbing toxic projectiles while retreating behind cover if approached.</p>
+                        <div class="bestiary-stats">
+                            <div class="bestiary-stat"><span class="stat-key">HP</span><span class="stat-val">60</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">DMG</span><span class="stat-val">12</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">SPD</span><span class="stat-val">Slow</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">XP</span><span class="stat-val">25</span></div>
+                        </div>
+                        <p class="bestiary-ability">Fires ranged projectiles &mdash; retreats to cover</p>
+                    </div>
+                </div>
+
+                <!-- Phantom -->
+                <div class="bestiary-card">
+                    <div class="bestiary-portrait">
+                        <img src="assets/sprites/enemies/imp_idle_new.png" alt="Phantom">
+                    </div>
+                    <div class="bestiary-info">
+                        <h2 class="bestiary-name">Phantom</h2>
+                        <p class="bestiary-role">Stealth Assassin</p>
+                        <p class="bestiary-lore">Phase-shifted entities that flicker between dimensions. Nearly invisible when stalking, they only fully materialize in the instant they strike. Listen for the shimmer &mdash; by the time you see one, it may already be too late.</p>
+                        <div class="bestiary-stats">
+                            <div class="bestiary-stat"><span class="stat-key">HP</span><span class="stat-val">50</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">DMG</span><span class="stat-val">18</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">SPD</span><span class="stat-val">Fast</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">XP</span><span class="stat-val">30</span></div>
+                        </div>
+                        <p class="bestiary-ability">Phantom cloak &mdash; invisible except when attacking</p>
+                    </div>
+                </div>
+
+                <!-- Exploder -->
+                <div class="bestiary-card">
+                    <div class="bestiary-portrait">
+                        <img src="assets/sprites/enemies/berserker_idle.png" alt="Exploder">
+                    </div>
+                    <div class="bestiary-info">
+                        <h2 class="bestiary-name">Exploder</h2>
+                        <p class="bestiary-role">Suicide Bomber</p>
+                        <p class="bestiary-lore">Unstable mutants packed with volatile reactor waste. They sprint toward targets at maximum speed with a single purpose: detonate on contact. Fragile but devastatingly powerful &mdash; take them out before they get close.</p>
+                        <div class="bestiary-stats">
+                            <div class="bestiary-stat"><span class="stat-key">HP</span><span class="stat-val">30</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">DMG</span><span class="stat-val">60</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">SPD</span><span class="stat-val">V.Fast</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">XP</span><span class="stat-val">20</span></div>
+                        </div>
+                        <p class="bestiary-ability">Self-destructs on contact &mdash; highest single-hit damage</p>
+                    </div>
+                </div>
+
+                <!-- Shield Guard -->
+                <div class="bestiary-card">
+                    <div class="bestiary-portrait">
+                        <img src="assets/sprites/enemies/shield_guard_idle.png" alt="Shield Guard">
+                    </div>
+                    <div class="bestiary-info">
+                        <h2 class="bestiary-name">Shield Guard</h2>
+                        <p class="bestiary-role">Heavy Defender</p>
+                        <p class="bestiary-lore">Armored enforcers equipped with reactor-forged energy shields. Frontal attacks are nearly useless &mdash; their shield absorbs 70% of incoming damage. Flank them or find another way around.</p>
+                        <div class="bestiary-stats">
+                            <div class="bestiary-stat"><span class="stat-key">HP</span><span class="stat-val">160</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">DMG</span><span class="stat-val">22</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">SPD</span><span class="stat-val">Slow</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">XP</span><span class="stat-val">45</span></div>
+                        </div>
+                        <p class="bestiary-ability">Front shield &mdash; 70% damage reduction from the front</p>
+                    </div>
+                </div>
+
+                <!-- Sniper -->
+                <div class="bestiary-card">
+                    <div class="bestiary-portrait">
+                        <img src="assets/sprites/enemies/soldier_idle.png" alt="Sniper">
+                    </div>
+                    <div class="bestiary-info">
+                        <h2 class="bestiary-name">Sniper</h2>
+                        <p class="bestiary-role">Long-Range Specialist</p>
+                        <p class="bestiary-lore">Patient hunters perched in elevated positions or dark corners. They can detect targets at extreme range and deliver punishing shots from safety. After firing, they relocate &mdash; making them difficult to pin down.</p>
+                        <div class="bestiary-stats">
+                            <div class="bestiary-stat"><span class="stat-key">HP</span><span class="stat-val">45</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">DMG</span><span class="stat-val">30</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">SPD</span><span class="stat-val">Med</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">XP</span><span class="stat-val">35</span></div>
+                        </div>
+                        <p class="bestiary-ability">Relocates after firing &mdash; longest detection range</p>
+                    </div>
+                </div>
+
+                <!-- Demon -->
+                <div class="bestiary-card">
+                    <div class="bestiary-portrait">
+                        <img src="assets/sprites/enemies/demon_idle_new.png" alt="Demon">
+                    </div>
+                    <div class="bestiary-info">
+                        <h2 class="bestiary-name">Demon</h2>
+                        <p class="bestiary-role">Heavy Brute</p>
+                        <p class="bestiary-lore">Massive beasts of pure aggression, warped beyond recognition by the reactor core. Slow but immensely powerful, they can absorb enormous punishment while closing the distance with devastating charge attacks.</p>
+                        <div class="bestiary-stats">
+                            <div class="bestiary-stat"><span class="stat-key">HP</span><span class="stat-val">150</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">DMG</span><span class="stat-val">35</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">SPD</span><span class="stat-val">Slow</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">XP</span><span class="stat-val">40</span></div>
+                        </div>
+                        <p class="bestiary-ability">Charge attack &mdash; extremely aggressive, never flees</p>
+                    </div>
+                </div>
+
+                <!-- Boss -->
+                <div class="bestiary-card bestiary-card-boss">
+                    <div class="bestiary-portrait bestiary-portrait-boss">
+                        <img src="assets/sprites/enemies/boss_idle.png" alt="Boss">
+                    </div>
+                    <div class="bestiary-info">
+                        <h2 class="bestiary-name">Reactor Overlord</h2>
+                        <p class="bestiary-role">Boss</p>
+                        <p class="bestiary-lore">The apex predator of the reactor facility. This colossal entity fights in three phases, growing more dangerous as it weakens. It summons imp minions to overwhelm you while unleashing devastating charge attacks. Defeating it requires every weapon in your arsenal.</p>
+                        <div class="bestiary-stats">
+                            <div class="bestiary-stat"><span class="stat-key">HP</span><span class="stat-val">500</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">DMG</span><span class="stat-val">40</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">SPD</span><span class="stat-val">Med</span></div>
+                            <div class="bestiary-stat"><span class="stat-key">XP</span><span class="stat-val">200</span></div>
+                        </div>
+                        <p class="bestiary-ability">3 boss phases &mdash; summons minions, charge attack, never flees</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer blog-footer">
+        <div class="section-inner">
+            <div class="footer-links">
+                <a href="index.html" class="btn btn-secondary">&larr; Back to Home</a>
+                <a href="index.html#game" class="btn btn-primary">Play the Game</a>
+            </div>
+            <div class="footer-meta">
+                <p>
+                    Built by an AI agent &middot; Reviewed by humans (sometimes) &middot; Tested by robots (always)
+                </p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
