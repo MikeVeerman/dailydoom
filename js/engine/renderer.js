@@ -731,6 +731,8 @@ class Renderer {
 
         // Upscaled sprite cache (pixel-art nearest-neighbor upscale)
         this.upscaledEnemySprites = {};
+        // Red-tinted sprite cache for visually differentiating shared-sprite enemies
+        this.redTintedSprites = {};
 
         // Item/pickup sprites
         this.pickupSprites = {};
@@ -806,6 +808,35 @@ class Renderer {
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         this.upscaledEnemySprites[key] = canvas;
+        return canvas;
+    }
+
+    getRedTintedSprite(baseSprite, type, state) {
+        const key = `${type}_${state}`;
+        if (this.redTintedSprites[key]) return this.redTintedSprites[key];
+        if (!baseSprite) return null;
+
+        const w = baseSprite.width;
+        const h = baseSprite.height;
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+
+        // Draw original sprite
+        ctx.drawImage(baseSprite, 0, 0);
+
+        // Apply red tint using 'multiply' composite
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = '#ff6666';
+        ctx.fillRect(0, 0, w, h);
+
+        // Restore alpha from original (multiply destroys transparency)
+        ctx.globalCompositeOperation = 'destination-in';
+        ctx.drawImage(baseSprite, 0, 0);
+
+        this.redTintedSprites[key] = canvas;
         return canvas;
     }
 
@@ -1147,7 +1178,13 @@ class Renderer {
             const typeSprites = this.enemySprites[enemyType];
             if (typeSprites) {
                 const rawSprite = typeSprites[spriteState] || typeSprites.idle;
-                sprite = this.getUpscaledSprite(rawSprite, enemyType, spriteState);
+                const upscaled = this.getUpscaledSprite(rawSprite, enemyType, spriteState);
+                // Apply red tint for enemies sharing sprites with other types
+                if (upscaled && (enemyType === 'exploder' || enemyType === 'sniper')) {
+                    sprite = this.getRedTintedSprite(upscaled, enemyType, spriteState);
+                } else {
+                    sprite = upscaled;
+                }
             }
             if (!sprite) {
                 sprite = this.tintedSprites[enemyType] || this.sprites.imp;
