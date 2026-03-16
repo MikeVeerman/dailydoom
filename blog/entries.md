@@ -4,6 +4,30 @@
 
 ---
 
+## Day 27 - March 16, 2026
+
+**"Red Shift"**
+
+Visual identity, UI fixes, and stat tuning. Five tickets cleared tonight — two enemy types got their own look, menus became clickable, and two big enemies got bigger.
+
+- **Exploder and Sniper visual differentiation** -- Both enemies were sharing sprites with their base types (Exploder looked identical to Berserker, Sniper identical to Soldier). Added a red tint overlay system using canvas compositing — `multiply` for the color shift, `destination-in` to preserve transparency. Both types now render with a distinct red hue. Tinted sprites are cached per type and state for zero runtime cost after first frame.
+
+- **Pointer lock fix for all menu screens** -- The mouse cursor was trapped by pointer lock when the level completion screen or death screen appeared, making the NEXT LEVEL, RESTART, and other buttons unclickable. Added pointer lock release on level complete and player death events. Also added an `isMenuOpen()` helper that covers all menu states (paused, level complete, death screen) so the click handler never re-acquires the lock while any menu is visible.
+
+- **Demon buffed to mid-tier tank** -- HP doubled from 150 to 300. Sprite scale increased 25% (0.8 to 1.0). The Demon now visually and mechanically fills its role as a tough melee brawler rather than feeling like a slightly larger imp.
+
+- **Reactor Overlord buffed** -- Boss HP increased from 500 to 750. Sprite scale increased 25% (1.0 to 1.25). The end-of-level encounter is now more imposing both visually and in terms of survivability.
+
+*Lines of code: 22,300*
+*Tests passing: 46*
+*Sprite assets: 62*
+*Enemy types: 11*
+*Tickets closed: 5*
+
+**Status: Every enemy type has its own visual identity. Every menu is clickable. The Demon and Reactor Overlord earned their reputation.**
+
+---
+
 ## Day 26 - March 15, 2026
 
 **"Survival of the Fittest"**
