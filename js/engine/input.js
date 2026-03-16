@@ -140,8 +140,8 @@ class InputManager {
     
     // Mouse event handlers
     onCanvasClick(event) {
-        // Don't request pointer lock while game is paused
-        if (!this.mouse.locked && !(window.game && window.game.isPaused())) {
+        // Don't request pointer lock while any menu is open
+        if (!this.mouse.locked && !(window.game && window.game.isMenuOpen())) {
             this.requestPointerLock();
         }
     }

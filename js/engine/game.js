@@ -443,6 +443,10 @@ class GameEngine {
                     if (window.soundEngine && window.soundEngine.isInitialized) {
                         window.soundEngine.playLevelComplete();
                     }
+                    // Release pointer lock so player can click menu buttons
+                    if (document.pointerLockElement) {
+                        document.exitPointerLock();
+                    }
                     console.log(`Level ${this.currentLevel} complete! Score: ${this.currentScore}`);
                     return;
                 }
@@ -644,6 +648,10 @@ class GameEngine {
     onPlayerDeath() {
         this.showDeathScreen = true;
         this.deathScreenTime = performance.now();
+        // Release pointer lock so player can click menu buttons
+        if (document.pointerLockElement) {
+            document.exitPointerLock();
+        }
 
         // Calculate and save best run records
         const elapsed = (performance.now() - this.levelStartTime) / 1000;
@@ -1355,6 +1363,10 @@ class GameEngine {
     
     isPaused() {
         return this.paused;
+    }
+
+    isMenuOpen() {
+        return this.paused || this.levelComplete || this.showDeathScreen;
     }
     
     getCurrentState() {
