@@ -700,7 +700,7 @@ class Renderer {
         // Enemy type scale factors
         this.enemyScales = {
             imp: 0.6, guard: 0.7, soldier: 0.65, demon: 1.0,
-            berserker: 0.7, spitter: 0.55, shield_guard: 0.75, boss: 1.0,
+            berserker: 0.7, spitter: 0.55, shield_guard: 0.75, boss: 1.25,
             phantom: 0.6, exploder: 0.55, sniper: 0.6
         };
 

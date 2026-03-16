@@ -202,7 +202,7 @@ const EnemyBehaviors = {
 
     // Boss enemy - massive health, multiple attack phases
     boss: {
-        health: 500,
+        health: 750,
         speed: 22,
         detectionRange: 500,
         attackRange: 150,
