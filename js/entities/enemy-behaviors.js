@@ -44,7 +44,7 @@ const EnemyBehaviors = {
     
     // Slow, tanky enemies
     demon: {
-        health: 150,
+        health: 300,
         speed: 15,
         detectionRange: 300,
         attackRange: 80,
