@@ -603,30 +603,59 @@ class HUD {
             const progress = elapsed / this.hitMarkerDuration;
             const alpha = 1 - progress;
             const expand = progress * 4;
-            const markerSize = 8 + expand;
-            const markerGap = 4 + expand;
 
-            let color;
             if (this.hitMarkerType === 'headshot') {
-                color = `rgba(255, 215, 0, ${alpha})`;
-            } else if (this.hitMarkerType === 'critical') {
-                color = `rgba(255, 100, 0, ${alpha})`;
+                // Distinct X-shaped marker with glow for headshots
+                const size = 12 + expand;
+                const gap = 3 + expand;
+                const color = `rgba(255, 215, 0, ${alpha})`;
+                // Glow
+                this.ctx.strokeStyle = `rgba(255, 215, 0, ${alpha * 0.3})`;
+                this.ctx.lineWidth = 6;
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - gap - size, centerY - gap - size);
+                this.ctx.lineTo(centerX + gap + size, centerY + gap + size);
+                this.ctx.moveTo(centerX + gap + size, centerY - gap - size);
+                this.ctx.lineTo(centerX - gap - size, centerY + gap + size);
+                this.ctx.stroke();
+                // Sharp X
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = 2.5;
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - gap - size, centerY - gap - size);
+                this.ctx.lineTo(centerX - gap * 0.3, centerY - gap * 0.3);
+                this.ctx.moveTo(centerX + gap + size, centerY - gap - size);
+                this.ctx.lineTo(centerX + gap * 0.3, centerY - gap * 0.3);
+                this.ctx.moveTo(centerX - gap - size, centerY + gap + size);
+                this.ctx.lineTo(centerX - gap * 0.3, centerY + gap * 0.3);
+                this.ctx.moveTo(centerX + gap + size, centerY + gap + size);
+                this.ctx.lineTo(centerX + gap * 0.3, centerY + gap * 0.3);
+                this.ctx.stroke();
+                // Brief gold screen flash
+                if (progress < 0.3) {
+                    this.ctx.fillStyle = `rgba(255, 215, 0, ${(1 - progress / 0.3) * 0.08})`;
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                }
             } else {
-                color = `rgba(255, 255, 255, ${alpha})`;
+                // Normal / critical corner bracket markers
+                const markerSize = 8 + expand;
+                const markerGap = 4 + expand;
+                const color = this.hitMarkerType === 'critical'
+                    ? `rgba(255, 100, 0, ${alpha})`
+                    : `rgba(255, 255, 255, ${alpha})`;
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - markerGap - markerSize, centerY - markerGap - markerSize);
+                this.ctx.lineTo(centerX - markerGap, centerY - markerGap);
+                this.ctx.moveTo(centerX + markerGap + markerSize, centerY - markerGap - markerSize);
+                this.ctx.lineTo(centerX + markerGap, centerY - markerGap);
+                this.ctx.moveTo(centerX - markerGap - markerSize, centerY + markerGap + markerSize);
+                this.ctx.lineTo(centerX - markerGap, centerY + markerGap);
+                this.ctx.moveTo(centerX + markerGap + markerSize, centerY + markerGap + markerSize);
+                this.ctx.lineTo(centerX + markerGap, centerY + markerGap);
+                this.ctx.stroke();
             }
-
-            this.ctx.strokeStyle = color;
-            this.ctx.lineWidth = 2;
-            this.ctx.beginPath();
-            this.ctx.moveTo(centerX - markerGap - markerSize, centerY - markerGap - markerSize);
-            this.ctx.lineTo(centerX - markerGap, centerY - markerGap);
-            this.ctx.moveTo(centerX + markerGap + markerSize, centerY - markerGap - markerSize);
-            this.ctx.lineTo(centerX + markerGap, centerY - markerGap);
-            this.ctx.moveTo(centerX - markerGap - markerSize, centerY + markerGap + markerSize);
-            this.ctx.lineTo(centerX - markerGap, centerY + markerGap);
-            this.ctx.moveTo(centerX + markerGap + markerSize, centerY + markerGap + markerSize);
-            this.ctx.lineTo(centerX + markerGap, centerY + markerGap);
-            this.ctx.stroke();
         }
     }
 
