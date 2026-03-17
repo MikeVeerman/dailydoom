@@ -376,21 +376,42 @@ class HUD {
         const weaponInfo = player.weaponManager.getHUDInfo();
         const x = this.canvas.width - 20;
         const y = this.canvas.height - 40;
-        
-        this.ctx.fillStyle = this.ammoColor;
-        this.ctx.font = this.largeFont;
-        this.ctx.textAlign = 'right';
-        this.ctx.fillText(weaponInfo.ammo, x, y);
-        
-        // Current ammo count (larger)
+
         const ammoText = weaponInfo.ammo.split('/');
         if (ammoText.length === 2) {
+            const clipAmmo = parseInt(ammoText[0]);
+            const reserveAmmo = parseInt(ammoText[1]);
+            const isEmpty = clipAmmo === 0;
+
+            // Clip ammo (large, red flash when empty)
+            this.ctx.textAlign = 'right';
+            if (isEmpty && !weaponInfo.isReloading) {
+                const flash = Math.sin(Date.now() * 0.008) > 0;
+                this.ctx.fillStyle = flash ? '#FF2222' : '#881111';
+            } else {
+                this.ctx.fillStyle = this.ammoColor;
+            }
             this.ctx.font = '32px monospace';
             this.ctx.fillText(ammoText[0], x - 80, y);
-            
+
+            // Separator and reserve
             this.ctx.font = this.font;
             this.ctx.fillStyle = this.textColor;
             this.ctx.fillText(`/ ${ammoText[1]}`, x - 20, y);
+
+            // "NO AMMO" indicator when completely out
+            if (isEmpty && reserveAmmo === 0 && !weaponInfo.isReloading) {
+                this.ctx.font = 'bold 14px monospace';
+                this.ctx.fillStyle = '#FF2222';
+                this.ctx.textAlign = 'right';
+                this.ctx.fillText('NO AMMO', x, y + 18);
+            }
+        } else {
+            // Fallback for non-standard ammo strings (e.g., punch)
+            this.ctx.fillStyle = this.ammoColor;
+            this.ctx.font = this.largeFont;
+            this.ctx.textAlign = 'right';
+            this.ctx.fillText(weaponInfo.ammo, x, y);
         }
     }
     
