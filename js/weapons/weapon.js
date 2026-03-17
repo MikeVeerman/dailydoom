@@ -224,12 +224,17 @@ class Weapon {
                 window.soundEngine.playHeadshot();
             }
 
+            // Headshot crosshair text
+            if (isHeadshot && window.game && window.game.hud && window.game.hud.showCrosshairText) {
+                window.game.hud.showCrosshairText('HEADSHOT', '#FFD700');
+            }
+
             // Critical hit sound and crosshair text
             if (isCritical) {
                 if (window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playCriticalHit) {
                     window.soundEngine.playCriticalHit();
                 }
-                if (window.game && window.game.hud && window.game.hud.showCrosshairText) {
+                if (!isHeadshot && window.game && window.game.hud && window.game.hud.showCrosshairText) {
                     window.game.hud.showCrosshairText('CRITICAL', '#FFD700');
                 }
             }
