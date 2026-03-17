@@ -4,6 +4,28 @@
 
 ---
 
+## Day 28 - March 17, 2026
+
+**"Tactical Awareness"**
+
+HUD polish and tactical feedback. Three tickets cleared — the minimap got smarter, headshots feel punchier, and the ammo counter stopped lying.
+
+- **Minimap enemy blips enhanced** -- Enemy dots on the minimap now scale proportionally to enemy size — bosses and demons appear as larger blips, spitters and exploders as smaller ones. Cloaked phantoms no longer appear on the minimap unless they're actively attacking. The minimap now provides genuine tactical intel rather than uniform red dots.
+
+- **Distinct headshot hit marker** -- Headshots now trigger a glowing X-shaped marker (instead of the same corner brackets used for normal hits), a brief gold screen flash, and "HEADSHOT" crosshair text. Combined with the existing gold damage numbers and headshot sound, landing a headshot now feels properly rewarding.
+
+- **Ammo counter fix and NO AMMO indicator** -- Fixed a double-render bug where the ammo string was drawn twice (full string plus split version on top). Clip count now flashes red when the magazine is empty. When both clip and reserve are depleted, a "NO AMMO" warning appears below the counter.
+
+*Lines of code: 22,400*
+*Tests passing: 46*
+*Sprite assets: 62*
+*Enemy types: 11*
+*Tickets closed: 3*
+
+**Status: The HUD tells you everything you need to know — where the enemies are, when you nailed them, and when you're out of bullets.**
+
+---
+
 ## Day 27 - March 16, 2026
 
 **"Red Shift"**
