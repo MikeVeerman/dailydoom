@@ -1984,16 +1984,21 @@ class HUD {
         }
 
         // Draw enemies
+        const enemyScales = { imp: 0.6, guard: 0.7, soldier: 0.65, demon: 1.0, berserker: 0.7, spitter: 0.55, shield_guard: 0.75, boss: 1.25, phantom: 0.6, exploder: 0.55, sniper: 0.6 };
         for (const enemy of map.enemies) {
             if (!enemy.active) continue;
+            // Hide cloaked phantoms (visible only when attacking)
+            if (enemy.cloaked) continue;
             const egx = Math.floor(enemy.x / map.tileSize);
             const egy = Math.floor(enemy.y / map.tileSize);
             if (!this.isTileRevealed(egx, egy)) continue;
             const rx = (enemy.x - player.x) * scale;
             const ry = (enemy.y - player.y) * scale;
             this.ctx.fillStyle = enemy.type === 'boss' ? '#FFD700' : '#FF4444';
+            const dotScale = enemyScales[enemy.type] || 0.6;
+            const dotRadius = Math.max(cellSize * 0.4 * (dotScale / 0.6), 2.5);
             this.ctx.beginPath();
-            this.ctx.arc(rx, ry, Math.max(cellSize * 0.4, 2.5), 0, Math.PI * 2);
+            this.ctx.arc(rx, ry, dotRadius, 0, Math.PI * 2);
             this.ctx.fill();
         }
 
