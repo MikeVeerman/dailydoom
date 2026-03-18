@@ -1205,16 +1205,12 @@ class GameEngine {
     }
     
     updateUI() {
-        // Update HUD elements
-        const healthElement = document.getElementById('health');
-        const ammoElement = document.getElementById('ammo');
+        // Update debug HUD elements
         const fpsElement = document.getElementById('fps');
         const playerXElement = document.getElementById('playerX');
         const playerYElement = document.getElementById('playerY');
         const playerAngleElement = document.getElementById('playerAngle');
-        
-        if (healthElement) healthElement.textContent = this.player.health;
-        if (ammoElement) ammoElement.textContent = this.player.ammo;
+
         if (fpsElement) fpsElement.textContent = Math.round(this.fps);
         if (playerXElement) playerXElement.textContent = Math.round(this.player.x);
         if (playerYElement) playerYElement.textContent = Math.round(this.player.y);
