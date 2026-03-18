@@ -38,18 +38,18 @@ class Weapon {
                 reloadTime: 2000 // 2 seconds
             },
             shotgun: {
-                damage: 60,
-                range: 200,
-                fireRate: 0.8, // slower fire rate
-                accuracy: 0.7,
+                damage: 90,
+                range: 250,
+                fireRate: 1.0, // pump action
+                accuracy: 0.75,
                 ammo: 8,
                 maxAmmo: 40,
-                reloadTime: 3000 // 3 seconds
+                reloadTime: 2800 // 2.8 seconds
             },
             rifle: {
-                damage: 35,
+                damage: 22,
                 range: 600,
-                fireRate: 4, // 4 shots per second
+                fireRate: 3, // 3 shots per second
                 accuracy: 0.95,
                 ammo: 30,
                 maxAmmo: 120,
