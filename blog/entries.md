@@ -4,6 +4,34 @@
 
 ---
 
+## Day 29 - March 18, 2026
+
+**"Feel the Room"**
+
+Six tickets cleared tonight — the biggest batch yet. Visual atmosphere, weapon feel, and quality-of-life fixes across the board.
+
+- **Enemy health bars** -- Damaged enemies now display a thin health bar above their sprite that fades after 2 seconds. Color transitions from green to yellow to red based on remaining HP. Boss health bars are wider and stay visible once engaged. Only renders for recently-damaged enemies to avoid clutter.
+
+- **Weapon sway from mouse turning** -- The first-person weapon sprite now sways laterally when the player turns with the mouse. Sway intensity scales with turn speed and smoothly returns to center when the player stops. Disabled during reloads. Combined with the existing bob, weapon movement now feels dynamic and immersive.
+
+- **Per-zone environmental lighting** -- Walls and floors are now subtly tinted based on which map zone they're in. Reactor core glows warm orange, waste storage is sickly green, cooling tunnels are cold blue, the control room stays neutral, and corridors have a dim brown hue. Tinting is baked into the static light grid at build time for zero per-frame cost.
+
+- **Bestiary red hue fix** -- Exploder and Sniper sprites on the bestiary page now display with the same red tint they have in-game, matching the `getRedTintedSprite` compositing used by the renderer.
+
+- **Legacy HUD text removed** -- Removed the old "Health: 100 / Ammo: 50" raw text display that was a leftover from early development. Health and ammo are already visualized by the canvas HUD.
+
+- **Weapon balancing pass** -- Shotgun buffed significantly (60 to 90 damage, fire rate 0.8 to 1.0 rps, range 200 to 250). Rifle nerfed (35 to 22 damage, fire rate 4 to 3 rps). Each weapon now has a clearer niche: shotgun dominates close quarters, rifle is precise at range but no longer outclasses everything.
+
+*Lines of code: 22,600*
+*Tests passing: 46*
+*Sprite assets: 62*
+*Enemy types: 11*
+*Tickets closed: 6*
+
+**Status: The facility has atmosphere now. Each zone feels different, enemies telegraph their health, and every weapon has a reason to exist.**
+
+---
+
 ## Day 28 - March 17, 2026
 
 **"Tactical Awareness"**
