@@ -161,6 +161,19 @@ class Renderer {
                 }
             }
         }
+
+        // Add per-zone environmental tinting
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const tint = this.getZoneTintForTile(x, y);
+                if (tint) {
+                    this._staticLightGrid[y][x].r += tint.r;
+                    this._staticLightGrid[y][x].g += tint.g;
+                    this._staticLightGrid[y][x].b += tint.b;
+                }
+            }
+        }
+
         this._staticLightDirty = false;
     }
 
@@ -244,6 +257,20 @@ class Renderer {
             return this.lightGrid[ty][tx];
         }
         return { r: 0, g: 0, b: 0 };
+    }
+
+    // Get zone-based color tint for a tile position (returns RGB offsets)
+    getZoneTintForTile(tx, ty) {
+        // Reactor Core: warm orange (cols 9-15, rows 10-15)
+        if (tx >= 9 && tx <= 15 && ty >= 10 && ty <= 15) return { r: 0.15, g: 0.06, b: 0 };
+        // Waste Storage: sickly green (cols 1-6, rows 18-22)
+        if (tx >= 1 && tx <= 6 && ty >= 18 && ty <= 22) return { r: 0, g: 0.12, b: 0.02 };
+        // Cooling Tunnels: cold blue (cols 1-6 or 18-22, rows 10-15)
+        if (((tx >= 1 && tx <= 6) || (tx >= 18 && tx <= 22)) && ty >= 10 && ty <= 15) return { r: 0, g: 0.04, b: 0.14 };
+        // Control Room: neutral/white (cols 3-6, rows 3-7)
+        if (tx >= 3 && tx <= 6 && ty >= 3 && ty <= 7) return null;
+        // Corridor: dim gray/brown
+        return { r: 0.04, g: 0.03, b: 0.01 };
     }
 
     render(player) {
