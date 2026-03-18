@@ -59,6 +59,9 @@ class HUD {
         this.weaponBobX = 0;
         this.weaponBobY = 0;
 
+        // Weapon sway (from mouse turning)
+        this.weaponSwayX = 0;
+
         // Damage direction indicators
         this.damageIndicators = [];
         this.damageIndicatorDuration = 1000; // 1 second
@@ -744,12 +747,22 @@ class HUD {
             if (Math.abs(this.weaponBobY) < 0.3) this.weaponBobY = 0;
         }
 
+        // Weapon sway (lateral offset from mouse turning)
+        if (!weaponInfo.isReloading) {
+            const turnAmount = player.lastTurnAmount || 0;
+            const swayTarget = Math.max(-20, Math.min(20, -turnAmount * 150));
+            this.weaponSwayX += (swayTarget - this.weaponSwayX) * 0.15;
+        } else {
+            this.weaponSwayX *= 0.9;
+        }
+        if (Math.abs(this.weaponSwayX) < 0.2) this.weaponSwayX = 0;
+
         // Weapon switch animation offset (slides weapon down off screen)
         const switchOffset = (weaponInfo.switchProgress || 0) * 250;
 
         // First-person weapon view (larger, bottom-right of screen)
         const fpsWeaponSize = 200;
-        const fpsX = this.canvas.width / 2 + 50 + this.weaponBobX;
+        const fpsX = this.canvas.width / 2 + 50 + this.weaponBobX + this.weaponSwayX;
         const fpsY = this.canvas.height - fpsWeaponSize + 20 - this.weaponRecoilOffset + this.weaponBobY + switchOffset;
 
         // Choose between gun and melee first-person sprite

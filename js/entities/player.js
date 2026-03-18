@@ -17,6 +17,7 @@ class Player {
         this.currentTurnVelocity = 0; // Current keyboard turn velocity
         this.turnAcceleration = 12.0; // How fast turn ramps up (rad/s²)
         this.turnDeceleration = 10.0; // How fast turn ramps down (rad/s²)
+        this.lastTurnAmount = 0; // For weapon sway feedback
         this.lastFootstepTime = 0;
         this.footstepInterval = 400; // ms between footsteps
         
@@ -188,6 +189,7 @@ class Player {
             this.angle += turnAmount;
             this.angle = MathUtils.normalizeAngle(this.angle);
         }
+        this.lastTurnAmount = turnAmount;
     }
     
     handleMovement(inputManager, deltaTime) {
