@@ -384,6 +384,7 @@ class Enemy {
         }
 
         this.health -= actualDamage;
+        this.lastDamageTime = Date.now();
 
         // Infighting: if damaged by another enemy, switch aggro target
         if (attacker && attacker !== this && attacker.active && !attacker.dying) {

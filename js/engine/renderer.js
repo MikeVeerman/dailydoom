@@ -1260,6 +1260,46 @@ class Renderer {
                 this.ctx.fillRect(spriteX, spriteY, spriteSize, adjustedHeight);
                 this.ctx.globalAlpha = 1.0;
             }
+
+            // Enemy health bar (shows above sprite after taking damage)
+            if (!entity.dying && entity.health < entity.maxHealth) {
+                const isBoss = enemyType === 'boss';
+                const showAlways = isBoss && entity.state !== 'idle';
+                const timeSinceDamage = entity.lastDamageTime ? Date.now() - entity.lastDamageTime : Infinity;
+                const fadeTime = 2000; // 2 seconds before fade
+
+                if (showAlways || timeSinceDamage < fadeTime) {
+                    const healthPct = Math.max(0, entity.health / entity.maxHealth);
+                    const barWidth = isBoss ? spriteSize * 1.2 : spriteSize * 0.8;
+                    const barHeight = Math.max(2, spriteSize * 0.04);
+                    const barX = screenX - barWidth / 2;
+                    const barY = spriteY - barHeight - 4;
+
+                    // Fade alpha for non-boss enemies
+                    let barAlpha = 1;
+                    if (!showAlways && timeSinceDamage > fadeTime - 500) {
+                        barAlpha = Math.max(0, 1 - (timeSinceDamage - (fadeTime - 500)) / 500);
+                    }
+                    this.ctx.globalAlpha = barAlpha;
+
+                    // Background
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    this.ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
+
+                    // Health fill (green > yellow > red)
+                    if (healthPct > 0.5) {
+                        const g = Math.floor(255 * (healthPct - 0.5) * 2);
+                        this.ctx.fillStyle = `rgb(${255 - g}, 255, 0)`;
+                    } else {
+                        const r = 255;
+                        const g = Math.floor(255 * healthPct * 2);
+                        this.ctx.fillStyle = `rgb(${r}, ${g}, 0)`;
+                    }
+                    this.ctx.fillRect(barX, barY, barWidth * healthPct, barHeight);
+
+                    this.ctx.globalAlpha = 1.0;
+                }
+            }
         } else if (entityType === 'pickup') {
             const size = (this.wallHeight * this.projectionDistance) / distance * 0.3;
             const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
