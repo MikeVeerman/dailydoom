@@ -15,7 +15,8 @@ const EnemyBehaviors = {
         patrolRadius: 80,
         aggressiveness: 0.5,
         intelligence: 0.6,
-        
+        resistances: {}, // neutral to all
+
         // Behavior modifiers
         fleeHealthThreshold: 0.2, // Flee when health < 20%
         groupBehavior: true,
@@ -34,7 +35,8 @@ const EnemyBehaviors = {
         patrolRadius: 120,
         aggressiveness: 0.8,
         intelligence: 0.3,
-        
+        resistances: {}, // neutral to all
+
         fleeHealthThreshold: 0.3,
         groupBehavior: true,
         callForHelp: false,
@@ -53,7 +55,8 @@ const EnemyBehaviors = {
         patrolRadius: 60,
         aggressiveness: 0.9,
         intelligence: 0.4,
-        
+        resistances: { shotgun: 0.5, rocket: 1.5 }, // tough hide resists shotgun, weak to rockets
+
         fleeHealthThreshold: 0.1,
         groupBehavior: false,
         callForHelp: false,
@@ -72,6 +75,7 @@ const EnemyBehaviors = {
         patrolRadius: 100,
         aggressiveness: 0.3,
         intelligence: 0.9,
+        resistances: {}, // neutral to all
 
         fleeHealthThreshold: 0.25,
         groupBehavior: true,
@@ -92,6 +96,7 @@ const EnemyBehaviors = {
         patrolRadius: 100,
         aggressiveness: 0.9,
         intelligence: 0.3,
+        resistances: { pistol: 0.5, chaingun: 0.5, shotgun: 1.5 }, // thick armor resists small arms, weak to shotgun
 
         fleeHealthThreshold: 0, // Never flees
         groupBehavior: false,
@@ -112,6 +117,7 @@ const EnemyBehaviors = {
         patrolRadius: 60,
         aggressiveness: 0.4,
         intelligence: 0.7,
+        resistances: { rifle: 0.5, shotgun: 1.5 }, // slimy body deflects precision shots, weak to spread
 
         fleeHealthThreshold: 0.4,
         groupBehavior: false,
@@ -132,6 +138,7 @@ const EnemyBehaviors = {
         patrolRadius: 60,
         aggressiveness: 0.6,
         intelligence: 0.8,
+        resistances: { pistol: 0.5, rifle: 0.5, rocket: 1.5, shotgun: 1.5 }, // armored vs small arms, weak to heavy weapons
 
         fleeHealthThreshold: 0.1,
         groupBehavior: true,
@@ -151,6 +158,7 @@ const EnemyBehaviors = {
         patrolRadius: 120,
         aggressiveness: 0.7,
         intelligence: 0.8,
+        resistances: { rocket: 0.5, rifle: 1.5 }, // ethereal body phases through explosions, precision weapons disrupt cloak
 
         fleeHealthThreshold: 0.3,
         groupBehavior: false,
@@ -170,6 +178,7 @@ const EnemyBehaviors = {
         patrolRadius: 80,
         aggressiveness: 1.0,
         intelligence: 0.2,
+        resistances: { melee: 0.5, rifle: 1.5, pistol: 1.5 }, // volatile but hard to punch safely, easy to shoot down
 
         fleeHealthThreshold: 0, // Never flees
         groupBehavior: false,
@@ -190,6 +199,7 @@ const EnemyBehaviors = {
         patrolRadius: 100,
         aggressiveness: 0.2,
         intelligence: 0.9,
+        resistances: { chaingun: 0.5, shotgun: 1.5 }, // light armor absorbs rapid fire, weak to close-range spread
 
         fleeHealthThreshold: 0.5,
         groupBehavior: false,
@@ -211,6 +221,7 @@ const EnemyBehaviors = {
         patrolRadius: 40,
         aggressiveness: 1.0,
         intelligence: 0.9,
+        resistances: {}, // no resistances — balanced
 
         fleeHealthThreshold: 0, // Never flees
         groupBehavior: false,

@@ -182,7 +182,7 @@ class Weapon {
 
             actualDamage = Math.round(actualDamage);
             const wasAlive = !hit.enemy.dying;
-            hit.enemy.takeDamage(actualDamage);
+            hit.enemy.takeDamage(actualDamage, null, this.type);
 
             // Track damage dealt and kills
             if (player.stats) player.stats.damageDealt += actualDamage;
@@ -208,9 +208,9 @@ class Weapon {
                 window.game.hud.emitBloodParticles(hit.enemy.x, hit.enemy.y, wasAlive && hit.enemy.dying ? 12 : 5);
             }
 
-            // Show floating damage number (gold for headshots)
+            // Show floating damage number (gold for headshots, colored for resistance)
             if (window.game && window.game.hud) {
-                window.game.hud.addDamageNumber(hit.enemy.x, hit.enemy.y, actualDamage, isCritical || isHeadshot, isHeadshot);
+                window.game.hud.addDamageNumber(hit.enemy.x, hit.enemy.y, actualDamage, isCritical || isHeadshot, isHeadshot, hit.enemy.lastResistanceMult);
             }
 
             // Hit marker
@@ -295,7 +295,7 @@ class Weapon {
                 if (dist < splashRadius) {
                     const falloff = 1 - (dist / splashRadius);
                     const dmg = Math.round(splashDamage * falloff);
-                    enemy.takeDamage(dmg);
+                    enemy.takeDamage(dmg, null, this.type);
                     if (window.game && window.game.hud) {
                         window.game.hud.addDamageNumber(enemy.x, enemy.y, dmg, false);
                     }
@@ -549,7 +549,7 @@ class Weapon {
                 if (dist < splashRadius) {
                     const falloff = 1 - (dist / splashRadius);
                     const dmg = Math.round(splashDamage * falloff);
-                    enemy.takeDamage(dmg);
+                    enemy.takeDamage(dmg, null, this.type);
                     if (window.game && window.game.hud) {
                         window.game.hud.addDamageNumber(enemy.x, enemy.y, dmg, false);
                     }
@@ -600,7 +600,7 @@ class Weapon {
             actualDamage = Math.round(actualDamage);
 
             const wasAlive = !hit.enemy.dying;
-            hit.enemy.takeDamage(actualDamage);
+            hit.enemy.takeDamage(actualDamage, null, this.type);
 
             if (player.stats) player.stats.damageDealt += actualDamage;
             if (wasAlive && (hit.enemy.dying || !hit.enemy.active)) {
@@ -698,7 +698,7 @@ class Weapon {
             actualDamage = Math.round(actualDamage);
 
             const wasAlive = !hit.enemy.dying;
-            hit.enemy.takeDamage(actualDamage);
+            hit.enemy.takeDamage(actualDamage, null, this.type);
             if (player.stats) player.stats.damageDealt += actualDamage;
             if (wasAlive && (hit.enemy.dying || !hit.enemy.active)) {
                 if (player.stats) player.stats.enemiesKilled++;

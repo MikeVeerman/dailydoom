@@ -576,7 +576,7 @@ class Player {
             }
 
             const wasAlive = closestEnemy.active;
-            closestEnemy.takeDamage(damage);
+            closestEnemy.takeDamage(damage, null, 'melee');
 
             // Knockback: push enemy away from player
             if (closestEnemy.active) {

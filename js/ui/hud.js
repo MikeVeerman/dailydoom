@@ -1803,9 +1803,10 @@ class HUD {
     }
 
     // Add a floating damage number
-    addDamageNumber(worldX, worldY, damage, isCritical, isHeadshot) {
+    addDamageNumber(worldX, worldY, damage, isCritical, isHeadshot, resistanceMult) {
         this.damageNumbers.push({
             worldX, worldY, damage, isCritical, isHeadshot: isHeadshot || false,
+            resistanceMult: resistanceMult || 1.0,
             spawnTime: Date.now(),
             duration: 1000,
             offsetX: (Math.random() - 0.5) * 30, // Random horizontal offset to prevent overlap
@@ -1875,11 +1876,25 @@ class HUD {
                 this.ctx.strokeText('HEADSHOT', screenX, screenY - scaledSize);
                 this.ctx.fillText('HEADSHOT', screenX, screenY - scaledSize);
             } else {
-                this.ctx.fillStyle = dn.isCritical
-                    ? `rgba(255, 255, 0, ${alpha})`
-                    : `rgba(255, 100, 100, ${alpha})`;
+                let r = 255, g = 100, b = 100;
+                if (dn.isCritical) { r = 255; g = 255; b = 0; }
+                else if (dn.resistanceMult && dn.resistanceMult < 1) { r = 128; g = 128; b = 128; } // gray = resisted
+                else if (dn.resistanceMult && dn.resistanceMult > 1) { r = 0; g = 255; b = 100; } // green = super effective
+                this.ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
                 this.ctx.strokeText(text, screenX, screenY);
                 this.ctx.fillText(text, screenX, screenY);
+                // Show resistance text on first hit
+                if (dn.resistanceMult && dn.resistanceMult < 1 && progress < 0.5) {
+                    this.ctx.font = `bold ${Math.round(9 * scale)}px monospace`;
+                    this.ctx.fillStyle = `rgba(128, 128, 128, ${alpha})`;
+                    this.ctx.strokeText('RESISTANT', screenX, screenY - scaledSize);
+                    this.ctx.fillText('RESISTANT', screenX, screenY - scaledSize);
+                } else if (dn.resistanceMult && dn.resistanceMult > 1 && progress < 0.5) {
+                    this.ctx.font = `bold ${Math.round(9 * scale)}px monospace`;
+                    this.ctx.fillStyle = `rgba(0, 255, 100, ${alpha})`;
+                    this.ctx.strokeText('WEAK POINT', screenX, screenY - scaledSize);
+                    this.ctx.fillText('WEAK POINT', screenX, screenY - scaledSize);
+                }
             }
         }
     }
