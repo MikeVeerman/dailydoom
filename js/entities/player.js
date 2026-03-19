@@ -741,6 +741,12 @@ class Player {
         this.stats.damageTaken += actualDamage;
         console.log(`Player took ${actualDamage} damage. Health: ${this.health}, Armor: ${this.armor}`);
 
+        // Screen shake proportional to damage taken
+        if (window.game && window.game.hud) {
+            const shakeAmount = Math.min(2 + actualDamage * 0.15, 12);
+            window.game.hud.triggerScreenShake(shakeAmount);
+        }
+
         if (this.health <= 0) {
             this.die();
         }
