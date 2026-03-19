@@ -289,6 +289,34 @@ class HUD {
             this.ctx.strokeStyle = this.textColor;
             this.ctx.strokeRect(x, armorY, width, armorHeight);
         }
+
+        // Stamina bar (below armor bar)
+        if (player.maxStamina > 0) {
+            const staminaBaseY = (player.maxArmor > 0) ? y + height + 6 + 14 + 6 : y + height + 6;
+            const staminaHeight = 10;
+
+            // Background
+            this.ctx.fillStyle = this.backgroundColor;
+            this.ctx.fillRect(x - 5, staminaBaseY - 3, width + 10, staminaHeight + 6);
+            this.ctx.fillStyle = '#333333';
+            this.ctx.fillRect(x, staminaBaseY, width, staminaHeight);
+
+            // Fill
+            const staminaPercent = player.stamina / player.maxStamina;
+            const staminaWidth = width * staminaPercent;
+            this.ctx.fillStyle = staminaPercent > 0.25 ? '#FFAA00' : '#FF4400';
+            this.ctx.fillRect(x, staminaBaseY, staminaWidth, staminaHeight);
+
+            // Label
+            this.ctx.fillStyle = this.textColor;
+            this.ctx.font = '10px monospace';
+            this.ctx.textAlign = 'left';
+            this.ctx.fillText(`STAMINA: ${Math.round(player.stamina)}`, x, staminaBaseY - 4);
+
+            // Border
+            this.ctx.strokeStyle = this.textColor;
+            this.ctx.strokeRect(x, staminaBaseY, width, staminaHeight);
+        }
     }
 
     renderWeaponInfo(player) {

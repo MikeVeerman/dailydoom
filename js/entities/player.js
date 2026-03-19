@@ -101,6 +101,15 @@ class Player {
         this.damageBoostEndTime = 0;
         this.baseSpeed = this.speed;
         
+        // Stamina system (gates sprinting)
+        this.stamina = 100;
+        this.maxStamina = 100;
+        this.staminaDrainRate = 30; // per second while sprinting
+        this.staminaRegenRate = 20; // per second while not sprinting
+        this.staminaRegenDelay = 1000; // ms before regen starts
+        this.lastSprintTime = 0; // tracks when sprint last drained stamina
+        this.isSprinting = false;
+
         // Movement states
         this.isRunning = false;
         this.isCrouching = false;
@@ -199,10 +208,15 @@ class Player {
         // Check movement states
         this.isRunning = inputManager.isRunning();
         this.isCrouching = inputManager.isCrouching();
-        
+
+        // Sprint requires: holding run key, stamina > 0, not crouching, not reloading, actually moving
+        const isMoving = movement.x !== 0 || movement.y !== 0;
+        const isReloading = this.weaponManager && this.weaponManager.getCurrentWeapon().isReloading;
+        this.isSprinting = this.isRunning && this.stamina > 0 && !this.isCrouching && !isReloading && isMoving;
+
         // Calculate movement speed
         let currentSpeed = this.speed;
-        if (this.isRunning && !this.isCrouching) {
+        if (this.isSprinting) {
             currentSpeed *= this.runMultiplier;
         }
         if (this.isCrouching) {
@@ -302,6 +316,9 @@ class Player {
 
         // Update weapon system
         this.weaponManager.update();
+
+        // Update stamina
+        this.updateStamina(deltaTime);
 
         // Update power-up effects
         this.updatePowerupEffects();
@@ -855,6 +872,16 @@ class Player {
                 }
                 this.lastRegenTick = now;
             }
+        }
+    }
+
+    updateStamina(deltaTime) {
+        const now = Date.now();
+        if (this.isSprinting) {
+            this.stamina = Math.max(0, this.stamina - this.staminaDrainRate * deltaTime);
+            this.lastSprintTime = now;
+        } else if (now - this.lastSprintTime > this.staminaRegenDelay) {
+            this.stamina = Math.min(this.maxStamina, this.stamina + this.staminaRegenRate * deltaTime);
         }
     }
 
