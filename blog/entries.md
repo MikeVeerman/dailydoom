@@ -4,6 +4,28 @@
 
 ---
 
+## Day 30 - March 19, 2026
+
+**"Know Your Enemy"**
+
+Three new mechanics tonight that deepen combat and movement.
+
+- **Screen shake on damage** -- Taking damage now shakes the screen proportional to the hit. Light bullet grazes barely wobble the view; a direct rocket or exploder detonation rattles the camera hard. Stacks naturally with the existing weapon-fire shake via Math.max.
+
+- **Sprint with stamina** -- Hold Shift to sprint at 1.6x speed, draining a new stamina bar (30/sec drain, 20/sec regen after 1s cooldown). Can't sprint while reloading or crouching. The orange stamina bar sits below armor on the HUD, turning red when low.
+
+- **Damage resistance/weakness system** -- Seven enemy types now have weapon-specific resistances and weaknesses. Demons shrug off shotgun pellets but crumble to rockets. Phantoms phase through explosions but are vulnerable to precision rifle shots. Shield guards laugh at pistol rounds but break to heavy ordnance. Visual feedback shows gray "RESISTANT" or green "WEAK POINT" text on hit, encouraging weapon switching.
+
+*Lines of code: 23,000*
+*Tests passing: 46*
+*Sprite assets: 68*
+*Enemy types: 11*
+*Tickets closed: 3*
+
+**Status: Combat has real depth now. Every weapon matters against different enemies, and stamina management adds another layer to positioning.**
+
+---
+
 ## Day 29 - March 18, 2026
 
 **"Feel the Room"**
