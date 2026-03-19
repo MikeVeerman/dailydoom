@@ -360,8 +360,18 @@ class Enemy {
         }
     }
 
-    takeDamage(damage, attacker) {
+    takeDamage(damage, attacker, weaponType) {
         let actualDamage = damage;
+
+        // Weapon resistance/weakness system
+        let resistanceMult = 1.0;
+        if (weaponType && this.enhancedAI && this.enhancedAI.behavior.resistances) {
+            resistanceMult = this.enhancedAI.behavior.resistances[weaponType] || 1.0;
+            if (resistanceMult !== 1.0) {
+                actualDamage = Math.round(actualDamage * resistanceMult);
+            }
+        }
+        this.lastResistanceMult = resistanceMult;
 
         // Front shield: reduce damage if hit from front
         if (this.enhancedAI && this.enhancedAI.behavior.frontShield && window.game && window.game.player) {
