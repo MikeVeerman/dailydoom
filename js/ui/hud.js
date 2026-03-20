@@ -486,28 +486,32 @@ class HUD {
         const weaponInfo = player && player.weaponManager ? player.weaponManager.getHUDInfo() : null;
         const weaponName = weaponInfo ? weaponInfo.weaponName : 'PISTOL';
         const isFiring = weaponInfo ? weaponInfo.muzzleFlash : false;
+        // Bloom spread expands crosshair gap (0-1 normalized)
+        const bloomFraction = weaponInfo && weaponInfo.bloomMax > 0
+            ? weaponInfo.bloomLevel / weaponInfo.bloomMax
+            : 0;
 
         this.ctx.strokeStyle = '#FFFFFF';
         this.ctx.lineWidth = 2;
 
         switch (weaponName) {
             case 'SHOTGUN':
-                this.drawShotgunCrosshair(centerX, centerY);
+                this.drawShotgunCrosshair(centerX, centerY, bloomFraction);
                 break;
             case 'RIFLE':
-                this.drawRifleCrosshair(centerX, centerY);
+                this.drawRifleCrosshair(centerX, centerY, bloomFraction);
                 break;
             case 'ROCKET':
                 this.drawRocketCrosshair(centerX, centerY);
                 break;
             case 'CHAINGUN':
-                this.drawChaingunCrosshair(centerX, centerY, isFiring);
+                this.drawChaingunCrosshair(centerX, centerY, isFiring, bloomFraction);
                 break;
             case 'PUNCH':
                 this.drawPunchCrosshair(centerX, centerY);
                 break;
             default: // PISTOL
-                this.drawPistolCrosshair(centerX, centerY);
+                this.drawPistolCrosshair(centerX, centerY, bloomFraction);
                 break;
         }
 
@@ -515,11 +519,11 @@ class HUD {
         this.renderHitMarker(centerX, centerY);
     }
 
-    drawPistolCrosshair(cx, cy) {
+    drawPistolCrosshair(cx, cy, bloomFraction = 0) {
         // Small precise dot with thin cross lines
         this.ctx.lineWidth = 1;
         const size = 6;
-        const gap = 4;
+        const gap = 4 + bloomFraction * 10;
         this.ctx.beginPath();
         this.ctx.moveTo(cx, cy - gap - size);
         this.ctx.lineTo(cx, cy - gap);
@@ -537,8 +541,8 @@ class HUD {
         this.ctx.fill();
     }
 
-    drawShotgunCrosshair(cx, cy) {
-        // Spread circle with tick marks showing spread area
+    drawShotgunCrosshair(cx, cy, bloomFraction = 0) {
+        // Spread circle with tick marks showing spread area (shotgun has no bloom)
         const radius = 16;
         this.ctx.lineWidth = 1.5;
         this.ctx.beginPath();
@@ -561,10 +565,10 @@ class HUD {
         this.ctx.fillRect(cx - 1, cy - 1, 2, 2);
     }
 
-    drawRifleCrosshair(cx, cy) {
+    drawRifleCrosshair(cx, cy, bloomFraction = 0) {
         // Tight precision cross with gap in center, thin lines
         this.ctx.lineWidth = 1;
-        const innerGap = 5;
+        const innerGap = 5 + bloomFraction * 8;
         const outerLen = 12;
         this.ctx.beginPath();
         // Top
@@ -610,7 +614,7 @@ class HUD {
         this.ctx.setLineDash([]);
     }
 
-    drawChaingunCrosshair(cx, cy, isFiring) {
+    drawChaingunCrosshair(cx, cy, isFiring, bloomFraction = 0) {
         // Rotating diagonal lines that spin while firing
         if (isFiring) {
             this.crosshairRotation += 0.3;
@@ -620,7 +624,7 @@ class HUD {
         }
         const rot = this.crosshairRotation;
         const size = 10;
-        const gap = 4;
+        const gap = 4 + bloomFraction * 14;
         this.ctx.lineWidth = 2;
         this.ctx.beginPath();
         for (let i = 0; i < 4; i++) {

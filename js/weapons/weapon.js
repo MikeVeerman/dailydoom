@@ -22,6 +22,15 @@ class Weapon {
         this.muzzleFlashDuration = 100; // ms
         this.muzzleFlashStart = 0;
 
+        // Accuracy bloom (spread increases with consecutive shots)
+        const bloomStats = this.getBloomStats(type);
+        this.bloomLevel = 0; // Current bloom (0 = base accuracy, adds to spread)
+        this.bloomPerShot = bloomStats.bloomPerShot; // Bloom added per shot
+        this.bloomMax = bloomStats.bloomMax; // Maximum bloom
+        this.bloomDecayRate = bloomStats.bloomDecayRate; // Bloom decay per second
+        this.bloomDecayDelay = bloomStats.bloomDecayDelay; // ms before bloom starts decaying
+        this.lastShotTime = 0; // For bloom decay delay tracking
+
         // Weapon mods (upgrades)
         this.mods = [];
     }
@@ -79,7 +88,18 @@ class Weapon {
         
         return stats[type] || stats.pistol;
     }
-    
+
+    getBloomStats(type) {
+        const bloom = {
+            pistol: { bloomPerShot: 0.03, bloomMax: 0.12, bloomDecayRate: 0.3, bloomDecayDelay: 300 },
+            shotgun: { bloomPerShot: 0.0, bloomMax: 0.0, bloomDecayRate: 1.0, bloomDecayDelay: 0 },
+            rifle: { bloomPerShot: 0.02, bloomMax: 0.10, bloomDecayRate: 0.25, bloomDecayDelay: 250 },
+            rocket: { bloomPerShot: 0.0, bloomMax: 0.0, bloomDecayRate: 1.0, bloomDecayDelay: 0 },
+            chaingun: { bloomPerShot: 0.015, bloomMax: 0.20, bloomDecayRate: 0.15, bloomDecayDelay: 400 }
+        };
+        return bloom[type] || bloom.pistol;
+    }
+
     canFire() {
         const now = Date.now();
         const timeSinceLastShot = now - this.lastFireTime;
@@ -101,7 +121,11 @@ class Weapon {
         const now = Date.now();
         this.lastFireTime = now;
         this.ammo--;
-        
+
+        // Increase accuracy bloom
+        this.bloomLevel = Math.min(this.bloomLevel + this.bloomPerShot, this.bloomMax);
+        this.lastShotTime = now;
+
         // Muzzle flash effect
         this.muzzleFlash = true;
         this.muzzleFlashStart = now;
@@ -341,7 +365,11 @@ class Weapon {
         // Cast ray from player position in player's facing direction
         const rayX = player.x;
         const rayY = player.y;
-        const rayAngle = player.angle;
+        // Apply bloom spread: random angle offset within bloom cone
+        const bloomSpread = this.bloomLevel > 0
+            ? (Math.random() - 0.5) * 2 * this.bloomLevel
+            : 0;
+        const rayAngle = player.angle + bloomSpread;
         const rayDirX = Math.cos(rayAngle);
         const rayDirY = Math.sin(rayAngle);
         
@@ -487,6 +515,10 @@ class Weapon {
         const now = Date.now();
         this.lastFireTime = now;
         this.ammo -= altStats.ammoCost;
+
+        // Increase accuracy bloom
+        this.bloomLevel = Math.min(this.bloomLevel + this.bloomPerShot * (altStats.ammoCost || 1), this.bloomMax);
+        this.lastShotTime = now;
 
         // Muzzle flash
         this.muzzleFlash = true;
@@ -769,6 +801,11 @@ class Weapon {
         if (this.muzzleFlash && now - this.muzzleFlashStart >= this.muzzleFlashDuration) {
             this.muzzleFlash = false;
         }
+
+        // Decay accuracy bloom after delay (per-frame decay at ~60fps)
+        if (this.bloomLevel > 0 && now - this.lastShotTime > this.bloomDecayDelay) {
+            this.bloomLevel = Math.max(0, this.bloomLevel - this.bloomDecayRate * (1 / 60));
+        }
     }
     
     getKillXP(enemy) {
@@ -947,6 +984,8 @@ class WeaponManager {
             mods: weapon.mods,
             altFireLabel: altStats ? altStats.label : null,
             canAltFire: weapon.canAltFire(),
+            bloomLevel: weapon.bloomLevel,
+            bloomMax: weapon.bloomMax,
             switchProgress: this.switchProgress,
             isSwitching: this.switchState !== 'ready'
         };
