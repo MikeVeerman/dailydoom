@@ -141,6 +141,8 @@ class GameEngine {
             for (const item of this._pauseMenuItems) {
                 if (clickX >= item.x && clickX <= item.x + item.w &&
                     clickY >= item.y && clickY <= item.y + item.h) {
+                    // Determine if click was on left or right half for slider items
+                    const isLeftHalf = clickX < item.x + item.w / 2;
                     switch (item.action) {
                         case 'resume':
                             this.resume();
@@ -153,6 +155,27 @@ class GameEngine {
                                 window.soundEngine.toggleMusic();
                             }
                             break;
+                        case 'sensitivity': {
+                            const step = 0.001;
+                            const sens = window.CONFIG.input.mouseSensitivity;
+                            window.CONFIG.input.mouseSensitivity = isLeftHalf
+                                ? Math.max(0.001, sens - step)
+                                : Math.min(0.010, sens + step);
+                            if (window.saveSettings) window.saveSettings({ mouseSensitivity: window.CONFIG.input.mouseSensitivity });
+                            break;
+                        }
+                        case 'volume': {
+                            const volStep = 0.1;
+                            if (window.soundEngine) {
+                                const vol = window.soundEngine.masterVolume;
+                                const newVol = isLeftHalf
+                                    ? Math.max(0, vol - volStep)
+                                    : Math.min(1, vol + volStep);
+                                window.soundEngine.setMasterVolume(newVol);
+                                if (window.saveSettings) window.saveSettings({ masterVolume: newVol });
+                            }
+                            break;
+                        }
                     }
                     e.stopPropagation();
                     e.preventDefault();
@@ -1431,7 +1454,7 @@ class GameEngine {
 
         // Menu box
         const menuW = 300;
-        const menuH = 280;
+        const menuH = 340;
         const menuX = (w - menuW) / 2;
         const menuY = (h - menuH) / 2;
 
@@ -1447,15 +1470,22 @@ class GameEngine {
         ctx.textAlign = 'center';
         ctx.fillText('PAUSED', w / 2, menuY + 40);
 
+        // Current settings values
+        const sensitivity = window.CONFIG ? window.CONFIG.input.mouseSensitivity : 0.003;
+        const sensLabel = (sensitivity * 1000).toFixed(1);
+        const volume = window.soundEngine ? Math.round(window.soundEngine.masterVolume * 100) : 50;
+
         // Menu items
         const items = [
             { label: 'RESUME', action: 'resume' },
             { label: 'RESTART LEVEL', action: 'restart' },
-            { label: 'MUSIC: ' + (window.soundEngine && window.soundEngine.musicMuted ? 'OFF' : 'ON'), action: 'toggleMusic' }
+            { label: 'MUSIC: ' + (window.soundEngine && window.soundEngine.musicMuted ? 'OFF' : 'ON'), action: 'toggleMusic' },
+            { label: `SENSITIVITY: ${sensLabel}`, action: 'sensitivity' },
+            { label: `VOLUME: ${volume}%`, action: 'volume' }
         ];
 
-        const itemH = 45;
-        const itemStartY = menuY + 70;
+        const itemH = 40;
+        const itemStartY = menuY + 65;
         const mouseX = this.inputManager.mouse.x;
         const mouseY = this.inputManager.mouse.y;
 
@@ -1495,9 +1525,9 @@ class GameEngine {
 
         // Controls hint at bottom
         ctx.fillStyle = '#666666';
-        ctx.font = '12px monospace';
+        ctx.font = '11px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('ESC to resume | N to toggle music', w / 2, menuY + menuH - 15);
+        ctx.fillText('ESC resume | Click L/R to adjust settings', w / 2, menuY + menuH - 15);
     }
 
     // Event handling
