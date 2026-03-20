@@ -479,7 +479,7 @@ class GameEngine {
         else if (waveNumber <= 7) typePool = lateTypes;
         else typePool = bossTypes;
 
-        // Filter spawn points far enough from player
+        // Filter spawn points far enough from player and weight by distance
         const playerX = this.player.x;
         const playerY = this.player.y;
         const minSpawnDist = 5 * tileSize;
@@ -490,10 +490,34 @@ class GameEngine {
         });
         const spawns = validSpawns.length > 0 ? validSpawns : ws.spawnPoints;
 
+        // Weight spawns by distance (prefer spawns further from player)
+        const spawnWeights = spawns.map(sp => {
+            const dx = sp.x * tileSize - playerX;
+            const dy = sp.y * tileSize - playerY;
+            return Math.sqrt(dx * dx + dy * dy);
+        });
+        const totalWeight = spawnWeights.reduce((a, b) => a + b, 0);
+
         for (let i = 0; i < count; i++) {
-            const sp = spawns[i % spawns.length];
+            // Weighted random spawn point selection
+            let r = Math.random() * totalWeight;
+            let spIndex = 0;
+            for (let j = 0; j < spawnWeights.length; j++) {
+                r -= spawnWeights[j];
+                if (r <= 0) { spIndex = j; break; }
+            }
+            const sp = spawns[spIndex];
+
+            // Add position jitter (±0.4 tiles) and validate against walls
+            let spawnX = sp.x * tileSize + (Math.random() - 0.5) * 0.8 * tileSize;
+            let spawnY = sp.y * tileSize + (Math.random() - 0.5) * 0.8 * tileSize;
+            if (this.map.isWallAtPosition(spawnX, spawnY)) {
+                spawnX = sp.x * tileSize;
+                spawnY = sp.y * tileSize;
+            }
+
             const type = typePool[Math.floor(Math.random() * typePool.length)];
-            const enemy = new Enemy(sp.x * tileSize, sp.y * tileSize, type);
+            const enemy = new Enemy(spawnX, spawnY, type);
 
             // Apply difficulty scaling
             if (diffSettings) {
