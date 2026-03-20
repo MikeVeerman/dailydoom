@@ -5,6 +5,25 @@
 // Game instance
 let game = null;
 
+// Settings persistence key
+const SETTINGS_KEY = 'dailydoom_settings';
+
+function loadSettings() {
+    try {
+        const saved = localStorage.getItem(SETTINGS_KEY);
+        if (saved) return JSON.parse(saved);
+    } catch (e) { /* ignore */ }
+    return null;
+}
+
+function saveSettings(settings) {
+    try {
+        const current = loadSettings() || {};
+        Object.assign(current, settings);
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(current));
+    } catch (e) { /* ignore */ }
+}
+
 // Configuration
 const CONFIG = {
     canvas: {
@@ -67,22 +86,34 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    // Apply saved settings
+    const saved = loadSettings();
+    if (saved) {
+        if (saved.mouseSensitivity != null) CONFIG.input.mouseSensitivity = saved.mouseSensitivity;
+        if (saved.masterVolume != null) CONFIG.savedVolume = saved.masterVolume;
+    }
+
     // Setup canvas
     setupCanvas(canvas);
 
     // Setup resize handling
     setupResizeHandling(canvas);
 
-    // Setup difficulty selection
-    setupDifficultySelection(canvas);
+    // Setup difficulty selection (pass saved difficulty if available)
+    setupDifficultySelection(canvas, saved && saved.difficulty);
 });
 
-function setupDifficultySelection(canvas) {
+function setupDifficultySelection(canvas, savedDifficulty) {
     const overlay = document.getElementById('difficultyOverlay');
     if (!overlay) {
-        // No overlay found, start with default difficulty
-        startGame(canvas, 'normal');
+        startGame(canvas, savedDifficulty || 'normal');
         return;
+    }
+
+    // Highlight saved difficulty button
+    if (savedDifficulty) {
+        const savedBtn = overlay.querySelector(`[data-difficulty="${savedDifficulty}"]`);
+        if (savedBtn) savedBtn.style.outline = '2px solid #FFD700';
     }
 
     const buttons = overlay.querySelectorAll('.difficulty-btn');
@@ -90,6 +121,7 @@ function setupDifficultySelection(canvas) {
         btn.addEventListener('click', function() {
             const difficulty = btn.getAttribute('data-difficulty');
             overlay.classList.add('hidden');
+            saveSettings({ difficulty });
             startGame(canvas, difficulty);
         });
     });
@@ -110,6 +142,11 @@ function startGame(canvas, difficulty) {
 
         // Setup event listeners
         setupEventListeners();
+
+        // Apply saved volume
+        if (CONFIG.savedVolume != null && window.soundEngine) {
+            window.soundEngine.setMasterVolume(CONFIG.savedVolume);
+        }
 
         // Start the game
         game.start();
@@ -429,3 +466,4 @@ if (CONFIG.performance.enableProfiling) {
 window.CONFIG = CONFIG;
 window.DIFFICULTY = DIFFICULTY;
 window.applyDifficulty = applyDifficulty;
+window.saveSettings = saveSettings;

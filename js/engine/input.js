@@ -22,8 +22,8 @@ class InputManager {
             locked: false
         };
         
-        // Input settings
-        this.mouseSensitivity = 0.003;
+        // Input settings (read from CONFIG if available)
+        this.mouseSensitivity = (window.CONFIG && window.CONFIG.input.mouseSensitivity) || 0.003;
         this.keyRepeatDelay = 150;
         
         // Key mappings
@@ -238,9 +238,11 @@ class InputManager {
     }
     
     getMouseDelta() {
+        // Read sensitivity from CONFIG for live updates from pause menu
+        const sens = (window.CONFIG && window.CONFIG.input.mouseSensitivity) || this.mouseSensitivity;
         return {
-            x: this.mouse.deltaX * this.mouseSensitivity,
-            y: this.mouse.deltaY * this.mouseSensitivity
+            x: this.mouse.deltaX * sens,
+            y: this.mouse.deltaY * sens
         };
     }
     
@@ -285,7 +287,8 @@ class InputManager {
         
         // Mouse turning (if locked)
         if (this.mouse.locked) {
-            turn += this.mouse.deltaX * this.mouseSensitivity * 100; // Scale mouse input
+            const turnSens = (window.CONFIG && window.CONFIG.input.mouseSensitivity) || this.mouseSensitivity;
+            turn += this.mouse.deltaX * turnSens * 100; // Scale mouse input
         }
         
         return turn;
