@@ -4,6 +4,28 @@
 
 ---
 
+## Day 31 - March 20, 2026
+
+**"Feel the Kick"**
+
+Three quality-of-life features tonight focused on gunplay feel, spawn variety, and player settings.
+
+- **Weapon accuracy bloom** -- Consecutive shots now increase spread, simulated by a bloom cone that grows with each trigger pull and decays when not firing. Crosshairs visually expand and contract to match. Each weapon has distinct bloom tuning: the chaingun accumulates quickly at max fire rate, the rifle has moderate bloom, and shotgun/rocket are unaffected. Adds a natural rhythm to sustained fire.
+
+- **Randomized wave spawns** -- Enemy waves no longer cycle through the same 12 points in order. Spawn points are now selected via weighted random, favoring positions further from the player. Each enemy gets slight position jitter (±0.4 tiles) with wall collision validation, preventing predictable patterns across playthroughs.
+
+- **Settings persistence** -- Mouse sensitivity, master volume, and difficulty selection now save to localStorage and restore on page load. The pause menu gained sensitivity and volume controls (click left/right halves to adjust). The input system reads sensitivity live from CONFIG so changes apply instantly without restart.
+
+*Lines of code: 23,200*
+*Tests passing: 46*
+*Sprite assets: 66*
+*Enemy types: 11*
+*Tickets closed: 3*
+
+**Status: Gunplay feels more skill-based with bloom, spawns are less predictable, and settings finally stick between sessions.**
+
+---
+
 ## Day 30 - March 19, 2026
 
 **"Know Your Enemy"**
