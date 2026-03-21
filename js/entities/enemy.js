@@ -445,9 +445,9 @@ class Enemy {
                 attacker.infightTarget = null;
             }
 
-            // Play death sound
+            // Play death sound (per enemy type)
             if (window.soundEngine && window.soundEngine.isInitialized) {
-                window.soundEngine.playEnemyDeath();
+                window.soundEngine.playEnemyDeath(this.type);
             }
 
             // Emit death particle burst

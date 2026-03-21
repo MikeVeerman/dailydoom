@@ -425,34 +425,69 @@ class SoundEngine {
         oscillator.stop(now + 0.3);
     }
     
-    // Enemy death sound
-    playEnemyDeath() {
+    // Enemy death sound - per-type with slight pitch randomization
+    playEnemyDeath(enemyType) {
         if (!this.isInitialized) return;
-        
+
         const now = this.audioContext.currentTime;
-        
-        // Create a more complex death sound
-        for (let i = 0; i < 3; i++) {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.masterGain);
-            
-            // Multiple frequencies for richer sound
-            const baseFreq = 120 + (i * 40);
-            oscillator.type = i === 0 ? 'sawtooth' : 'square';
-            oscillator.frequency.setValueAtTime(baseFreq, now);
-            oscillator.frequency.exponentialRampToValueAtTime(baseFreq * 0.2, now + 0.8);
-            
-            // Staggered envelope
-            const startDelay = i * 0.1;
-            gainNode.gain.setValueAtTime(0, now + startDelay);
-            gainNode.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, now + startDelay + 0.05);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + startDelay + 0.9);
-            
-            oscillator.start(now + startDelay);
-            oscillator.stop(now + startDelay + 0.9);
+        const pitchVariation = 0.9 + Math.random() * 0.2; // ±10% pitch randomization
+
+        const profiles = {
+            guard: { waveform: 'square', baseFreq: 200, endFreq: 60, duration: 0.5, layers: 2, noiseAmt: 0.3 },
+            imp: { waveform: 'sawtooth', baseFreq: 500, endFreq: 150, duration: 0.4, layers: 2, noiseAmt: 0.2 },
+            demon: { waveform: 'sawtooth', baseFreq: 80, endFreq: 25, duration: 0.9, layers: 3, noiseAmt: 0.4 },
+            soldier: { waveform: 'triangle', baseFreq: 250, endFreq: 80, duration: 0.5, layers: 2, noiseAmt: 0.35 },
+            berserker: { waveform: 'sawtooth', baseFreq: 100, endFreq: 30, duration: 0.7, layers: 3, noiseAmt: 0.5 },
+            spitter: { waveform: 'sine', baseFreq: 350, endFreq: 100, duration: 0.45, layers: 2, noiseAmt: 0.4 },
+            shield_guard: { waveform: 'square', baseFreq: 180, endFreq: 40, duration: 0.6, layers: 3, noiseAmt: 0.3 },
+            phantom: { waveform: 'sine', baseFreq: 600, endFreq: 200, duration: 0.8, layers: 2, noiseAmt: 0.1 },
+            exploder: { waveform: 'sawtooth', baseFreq: 300, endFreq: 50, duration: 0.35, layers: 2, noiseAmt: 0.5 },
+            sniper: { waveform: 'square', baseFreq: 350, endFreq: 100, duration: 0.4, layers: 2, noiseAmt: 0.25 },
+            boss: { waveform: 'sawtooth', baseFreq: 60, endFreq: 15, duration: 1.2, layers: 4, noiseAmt: 0.6 }
+        };
+
+        const profile = profiles[enemyType] || profiles.guard;
+
+        // Tonal layers
+        for (let i = 0; i < profile.layers; i++) {
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+
+            const freq = profile.baseFreq * pitchVariation + i * 30;
+            osc.type = profile.waveform;
+            osc.frequency.setValueAtTime(freq, now);
+            osc.frequency.exponentialRampToValueAtTime(
+                Math.max(profile.endFreq * pitchVariation, 10), now + profile.duration
+            );
+
+            const startDelay = i * 0.05;
+            const vol = this.sfxVolume * (0.3 - i * 0.05);
+            gain.gain.setValueAtTime(0, now + startDelay);
+            gain.gain.linearRampToValueAtTime(vol, now + startDelay + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + startDelay + profile.duration);
+
+            osc.start(now + startDelay);
+            osc.stop(now + startDelay + profile.duration);
+        }
+
+        // Noise layer
+        if (profile.noiseAmt > 0) {
+            const noiseDur = profile.duration * 0.6;
+            const noiseBuffer = this.createNoiseBuffer(noiseDur);
+            if (noiseBuffer) {
+                const noise = this.audioContext.createBufferSource();
+                noise.buffer = noiseBuffer;
+                const noiseGain = this.audioContext.createGain();
+                noise.connect(noiseGain);
+                noiseGain.connect(this.masterGain);
+                noiseGain.gain.setValueAtTime(0, now);
+                noiseGain.gain.linearRampToValueAtTime(this.sfxVolume * profile.noiseAmt, now + 0.02);
+                noiseGain.gain.exponentialRampToValueAtTime(0.001, now + noiseDur);
+                noise.start(now);
+                noise.stop(now + noiseDur);
+            }
         }
     }
     
