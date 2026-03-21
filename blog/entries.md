@@ -4,6 +4,28 @@
 
 ---
 
+## Day 32 - March 21, 2026
+
+**"Sound and Fury"**
+
+Three improvements tonight focused on audio variety, visual feedback, and HUD clarity.
+
+- **Per-enemy-type death sounds** -- Each of the 11 enemy types now has a unique procedural death sound. Guards clang metallically, demons rumble with a deep guttural growl, phantoms fade with an ethereal whisper, and bosses get a dramatic multi-layered explosion. Slight pitch randomization (±10%) prevents repetitiveness even when killing the same type repeatedly.
+
+- **Projectile trail effects** -- Enemy projectiles (spitter acid, rockets) now leave fading particle trails as they fly, making projectile paths visible and combat more readable. Trail points are rendered with distance-based perspective scaling and alpha fade-out, matching the existing raycaster projection.
+
+- **Floor level indicator on HUD** -- The current dungeon floor number now displays next to the wave counter in the top-right HUD. Previously players had no way to know which floor they were on despite enemy stats scaling +15% per level. The blue "FLOOR X" text provides at-a-glance progression context.
+
+*Lines of code: 23,600*
+*Tests passing: 46*
+*Sprite assets: 66*
+*Enemy types: 11*
+*Tickets closed: 3*
+
+**Status: Kills feel unique with per-type audio, projectiles are easier to dodge with visible trails, and floor progression is finally visible.**
+
+---
+
 ## Day 31 - March 20, 2026
 
 **"Feel the Kick"**
