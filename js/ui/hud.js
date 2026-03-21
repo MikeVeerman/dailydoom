@@ -1638,15 +1638,18 @@ class HUD {
         const w = this.canvas.width;
         const ctx = this.ctx;
 
-        // Wave number display (top-right area, below FPS)
+        // Floor + Wave display (top-right area, below FPS)
         const x = w - 20;
         const y = 45;
+        const currentLevel = (window.game && window.game.currentLevel) || 1;
 
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(x - 110, y - 14, 112, 20);
+        ctx.fillRect(x - 190, y - 14, 192, 20);
 
         ctx.font = 'bold 14px monospace';
         ctx.textAlign = 'right';
+        ctx.fillStyle = '#AAAAFF';
+        ctx.fillText(`FLOOR ${currentLevel}`, x - 115, y);
         ctx.fillStyle = '#FF4444';
         ctx.fillText(`WAVE ${waveSystem.currentWave}`, x, y);
 
