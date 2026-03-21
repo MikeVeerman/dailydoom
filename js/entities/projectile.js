@@ -14,6 +14,12 @@ class Projectile {
         this.lifetime = 5000; // Max 5 seconds
         this.spawnTime = Date.now();
 
+        // Trail positions for visual effect
+        this.trail = [];
+        this.maxTrailLength = 6;
+        this.trailTimer = 0;
+        this.trailInterval = 0.02; // seconds between trail points
+
         // Calculate velocity toward target
         const dx = targetX - x;
         const dy = targetY - y;
@@ -34,6 +40,16 @@ class Projectile {
         if (Date.now() - this.spawnTime > this.lifetime) {
             this.active = false;
             return;
+        }
+
+        // Update trail
+        this.trailTimer += deltaTime;
+        if (this.trailTimer >= this.trailInterval) {
+            this.trailTimer = 0;
+            this.trail.push({ x: this.x, y: this.y, time: Date.now() });
+            if (this.trail.length > this.maxTrailLength) {
+                this.trail.shift();
+            }
         }
 
         // Move projectile

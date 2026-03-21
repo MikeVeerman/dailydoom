@@ -1398,6 +1398,35 @@ class Renderer {
             // Center projectile vertically at half-wall height
             const projY = this.halfHeight;
 
+            // Render trail behind projectile
+            if (entity.trail && entity.trail.length > 0) {
+                const baseColor = entity.color || '#FF4400';
+                for (let i = 0; i < entity.trail.length; i++) {
+                    const tp = entity.trail[i];
+                    const tdx = tp.x - player.x;
+                    const tdy = tp.y - player.y;
+                    const tDist = Math.sqrt(tdx * tdx + tdy * tdy);
+                    if (tDist > this.maxRenderDistance || tDist < 1) continue;
+
+                    let tAngle = Math.atan2(tdy, tdx);
+                    let tAngleDiff = tAngle - player.angle;
+                    while (tAngleDiff > Math.PI) tAngleDiff -= MathUtils.PI2;
+                    while (tAngleDiff < -Math.PI) tAngleDiff += MathUtils.PI2;
+                    if (Math.abs(tAngleDiff) > this.fov / 2) continue;
+
+                    const tScreenX = this.width / 2 + (tAngleDiff / this.fov) * this.width;
+                    const tSize = Math.max(2, (this.wallHeight * this.projectionDistance) / tDist * 0.05);
+                    const alpha = (i + 1) / entity.trail.length * 0.6;
+
+                    this.ctx.globalAlpha = alpha;
+                    this.ctx.fillStyle = baseColor;
+                    this.ctx.beginPath();
+                    this.ctx.arc(tScreenX, this.halfHeight, tSize, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                this.ctx.globalAlpha = 1.0;
+            }
+
             // Glowing projectile circle
             this.ctx.fillStyle = entity.color || '#FF4400';
             this.ctx.beginPath();
