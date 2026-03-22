@@ -1403,6 +1403,9 @@ class SoundEngine {
             berserker:   { freq: 200, type: 'sawtooth', duration: 0.2  },
             spitter:     { freq: 420, type: 'triangle', duration: 0.14 },
             shield_guard:{ freq: 250, type: 'triangle', duration: 0.2  },
+            phantom:     { freq: 600, type: 'sine',     duration: 0.1  },
+            exploder:    { freq: 380, type: 'square',   duration: 0.12 },
+            sniper:      { freq: 350, type: 'triangle', duration: 0.14 },
             boss:        { freq: 100, type: 'sawtooth', duration: 0.35 },
         };
         const p = params[enemyType] || params.guard;

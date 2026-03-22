@@ -35,6 +35,8 @@ class Enemy {
         // Sound bark tracking
         this.lastBarkTime = 0;
         this.barkCooldown = 2000; // Minimum 2s between barks
+        this.lastPainTime = 0;
+        this.painCooldown = 500; // 0.5s between pain sounds
         this.hasPlayedAlert = false;
 
         // Knockback velocity (from explosions)
@@ -407,9 +409,15 @@ class Enemy {
             window.soundEngine.playEnemyHit();
         }
 
-        // Play pain bark (separate from hit/death sounds)
+        // Play pain sound with its own cooldown (separate from bark cooldown)
         if (this.health > 0) {
-            this.tryBark('pain');
+            const now2 = Date.now();
+            if (now2 - this.lastPainTime >= this.painCooldown) {
+                this.lastPainTime = now2;
+                if (window.soundEngine && window.soundEngine.isInitialized) {
+                    window.soundEngine.playEnemyPain(this.type);
+                }
+            }
         }
 
         if (this.health <= 0 && !this.dying) {
