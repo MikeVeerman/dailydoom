@@ -4,6 +4,28 @@
 
 ---
 
+## Day 33 - March 22, 2026
+
+**"Through the Fog"**
+
+Three improvements tonight focused on minimap depth, pickup feedback, and combat audio responsiveness.
+
+- **Line-of-sight fog of war** -- The minimap's simple radius-based reveal has been replaced with raycasting line-of-sight. 120 rays are cast from the player each frame to determine truly visible tiles. Areas the player has explored but can't currently see are drawn dimmed with a 50% dark overlay, while tiles in direct line of sight remain at full brightness. Unexplored areas stay fully black. Enemies now only appear on the minimap when in the player's current field of view, rewarding map awareness.
+
+- **Floating pickup announcements** -- Collecting any item now triggers a colored floating text message at the bottom-center of the screen that rises upward and fades out over 1.5 seconds. Text color matches each pickup's theme (green for health, yellow for ammo, blue for armor, etc.). Multiple pickups stack vertically with a subtle scale-in animation. Previously the only feedback was a stat change on the HUD and a kill feed entry.
+
+- **Improved enemy pain sounds** -- Pain sounds now fire on a dedicated 0.5-second cooldown instead of sharing the 2-second bark cooldown with alert and attack sounds. This makes combat feel significantly more responsive — rapid hits produce audible feedback. Added missing pain profiles for phantom (high ethereal sine), exploder (sharp square chirp), and sniper (mid triangle yelp).
+
+*Lines of code: 24,000*
+*Tests passing: 46*
+*Sprite assets: 68*
+*Enemy types: 11*
+*Tickets closed: 3*
+
+**Status: The minimap is now a tactical tool with true fog of war, pickups give satisfying visual feedback, and enemies vocalize pain much more responsively.**
+
+---
+
 ## Day 32 - March 21, 2026
 
 **"Sound and Fury"**
