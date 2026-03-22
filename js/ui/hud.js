@@ -68,6 +68,7 @@ class HUD {
 
         // Fog of war
         this.revealedTiles = new Set();
+        this.visibleTiles = new Set();
         this.fogRevealRadius = 4; // tiles
 
         // Hazard zone warning
@@ -1946,25 +1947,46 @@ class HUD {
         const tileY = Math.floor(player.y / map.tileSize);
         const r = this.fogRevealRadius;
 
-        for (let dy = -r; dy <= r; dy++) {
-            for (let dx = -r; dx <= r; dx++) {
-                if (dx * dx + dy * dy <= r * r) {
-                    const gx = tileX + dx;
-                    const gy = tileY + dy;
-                    if (gx >= 0 && gx < map.width && gy >= 0 && gy < map.height) {
-                        this.revealedTiles.add(gx + ',' + gy);
-                    }
-                }
+        // Clear current visibility (recomputed each frame)
+        this.visibleTiles.clear();
+
+        // Cast rays in all directions to determine visible tiles
+        const rayCount = 120;
+        for (let i = 0; i < rayCount; i++) {
+            const angle = (i / rayCount) * Math.PI * 2;
+            const dx = Math.cos(angle);
+            const dy = Math.sin(angle);
+
+            // Step along ray until hitting a wall or exceeding reveal radius
+            for (let step = 0; step <= r; step += 0.5) {
+                const checkX = tileX + dx * step;
+                const checkY = tileY + dy * step;
+                const gx = Math.floor(checkX);
+                const gy = Math.floor(checkY);
+
+                if (gx < 0 || gx >= map.width || gy < 0 || gy >= map.height) break;
+
+                const key = gx + ',' + gy;
+                this.visibleTiles.add(key);
+                this.revealedTiles.add(key);
+
+                // Stop ray at walls (but still mark the wall tile as visible)
+                if (map.grid[gy][gx] > 0 && map.grid[gy][gx] !== 9) break;
             }
         }
     }
 
     resetFog() {
         this.revealedTiles = new Set();
+        this.visibleTiles = new Set();
     }
 
     isTileRevealed(gx, gy) {
         return this.revealedTiles.has(gx + ',' + gy);
+    }
+
+    isTileVisible(gx, gy) {
+        return this.visibleTiles.has(gx + ',' + gy);
     }
 
     renderMinimap(player, gameEngine) {
@@ -2015,10 +2037,13 @@ class HUD {
             for (let gx = startGX; gx <= endGX; gx++) {
                 const rx = (gx * map.tileSize - player.x) * scale;
                 const ry = (gy * map.tileSize - player.y) * scale;
+                const tileCellW = Math.ceil(cellSize) + 1;
+                const tileCellH = Math.ceil(cellSize) + 1;
 
                 if (!this.isTileRevealed(gx, gy)) {
-                    this.ctx.fillStyle = 'rgba(10, 10, 10, 0.8)';
-                    this.ctx.fillRect(rx, ry, Math.ceil(cellSize) + 1, Math.ceil(cellSize) + 1);
+                    // Unexplored: fully dark
+                    this.ctx.fillStyle = 'rgba(5, 5, 8, 0.9)';
+                    this.ctx.fillRect(rx, ry, tileCellW, tileCellH);
                     continue;
                 }
                 if (map.grid[gy][gx] > 0) {
@@ -2034,7 +2059,12 @@ class HUD {
                         case 10: this.ctx.fillStyle = '#AA7733'; break;
                         default: this.ctx.fillStyle = '#444444'; break;
                     }
-                    this.ctx.fillRect(rx, ry, Math.ceil(cellSize) + 1, Math.ceil(cellSize) + 1);
+                    this.ctx.fillRect(rx, ry, tileCellW, tileCellH);
+                }
+                // Dim overlay for revealed but not currently visible tiles
+                if (!this.isTileVisible(gx, gy)) {
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    this.ctx.fillRect(rx, ry, tileCellW, tileCellH);
                 }
             }
         }
@@ -2096,7 +2126,7 @@ class HUD {
             }
         }
 
-        // Draw enemies
+        // Draw enemies (only in currently visible tiles)
         const enemyScales = { imp: 0.6, guard: 0.7, soldier: 0.65, demon: 1.0, berserker: 0.7, spitter: 0.55, shield_guard: 0.75, boss: 1.25, phantom: 0.6, exploder: 0.55, sniper: 0.6 };
         for (const enemy of map.enemies) {
             if (!enemy.active) continue;
@@ -2104,7 +2134,7 @@ class HUD {
             if (enemy.cloaked) continue;
             const egx = Math.floor(enemy.x / map.tileSize);
             const egy = Math.floor(enemy.y / map.tileSize);
-            if (!this.isTileRevealed(egx, egy)) continue;
+            if (!this.isTileVisible(egx, egy)) continue;
             const rx = (enemy.x - player.x) * scale;
             const ry = (enemy.y - player.y) * scale;
             this.ctx.fillStyle = enemy.type === 'boss' ? '#FFD700' : '#FF4444';
