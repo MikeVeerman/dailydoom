@@ -71,6 +71,10 @@ class HUD {
         this.visibleTiles = new Set();
         this.fogRevealRadius = 4; // tiles
 
+        // Pickup announcement messages
+        this.pickupMessages = [];
+        this.pickupMessageDuration = 1500; // ms
+
         // Hazard zone warning
         this.inHazardZone = false;
         this.hazardType = null; // 'acid' or 'lava'
@@ -188,6 +192,9 @@ class HUD {
 
             // Render kill feed
             this.renderKillFeed();
+
+            // Render pickup announcement messages
+            this.renderPickupMessages();
 
             // Render floating damage numbers and impact effects
             this.renderDamageNumbers(player, gameEngine);
@@ -1738,6 +1745,57 @@ class HUD {
             this.ctx.textAlign = 'right';
             this.ctx.fillText(msg.text, this.canvas.width - 15, y);
             this.ctx.globalAlpha = 1.0;
+        }
+    }
+
+    // Pickup announcement system
+    addPickupMessage(text, color = '#00FF00') {
+        this.pickupMessages.push({
+            text,
+            color,
+            time: Date.now()
+        });
+        // Cap at 5 messages
+        if (this.pickupMessages.length > 5) {
+            this.pickupMessages.shift();
+        }
+    }
+
+    renderPickupMessages() {
+        const now = Date.now();
+        this.pickupMessages = this.pickupMessages.filter(m => now - m.time < this.pickupMessageDuration);
+        if (this.pickupMessages.length === 0) return;
+
+        const centerX = this.canvas.width / 2;
+        const baseY = this.canvas.height - 140;
+
+        for (let i = 0; i < this.pickupMessages.length; i++) {
+            const msg = this.pickupMessages[i];
+            const age = now - msg.time;
+            const progress = age / this.pickupMessageDuration;
+
+            // Rise upward and fade out
+            const riseOffset = progress * 40;
+            const alpha = Math.max(0, 1 - progress * progress); // Ease-out fade
+            const y = baseY - i * 22 - riseOffset;
+
+            // Scale in briefly at start
+            const scale = age < 100 ? 0.8 + 0.2 * (age / 100) : 1.0;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = alpha;
+            this.ctx.textAlign = 'center';
+            this.ctx.font = `bold ${Math.round(14 * scale)}px monospace`;
+
+            // Text shadow
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            this.ctx.fillText(msg.text, centerX + 1, y + 1);
+
+            // Main text
+            this.ctx.fillStyle = msg.color;
+            this.ctx.fillText(msg.text, centerX, y);
+
+            this.ctx.restore();
         }
     }
 
