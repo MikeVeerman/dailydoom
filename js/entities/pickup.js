@@ -472,9 +472,10 @@ class Pickup {
     }
 
     showCollectionMessage(message) {
-        // This would integrate with a message system or HUD
-        // For now, just console log
-        console.log(`💡 ${message}`);
+        if (window.game && window.game.hud && window.game.hud.addPickupMessage) {
+            const color = this.properties.color || '#00FF00';
+            window.game.hud.addPickupMessage(message, color);
+        }
     }
     
     // Get rendering information for sprite system
