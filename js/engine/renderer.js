@@ -867,6 +867,43 @@ class Renderer {
         return canvas;
     }
 
+    getEliteTintedSprite(baseSprite, type, state, tintColor) {
+        const key = `elite_${type}_${state}_${tintColor}`;
+        if (!this._eliteTintedSprites) this._eliteTintedSprites = {};
+        if (this._eliteTintedSprites[key]) return this._eliteTintedSprites[key];
+        if (!baseSprite) return null;
+
+        const w = baseSprite.width;
+        const h = baseSprite.height;
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+
+        // Draw original sprite
+        ctx.drawImage(baseSprite, 0, 0);
+
+        // Apply colored tint using 'multiply' composite
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = tintColor;
+        ctx.fillRect(0, 0, w, h);
+
+        // Brighten to make tint more visible
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = tintColor;
+        ctx.globalAlpha = 0.3;
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalAlpha = 1.0;
+
+        // Restore alpha from original
+        ctx.globalCompositeOperation = 'destination-in';
+        ctx.drawImage(baseSprite, 0, 0);
+
+        this._eliteTintedSprites[key] = canvas;
+        return canvas;
+    }
+
     generateTintedSprites() {
         const baseSprite = this.sprites.imp;
         if (!baseSprite || !baseSprite.complete) return;
@@ -1212,6 +1249,13 @@ class Renderer {
                 } else {
                     sprite = upscaled;
                 }
+                // Apply elite variant tint
+                if (sprite && entity.isElite && entity.eliteType && window.EliteVariants) {
+                    const variantDef = window.EliteVariants[entity.eliteType];
+                    if (variantDef && variantDef.tintColor) {
+                        sprite = this.getEliteTintedSprite(sprite, enemyType + '_elite_' + entity.eliteType, spriteState, variantDef.tintColor);
+                    }
+                }
             }
             if (!sprite) {
                 sprite = this.tintedSprites[enemyType] || this.sprites.imp;
@@ -1291,7 +1335,7 @@ class Renderer {
             // Enemy health bar (shows above sprite after taking damage)
             if (!entity.dying && entity.health < entity.maxHealth) {
                 const isBoss = enemyType === 'boss';
-                const showAlways = isBoss && entity.state !== 'idle';
+                const showAlways = (isBoss || entity.isElite) && entity.state !== 'idle';
                 const timeSinceDamage = entity.lastDamageTime ? Date.now() - entity.lastDamageTime : Infinity;
                 const fadeTime = 2000; // 2 seconds before fade
 
@@ -1323,6 +1367,29 @@ class Renderer {
                         this.ctx.fillStyle = `rgb(${r}, ${g}, 0)`;
                     }
                     this.ctx.fillRect(barX, barY, barWidth * healthPct, barHeight);
+
+                    // Elite indicator: colored diamond above health bar
+                    if (entity.isElite && entity.eliteType && window.EliteVariants) {
+                        const variantDef = window.EliteVariants[entity.eliteType];
+                        if (variantDef) {
+                            const dSize = Math.max(4, barHeight * 2);
+                            const dX = barX + barWidth / 2;
+                            const dY = barY - dSize - 2;
+                            this.ctx.fillStyle = variantDef.tintColor;
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(dX, dY - dSize / 2);
+                            this.ctx.lineTo(dX + dSize / 2, dY);
+                            this.ctx.lineTo(dX, dY + dSize / 2);
+                            this.ctx.lineTo(dX - dSize / 2, dY);
+                            this.ctx.closePath();
+                            this.ctx.fill();
+                            // Label
+                            this.ctx.font = `${Math.max(8, barHeight * 2)}px monospace`;
+                            this.ctx.textAlign = 'center';
+                            this.ctx.fillStyle = variantDef.tintColor;
+                            this.ctx.fillText(variantDef.label, dX, dY - dSize / 2 - 2);
+                        }
+                    }
 
                     this.ctx.globalAlpha = 1.0;
                 }

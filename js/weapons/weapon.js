@@ -220,9 +220,10 @@ class Weapon {
                 // Kill feed message
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
                     const typeName = (hit.enemy.type || 'enemy').charAt(0).toUpperCase() + (hit.enemy.type || 'enemy').slice(1);
+                    const eliteTag = hit.enemy.isElite ? ' [ELITE]' : '';
                     const prefix = isHeadshot ? 'HEADSHOT! Killed' : (isCritical ? 'CRITICAL! Killed' : 'Killed');
                     const color = isHeadshot ? '#FFD700' : (isCritical ? '#FFD700' : '#FF4444');
-                    window.game.hud.addKillFeedMessage(`${prefix} ${typeName} +${xpReward} XP`, color);
+                    window.game.hud.addKillFeedMessage(`${prefix} ${typeName}${eliteTag} +${xpReward} XP`, color);
                 }
             }
 
@@ -642,8 +643,9 @@ class Weapon {
                 if (player.registerKill) player.registerKill();
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
                     const typeName = (hit.enemy.type || 'enemy').charAt(0).toUpperCase() + (hit.enemy.type || 'enemy').slice(1);
+                    const eliteTag = hit.enemy.isElite ? ' [ELITE]' : '';
                     const prefix = isHeadshot ? 'HEADSHOT!' : (isCritical ? 'CRITICAL!' : 'ALT!');
-                    window.game.hud.addKillFeedMessage(`${prefix} Killed ${typeName} +${xpReward} XP`, isHeadshot ? '#FFD700' : '#00CCFF');
+                    window.game.hud.addKillFeedMessage(`${prefix} Killed ${typeName}${eliteTag} +${xpReward} XP`, isHeadshot ? '#FFD700' : '#00CCFF');
                 }
             }
 
@@ -814,7 +816,9 @@ class Weapon {
             berserker: 35, spitter: 25, shield_guard: 45, boss: 200,
             phantom: 30, exploder: 20, sniper: 35
         };
-        return xpTable[enemy.type] || 20;
+        const baseXP = xpTable[enemy.type] || 20;
+        const eliteBonus = enemy.isElite ? 1.5 : 1.0;
+        return Math.round(baseXP * eliteBonus);
     }
 
     addMod(modType) {

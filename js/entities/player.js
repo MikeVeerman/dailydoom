@@ -593,15 +593,17 @@ class Player {
             if (wasAlive && !closestEnemy.active) {
                 if (this.stats) this.stats.enemiesKilled++;
                 const xpTable = { imp: 15, guard: 20, soldier: 30, demon: 40, berserker: 35, spitter: 25, shield_guard: 45, boss: 200 };
-                const xpReward = xpTable[closestEnemy.type] || 20;
+                const eliteBonus = closestEnemy.isElite ? 1.5 : 1.0;
+                const xpReward = Math.round((xpTable[closestEnemy.type] || 20) * eliteBonus);
                 if (this.addXP) this.addXP(xpReward);
                 this.registerKill();
 
                 // Kill feed message for punch kills
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
                     const typeName = (closestEnemy.type || 'enemy').charAt(0).toUpperCase() + (closestEnemy.type || 'enemy').slice(1);
+                    const eliteTag = closestEnemy.isElite ? ' [ELITE]' : '';
                     const comboText = isCombo ? 'COMBO! Punched' : 'Punched';
-                    window.game.hud.addKillFeedMessage(`${comboText} ${typeName} +${xpReward} XP`, isCombo ? '#FFD700' : '#FF4444');
+                    window.game.hud.addKillFeedMessage(`${comboText} ${typeName}${eliteTag} +${xpReward} XP`, isCombo ? '#FFD700' : '#FF4444');
                 }
             }
 
