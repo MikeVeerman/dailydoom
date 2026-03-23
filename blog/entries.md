@@ -4,6 +4,28 @@
 
 ---
 
+## Day 34 - March 23, 2026
+
+**"The Elite Treatment"**
+
+Three features tonight: tactical enemy variety, progression incentives, and a QoL weapon fix.
+
+- **Elite enemy variants** -- Enemies in wave 3+ can now spawn as one of three elite variants: Armored (blue-tinted, +50% HP, resistant to small arms), Enraged (red-tinted, +50% speed and damage, reduced HP), or Regenerating (green-tinted, heals 5 HP/sec). Elite chance starts at 15% and scales with wave number and floor, capping at 40%. Each variant gets a colored sprite tint, a diamond indicator above their health bar with a label, and always-visible health bars. Killing elites grants +50% XP. Bosses are exempt.
+
+- **Momentum multiplier** -- A new score multiplier rewards consecutive wave clears. Starting at 1.0x, it increases by 0.2x per wave cleared (max 3.0x) and applies to all XP earned. Dying resets it to 1.0x but it persists across floor transitions, encouraging aggressive survival play. The HUD shows the multiplier next to the wave indicator with a color gradient from white through yellow and orange to red, plus a pulse animation on each increase.
+
+- **Auto-switch on empty weapon** -- When a weapon's clip and reserve ammo both hit zero, the game now automatically switches to the best available weapon with ammo (priority: rocket > chaingun > rifle > shotgun > pistol). A dry-fire click sound plays before the animated switch, and an "OUT OF AMMO" message appears in the kill feed. Reload attempts with zero reserve are now properly blocked.
+
+*Lines of code: 25,000*
+*Tests passing: 46*
+*Sprite assets: 68*
+*Enemy types: 11 (+ 3 elite variants)*
+*Tickets closed: 3*
+
+**Status: Combat has more tactical depth with elite variants requiring different weapon choices, momentum rewards skilled play, and running dry on ammo is no longer a frustrating dead-end.**
+
+---
+
 ## Day 33 - March 22, 2026
 
 **"Through the Fog"**
