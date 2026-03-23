@@ -769,6 +769,9 @@ class Weapon {
         if (this.isReloading || this.ammo === this.getWeaponStats(this.type).ammo) {
             return false; // Already reloading or full
         }
+        if (this.maxAmmo <= 0) {
+            return false; // No reserve ammo to reload from
+        }
         
         this.isReloading = true;
         this.reloadStartTime = Date.now();
@@ -934,7 +937,15 @@ class WeaponManager {
     
     fire(player, enemies, map) {
         if (this.switchState !== 'ready') return false;
-        return this.getCurrentWeapon().fire(player, enemies, map);
+        const weapon = this.getCurrentWeapon();
+        const result = weapon.fire(player, enemies, map);
+
+        // Auto-switch when weapon is completely empty (clip 0 + reserve 0)
+        if (weapon.ammo === 0 && weapon.maxAmmo === 0 && !weapon.isReloading) {
+            this.autoSwitchToAvailable();
+        }
+
+        return result;
     }
 
     altFire(player, enemies, map) {
@@ -945,7 +956,33 @@ class WeaponManager {
     reload() {
         return this.getCurrentWeapon().startReload();
     }
-    
+
+    /**
+     * Auto-switch to the best available weapon with ammo.
+     * Priority: rocket > chaingun > rifle > shotgun > pistol.
+     * Punch (melee) is always available as fallback but handled by player.
+     */
+    autoSwitchToAvailable() {
+        const priority = ['rocket', 'chaingun', 'rifle', 'shotgun', 'pistol'];
+        for (const wType of priority) {
+            if (wType === this.currentWeapon) continue;
+            if (!this.unlockedWeapons.has(wType)) continue;
+            const w = this.weapons[wType];
+            if (w.ammo > 0 || w.maxAmmo > 0) {
+                // Play dry-fire click before switching
+                if (window.soundEngine && window.soundEngine.isInitialized) {
+                    window.soundEngine.playDryFire();
+                }
+                this.switchWeapon(wType, true);
+                if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
+                    window.game.hud.addKillFeedMessage('OUT OF AMMO - switching weapon', '#FFAA00');
+                }
+                return true;
+            }
+        }
+        return false; // All weapons empty, player has punch
+    }
+
     update() {
         // Update all weapons (for reload timers, etc.)
         Object.values(this.weapons).forEach(weapon => weapon.update());

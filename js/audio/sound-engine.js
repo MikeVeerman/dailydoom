@@ -596,6 +596,28 @@ class SoundEngine {
         osc.stop(now + 0.08);
     }
 
+    // Dry-fire click (empty weapon)
+    playDryFire() {
+        if (!this.isInitialized) return;
+
+        const now = this.audioContext.currentTime;
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.setValueAtTime(150, now + 0.02);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.15, now + 0.005);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+        osc.start(now);
+        osc.stop(now + 0.06);
+    }
+
     // Player pain/hit sound
     playPlayerHit() {
         if (!this.isInitialized) return;
