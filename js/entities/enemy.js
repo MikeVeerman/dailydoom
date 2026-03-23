@@ -55,6 +55,11 @@ class Enemy {
         // Infighting: enemy that last damaged this enemy
         this.infightTarget = null;
 
+        // Elite variant properties
+        this.isElite = false;
+        this.eliteType = null;
+        this.regenRate = 0; // HP/sec for regenerating elites
+
         // Enhanced AI system
         this.enhancedAI = null;
         if (window.EnhancedEnemyAI) {
@@ -71,6 +76,11 @@ class Enemy {
                 this.active = false;
             }
             return; // No AI updates while dying
+        }
+
+        // Elite regeneration
+        if (this.regenRate > 0 && this.health < this.maxHealth) {
+            this.health = Math.min(this.maxHealth, this.health + this.regenRate * deltaTime);
         }
 
         // Use enhanced AI if available
@@ -437,7 +447,8 @@ class Enemy {
             if (killedByEnemy && window.game && window.game.player) {
                 const player = window.game.player;
                 const xpTable = { imp: 15, guard: 20, soldier: 30, demon: 40, berserker: 35, spitter: 25, shield_guard: 45, boss: 200, phantom: 30, exploder: 20, sniper: 35 };
-                const xpReward = Math.round((xpTable[this.type] || 20) * 0.5); // Half XP for infighting kills
+                const eliteBonus = this.isElite ? 1.5 : 1.0;
+                const xpReward = Math.round((xpTable[this.type] || 20) * 0.5 * eliteBonus); // Half XP for infighting kills, +50% for elites
                 if (player.addXP) player.addXP(xpReward);
                 if (player.stats) player.stats.enemiesKilled++;
                 player.registerKill();

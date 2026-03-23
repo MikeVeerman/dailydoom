@@ -542,6 +542,16 @@ class GameEngine {
             const type = typePool[Math.floor(Math.random() * typePool.length)];
             const enemy = new Enemy(spawnX, spawnY, type);
 
+            // Elite variant chance (wave 3+, never on bosses)
+            if (waveNumber >= 3 && type !== 'boss' && window.applyEliteVariant) {
+                const eliteChance = 0.15 + (waveNumber - 3) * 0.02 + (this.currentLevel - 1) * 0.03;
+                if (Math.random() < Math.min(eliteChance, 0.4)) {
+                    const variants = ['armored', 'enraged', 'regenerating'];
+                    const variant = variants[Math.floor(Math.random() * variants.length)];
+                    window.applyEliteVariant(enemy, variant);
+                }
+            }
+
             // Apply difficulty scaling
             if (diffSettings) {
                 enemy.health = Math.round(enemy.health * diffSettings.enemyHealthMultiplier);

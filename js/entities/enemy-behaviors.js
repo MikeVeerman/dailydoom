@@ -957,6 +957,81 @@ class EnhancedEnemyAI {
     }
 }
 
+// Elite variant definitions
+const EliteVariants = {
+    armored: {
+        healthMult: 1.5,
+        speedMult: 0.9,
+        damageMult: 1.0,
+        resistanceOverride: null, // Uses base resistances but adds 0.5x to all non-explosive
+        tintColor: '#6688ff', // Blue tint
+        label: 'ARMORED'
+    },
+    enraged: {
+        healthMult: 0.75,
+        speedMult: 1.5,
+        damageMult: 1.5,
+        resistanceOverride: null,
+        tintColor: '#ff4444', // Bright red tint
+        label: 'ENRAGED'
+    },
+    regenerating: {
+        healthMult: 1.0,
+        speedMult: 1.0,
+        damageMult: 1.0,
+        regenRate: 5, // HP per second
+        resistanceOverride: null,
+        tintColor: '#44ff44', // Green tint
+        label: 'REGEN'
+    }
+};
+
+// Apply elite modifiers to an enemy after creation
+function applyEliteVariant(enemy, variantType) {
+    const variant = EliteVariants[variantType];
+    if (!variant) return;
+
+    enemy.isElite = true;
+    enemy.eliteType = variantType;
+
+    // Scale health
+    enemy.health = Math.round(enemy.health * variant.healthMult);
+    enemy.maxHealth = Math.round(enemy.maxHealth * variant.healthMult);
+
+    // Scale speed
+    enemy.speed = Math.round(enemy.speed * variant.speedMult);
+
+    // Scale damage via enhanced AI behavior
+    if (enemy.enhancedAI && enemy.enhancedAI.behavior) {
+        enemy.enhancedAI.behavior.damage = Math.round(
+            enemy.enhancedAI.behavior.damage * variant.damageMult
+        );
+    }
+
+    // Armored: add resistance to non-explosive weapons
+    if (variantType === 'armored' && enemy.enhancedAI && enemy.enhancedAI.behavior) {
+        const res = enemy.enhancedAI.behavior.resistances;
+        const armorTypes = ['pistol', 'rifle', 'chaingun', 'melee'];
+        for (const wt of armorTypes) {
+            if (!res[wt] || res[wt] >= 1.0) {
+                res[wt] = 0.5;
+            }
+        }
+    }
+
+    // Regenerating: store regen rate on enemy
+    if (variantType === 'regenerating') {
+        enemy.regenRate = variant.regenRate;
+    }
+
+    // Enraged: never flee
+    if (variantType === 'enraged' && enemy.enhancedAI && enemy.enhancedAI.behavior) {
+        enemy.enhancedAI.behavior.fleeHealthThreshold = 0;
+    }
+}
+
 // Export to global scope
 window.EnemyBehaviors = EnemyBehaviors;
 window.EnhancedEnemyAI = EnhancedEnemyAI;
+window.EliteVariants = EliteVariants;
+window.applyEliteVariant = applyEliteVariant;
