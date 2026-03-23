@@ -1651,11 +1651,37 @@ class HUD {
         const y = 45;
         const currentLevel = (window.game && window.game.currentLevel) || 1;
 
+        const momentum = (window.game && window.game.momentum) || 1.0;
+        const hasMomentum = momentum > 1.0;
+        const bgWidth = hasMomentum ? 260 : 192;
+
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(x - 190, y - 14, 192, 20);
+        ctx.fillRect(x - bgWidth + 2, y - 14, bgWidth, 20);
 
         ctx.font = 'bold 14px monospace';
         ctx.textAlign = 'right';
+
+        // Momentum multiplier display
+        if (hasMomentum) {
+            const frac = (momentum - 1.0) / (((window.game && window.game.momentumMax) || 3.0) - 1.0);
+            let mColor;
+            if (frac < 0.25) mColor = '#FFFFFF';
+            else if (frac < 0.5) mColor = '#FFFF00';
+            else if (frac < 0.75) mColor = '#FFAA00';
+            else mColor = '#FF4444';
+
+            // Pulse animation on change
+            const lastChange = (window.game && window.game.momentumLastChange) || 0;
+            const pulseElapsed = performance.now() - lastChange;
+            if (pulseElapsed < 500) {
+                const scale = 1 + 0.15 * Math.sin(pulseElapsed / 500 * Math.PI);
+                ctx.font = `bold ${Math.round(14 * scale)}px monospace`;
+            }
+            ctx.fillStyle = mColor;
+            ctx.fillText(`x${momentum.toFixed(1)}`, x - 190, y);
+            ctx.font = 'bold 14px monospace';
+        }
+
         ctx.fillStyle = '#AAAAFF';
         ctx.fillText(`FLOOR ${currentLevel}`, x - 115, y);
         ctx.fillStyle = '#FF4444';

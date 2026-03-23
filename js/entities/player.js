@@ -978,7 +978,10 @@ class Player {
 
     // Progression methods
     addXP(amount) {
-        this.xp += amount;
+        // Apply momentum multiplier from game engine
+        const momentum = (window.game && window.game.momentum) || 1.0;
+        const scaledAmount = Math.round(amount * momentum);
+        this.xp += scaledAmount;
         while (this.xp >= this.xpToNextLevel) {
             this.xp -= this.xpToNextLevel;
             this.levelUp();

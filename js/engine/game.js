@@ -47,6 +47,12 @@ class GameEngine {
         this.showDeathScreen = false;
         this.deathScreenTime = 0;
 
+        // Momentum multiplier (increases on wave clear, resets on death)
+        this.momentum = 1.0;
+        this.momentumMax = 3.0;
+        this.momentumStep = 0.2;
+        this.momentumLastChange = 0; // timestamp for HUD pulse animation
+
         // Dynamic difficulty scaling
         this.difficultyScaler = {
             lastCheckTime: 0,
@@ -248,6 +254,7 @@ class GameEngine {
         this.pauseMenuSelection = -1;
         this.levelComplete = false;
         this.levelCompleteTime = 0;
+        this.momentum = 1.0;
 
         // Re-initialize map and player
         this.map = new GameMap();
@@ -475,6 +482,15 @@ class GameEngine {
                 }
                 ws.lastWaveClearTime = now;
                 ws.state = 'waiting';
+
+                // Increase momentum multiplier on wave clear
+                if (this.momentum < this.momentumMax) {
+                    this.momentum = Math.min(this.momentumMax, this.momentum + this.momentumStep);
+                    this.momentumLastChange = performance.now();
+                    if (this.hud && this.hud.addKillFeedMessage) {
+                        this.hud.addKillFeedMessage(`MOMENTUM x${this.momentum.toFixed(1)}!`, '#FFAA00');
+                    }
+                }
             }
         }
     }
@@ -705,6 +721,11 @@ class GameEngine {
     onPlayerDeath() {
         this.showDeathScreen = true;
         this.deathScreenTime = performance.now();
+        // Reset momentum on death
+        if (this.momentum > 1.0) {
+            this.momentum = 1.0;
+            this.momentumLastChange = performance.now();
+        }
         // Release pointer lock so player can click menu buttons
         if (document.pointerLockElement) {
             document.exitPointerLock();
@@ -914,6 +935,7 @@ class GameEngine {
         console.log('Restarting level...');
         this.levelComplete = false;
         this.showDeathScreen = false;
+        this.momentum = 1.0;
 
         // Re-initialize map and enemies
         this.map = new GameMap();
