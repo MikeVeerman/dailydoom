@@ -1073,22 +1073,14 @@ class HUD {
     }
 
     renderZoneVignette(player) {
-        // Get current zone from sound engine
-        const se = window.soundEngine;
-        if (!se || !se.getAmbientZone) return;
-
-        const zone = se.getAmbientZone(player.x, player.y);
-
-        // Zone color mapping (r, g, b)
-        const zoneColors = {
-            control: [80, 140, 255],   // blue (electronics)
-            reactor: [255, 120, 40],   // orange (heat)
-            waste:   [80, 255, 80],    // green (toxic)
-            cooling: [100, 220, 255],  // cyan (cold)
-            corridor: null             // no tint
-        };
-
-        const targetColor = zoneColors[zone] || null;
+        // Get current zone color from map's theme-based zone system
+        let targetColor = null;
+        if (window.game && window.game.map && window.game.map.getZoneHudColor) {
+            const tileSize = 64;
+            const tx = Math.floor(player.x / tileSize);
+            const ty = Math.floor(player.y / tileSize);
+            targetColor = window.game.map.getZoneHudColor(tx, ty);
+        }
 
         // Crossfade: smoothly transition alpha
         if (targetColor) {
