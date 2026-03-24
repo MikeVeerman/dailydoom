@@ -1,186 +1,149 @@
 /**
  * Game Map - World definition and collision detection
+ * Accepts a theme definition from MapThemes to configure layout, zones, hazards, etc.
  */
 class GameMap {
-    constructor() {
-        // Map dimensions — expanded for multi-room nuclear reactor facility
+    constructor(theme) {
+        // Use provided theme or default to reactor
+        theme = theme || (window.MapThemes && window.MapThemes.reactor);
+
+        // Map dimensions — all themes are 24x24
         this.width = 24;
         this.height = 24;
         this.tileSize = 64; // Size of each map tile in world units
 
-        // Player spawn point — Control Room (top-left)
-        this.spawnX = 2.5 * this.tileSize;
-        this.spawnY = 2.5 * this.tileSize;
-        this.spawnAngle = 0;
+        // Theme name for title card
+        this.themeName = theme ? theme.name : 'THE REACTOR';
 
-        // Wall types: 1=stone(outer), 2=brick(containment), 3=metal(cooling),
-        // 4=tech(control room), 5=marble(reactor core), 6=stone(waste storage),
-        // 10=cracked(destructible secret wall)
-        this.grid = [
-        //   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1], // 0  outer wall
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,1], // 1  north corridor (secret at 16,1)
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,1], // 2  cracked wall at (16,2)
-            [1,0,0,4,4,4,4,0,0,1,1,1,0,1,1,0,0,0,2,2,2,2,0,1], // 3  control room top / containment top
-            [1,0,0,4,0,0,4,0,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,1], // 4  control room interior
-            [1,0,0,4,0,0,4,4,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,1], // 5  control room (wall at col 7)
-            [1,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,1], // 6  control room exit
-            [1,0,0,4,4,0,4,4,0,1,1,1,0,1,1,0,0,0,2,2,0,2,0,1], // 7  control room bottom / divider
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 8  main east-west corridor
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 9  main corridor
-            [1,3,3,3,0,3,3,0,0,5,5,5,0,5,5,5,0,0,3,3,0,3,3,1], // 10 cooling tunnels / reactor top
-            [1,0,0,3,0,0,3,0,0,5,0,0,0,0,0,5,0,0,3,0,0,0,3,1], // 11 cooling / reactor interior
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], // 12 open cross-passage
-            [1,0,0,3,0,0,3,0,0,5,0,0,0,0,0,5,0,0,3,0,0,0,3,1], // 13 cooling / reactor interior
-            [1,0,0,3,0,0,3,0,0,5,0,0,0,0,0,5,0,0,3,0,0,0,3,1], // 14 cooling / reactor interior
-            [1,3,3,3,0,3,3,0,0,5,5,5,0,5,5,5,0,0,3,3,0,3,3,1], // 15 cooling tunnels / reactor bottom
-            [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1], // 16 south corridor (secrets at 1,16 and 22,16)
-            [1,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,1], // 17 cracked walls at (1,17) and (22,17)
-            [1,6,6,6,6,6,6,0,0,1,1,1,0,1,1,1,0,0,1,1,1,1,1,1], // 18 waste storage top / south rooms
-            [1,6,0,0,0,0,6,0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,1], // 19 waste storage
-            [1,6,0,0,0,0,6,0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,1], // 20 waste storage
-            [1,6,0,0,0,0,6,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1], // 21 waste storage (east opening)
-            [1,6,0,0,0,0,6,0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,1], // 22 waste storage
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]  // 23 outer wall
-        ];
-        
+        // Player spawn point
+        if (theme && theme.spawn) {
+            this.spawnX = theme.spawn.x * this.tileSize;
+            this.spawnY = theme.spawn.y * this.tileSize;
+            this.spawnAngle = theme.spawn.angle || 0;
+        } else {
+            this.spawnX = 2.5 * this.tileSize;
+            this.spawnY = 2.5 * this.tileSize;
+            this.spawnAngle = 0;
+        }
+
+        // Grid layout from theme
+        this.grid = theme ? theme.grid.map(row => row.slice()) : this._defaultGrid();
+
+        // Zone definitions from theme (for lighting, audio, HUD tints)
+        this.zones = theme ? theme.zones : [];
+        this.defaultZone = theme ? theme.defaultZone : { name: 'corridor', lightTint: { r: 0.04, g: 0.03, b: 0.01 }, audioProfile: 'corridor', hudColor: null };
+
         // Additional map data
-        this.items = []; // Collectible items
-        this.enemies = []; // Enemy spawn points
-        this.doors = []; // Interactive doors
-        this.barrels = []; // Exploding barrels
-        this.crates = []; // Destructible crates with item drops
-        this.acidTiles = new Set(); // Floor tiles that deal acid damage
-        this.lavaTiles = new Set(); // Floor tiles that deal lava/fire damage
-        this.secretWalls = []; // Destructible secret walls
+        this.items = [];
+        this.enemies = [];
+        this.doors = [];
+        this.barrels = [];
+        this.crates = [];
+        this.acidTiles = new Set();
+        this.lavaTiles = new Set();
+        this.secretWalls = [];
         this.secretsFound = 0;
         this.totalSecrets = 0;
 
-        // Door system
-        this.initializeDoors();
+        // Initialize from theme data
+        if (theme) {
+            this._initFromTheme(theme);
+        }
 
-        // Initialize additional map elements
-        this.initializeMapElements();
-
-        // Initialize secret rooms
-        this.initializeSecretRooms();
-        
-        console.log('Map initialized:', this.width + 'x' + this.height);
-    }
-    
-    initializeMapElements() {
-        // Pickups distributed across rooms for exploration reward
-
-        // Control Room — starting supplies
-        this.items.push({ x: 4.5 * this.tileSize, y: 4.5 * this.tileSize, type: 'ammo', collected: false });
-
-        // Main corridor
-        this.items.push({ x: 8.5 * this.tileSize, y: 8.5 * this.tileSize, type: 'health', collected: false });
-
-        // Reactor Core — hazardous area reward
-        this.items.push({ x: 12.5 * this.tileSize, y: 12.5 * this.tileSize, type: 'ammo', collected: false });
-
-        // Containment Wing
-        this.items.push({ x: 19.5 * this.tileSize, y: 4.5 * this.tileSize, type: 'health', collected: false });
-
-        // South-east rooms
-        this.items.push({ x: 20.5 * this.tileSize, y: 20.5 * this.tileSize, type: 'ammo', collected: false });
-
-        // Waste Storage — dead-end exploration bonus
-        this.items.push({ x: 3.5 * this.tileSize, y: 21.5 * this.tileSize, type: 'health', collected: false });
-
-        // Enemies spread across the facility
-
-        // Main corridor guards
-        this.enemies.push(new Enemy(8 * this.tileSize, 8 * this.tileSize, 'guard'));
-        this.enemies.push(new Enemy(5 * this.tileSize, 8.5 * this.tileSize, 'imp'));
-        this.enemies.push(new Enemy(6 * this.tileSize, 5 * this.tileSize, 'exploder'));
-        this.enemies.push(new Enemy(8 * this.tileSize, 4 * this.tileSize, 'phantom'));
-
-        // Reactor Core — heavy resistance
-        this.enemies.push(new Enemy(12 * this.tileSize, 11 * this.tileSize, 'demon'));
-        this.enemies.push(new Enemy(11 * this.tileSize, 13 * this.tileSize, 'berserker'));
-        this.enemies.push(new Enemy(14 * this.tileSize, 11 * this.tileSize, 'imp'));
-        this.enemies.push(new Enemy(13 * this.tileSize, 14 * this.tileSize, 'guard'));
-        this.enemies.push(new Enemy(14 * this.tileSize, 13 * this.tileSize, 'exploder'));
-
-        // Containment Wing — tactical enemies
-        this.enemies.push(new Enemy(20 * this.tileSize, 4 * this.tileSize, 'soldier'));
-        this.enemies.push(new Enemy(20 * this.tileSize, 11 * this.tileSize, 'spitter'));
-        this.enemies.push(new Enemy(20 * this.tileSize, 20 * this.tileSize, 'shield_guard'));
-        this.enemies.push(new Enemy(19 * this.tileSize, 8 * this.tileSize, 'sniper'));
-        this.enemies.push(new Enemy(17 * this.tileSize, 12 * this.tileSize, 'phantom'));
-
-        // Control room area
-        this.enemies.push(new Enemy(4 * this.tileSize, 14 * this.tileSize, 'imp'));
-        this.enemies.push(new Enemy(4 * this.tileSize, 19 * this.tileSize, 'guard'));
-
-        // Boss in the south-east wing
-        this.enemies.push(new Enemy(21 * this.tileSize, 21 * this.tileSize, 'boss'));
-
-        // --- Environmental Hazards ---
-
-        // Acid pools — green-tinted floor tiles that deal 5 HP/sec
-        // Reactor Core acid spill
-        this.addAcidTile(11, 12);
-        this.addAcidTile(12, 11);
-        this.addAcidTile(13, 12);
-        // Waste Storage toxic puddles
-        this.addAcidTile(3, 20);
-        this.addAcidTile(4, 20);
-        this.addAcidTile(3, 21);
-        // Cooling tunnel leak
-        this.addAcidTile(2, 11);
-        this.addAcidTile(4, 14);
-
-        // Lava vents — orange-tinted floor tiles that deal 8 HP/sec
-        // Reactor Core center vents
-        this.addLavaTile(12, 12);
-        this.addLavaTile(11, 11);
-        // South-east wing heat vents
-        this.addLavaTile(20, 19);
-        this.addLavaTile(21, 20);
-
-        // Exploding barrels — shoot to detonate (60 dmg, 100 unit radius)
-        // Main corridor
-        this.addBarrel(6.5 * this.tileSize, 9.5 * this.tileSize);
-        // Near reactor entrance
-        this.addBarrel(8.5 * this.tileSize, 12.5 * this.tileSize);
-        // Containment wing — chain reaction pair
-        this.addBarrel(17.5 * this.tileSize, 5.5 * this.tileSize);
-        this.addBarrel(17.5 * this.tileSize, 6.5 * this.tileSize);
-        // South corridor
-        this.addBarrel(5.5 * this.tileSize, 16.5 * this.tileSize);
-        // Near boss room
-        this.addBarrel(17.5 * this.tileSize, 20.5 * this.tileSize);
-
-        // Destructible crates — shoot to break, drops random item
-        // Control room area
-        this.addCrate(5.5 * this.tileSize, 6.5 * this.tileSize);
-        // North corridor
-        this.addCrate(14.5 * this.tileSize, 1.5 * this.tileSize);
-        // Near cooling tunnels
-        this.addCrate(4.5 * this.tileSize, 11.5 * this.tileSize);
-        // Reactor area entrance
-        this.addCrate(8.5 * this.tileSize, 10.5 * this.tileSize);
-        // South corridor
-        this.addCrate(10.5 * this.tileSize, 16.5 * this.tileSize);
-        // Containment wing
-        this.addCrate(20.5 * this.tileSize, 4.5 * this.tileSize);
-        // Waste storage
-        this.addCrate(3.5 * this.tileSize, 21.5 * this.tileSize);
-        // South-east wing
-        this.addCrate(20.5 * this.tileSize, 21.5 * this.tileSize);
+        console.log('Map initialized:', this.themeName, this.width + 'x' + this.height);
     }
 
-    initializeDoors() {
-        // Doors at strategic chokepoints between areas
-        this.addDoor(4, 7, 'none');     // Control Room south exit
-        this.addDoor(12, 10, 'none');   // Reactor Core north entrance
-        this.addDoor(12, 15, 'none');   // Reactor Core south entrance
-        this.addDoor(20, 7, 'none');    // Containment Wing south exit
-        this.addDoor(12, 18, 'red');    // Red key door to south section
-        this.addDoor(4, 18, 'none');     // Waste Storage entrance
+    _initFromTheme(theme) {
+        // Doors
+        if (theme.doors) {
+            for (const d of theme.doors) {
+                this.addDoor(d.x, d.y, d.key);
+            }
+        }
+
+        // Items
+        if (theme.items) {
+            for (const item of theme.items) {
+                this.items.push({
+                    x: item.x * this.tileSize,
+                    y: item.y * this.tileSize,
+                    type: item.type,
+                    collected: false
+                });
+            }
+        }
+
+        // Enemies
+        if (theme.enemies) {
+            for (const e of theme.enemies) {
+                this.enemies.push(new Enemy(e.x * this.tileSize, e.y * this.tileSize, e.type));
+            }
+        }
+
+        // Acid tiles
+        if (theme.acidTiles) {
+            for (const [x, y] of theme.acidTiles) {
+                this.addAcidTile(x, y);
+            }
+        }
+
+        // Lava tiles
+        if (theme.lavaTiles) {
+            for (const [x, y] of theme.lavaTiles) {
+                this.addLavaTile(x, y);
+            }
+        }
+
+        // Barrels
+        if (theme.barrels) {
+            for (const b of theme.barrels) {
+                this.addBarrel(b.x * this.tileSize, b.y * this.tileSize);
+            }
+        }
+
+        // Crates
+        if (theme.crates) {
+            for (const c of theme.crates) {
+                this.addCrate(c.x * this.tileSize, c.y * this.tileSize);
+            }
+        }
+
+        // Secret rooms
+        if (theme.secrets) {
+            for (const s of theme.secrets) {
+                this.addSecretWall(s.wallX, s.wallY, s.roomX, s.roomY);
+            }
+            console.log(`Secret rooms initialized: ${this.totalSecrets} secrets`);
+        }
+    }
+
+    // Zone lookup — returns the zone definition for a tile position
+    getZone(tx, ty) {
+        for (const zone of this.zones) {
+            const b = zone.bounds;
+            if (tx >= b.x1 && tx <= b.x2 && ty >= b.y1 && ty <= b.y2) {
+                return zone;
+            }
+        }
+        return this.defaultZone;
+    }
+
+    // Get the zone's light tint for renderer
+    getZoneLightTint(tx, ty) {
+        const zone = this.getZone(tx, ty);
+        return zone.lightTint || null;
+    }
+
+    // Get the zone's audio profile name for sound engine
+    getZoneAudioProfile(tx, ty) {
+        const zone = this.getZone(tx, ty);
+        return zone.audioProfile || 'corridor';
+    }
+
+    // Get the zone's HUD color for vignette
+    getZoneHudColor(tx, ty) {
+        const zone = this.getZone(tx, ty);
+        return zone.hudColor || null;
     }
 
     addDoor(mapX, mapY, keyRequired) {
@@ -467,17 +430,6 @@ class GameMap {
 
     // --- Secret Room methods ---
 
-    initializeSecretRooms() {
-        // Secret 1: North corridor — room at (16,1), cracked wall at (16,2)
-        this.addSecretWall(16, 2, 16, 1);
-        // Secret 2: SW south corridor — room at (1,16), cracked wall at (1,17)
-        this.addSecretWall(1, 17, 1, 16);
-        // Secret 3: SE south corridor — room at (22,16), cracked wall at (22,17)
-        this.addSecretWall(22, 17, 22, 16);
-
-        console.log(`Secret rooms initialized: ${this.totalSecrets} secrets`);
-    }
-
     addSecretWall(mapX, mapY, roomX, roomY) {
         this.secretWalls.push({
             mapX, mapY,
@@ -593,7 +545,7 @@ class GameMap {
         }
         return true;
     }
-    
+
     // Get wall type at coordinate
     getWallType(mapX, mapY) {
         if (mapX < 0 || mapX >= this.width || mapY < 0 || mapY >= this.height) {
@@ -601,32 +553,32 @@ class GameMap {
         }
         return this.grid[mapY][mapX];
     }
-    
+
     // Check collision for a world position
     isWallAtPosition(worldX, worldY) {
         const mapX = Math.floor(worldX / this.tileSize);
         const mapY = Math.floor(worldY / this.tileSize);
         return this.isWall(mapX, mapY);
     }
-    
+
     // Get wall type at world position
     getWallTypeAtPosition(worldX, worldY) {
         const mapX = Math.floor(worldX / this.tileSize);
         const mapY = Math.floor(worldY / this.tileSize);
         return this.getWallType(mapX, mapY);
     }
-    
+
     // Advanced collision detection for circular objects (players, enemies)
     checkCircleCollision(centerX, centerY, radius) {
         const collisions = [];
-        
+
         // Check multiple points around the circle
         const checkPoints = 8;
         for (let i = 0; i < checkPoints; i++) {
             const angle = (i / checkPoints) * MathUtils.PI2;
             const checkX = centerX + Math.cos(angle) * radius;
             const checkY = centerY + Math.sin(angle) * radius;
-            
+
             if (this.isWallAtPosition(checkX, checkY)) {
                 collisions.push({
                     x: checkX,
@@ -635,40 +587,40 @@ class GameMap {
                 });
             }
         }
-        
+
         return collisions;
     }
-    
+
     // Line of sight check (for AI, shooting, etc.)
     hasLineOfSight(x1, y1, x2, y2) {
         const dx = x2 - x1;
         const dy = y2 - y1;
         const distance = Math.sqrt(dx * dx + dy * dy);
         const steps = Math.ceil(distance / (this.tileSize / 4)); // Check every quarter tile
-        
+
         for (let i = 0; i <= steps; i++) {
             const t = i / steps;
             const checkX = x1 + dx * t;
             const checkY = y1 + dy * t;
-            
+
             if (this.isWallAtPosition(checkX, checkY)) {
                 return false;
             }
         }
-        
+
         return true;
     }
-    
+
     // Find nearest wall in a direction (useful for movement)
     findNearestWall(startX, startY, directionX, directionY, maxDistance = 1000) {
         let distance = 0;
         const stepSize = 2; // Check every 2 units
-        
+
         while (distance < maxDistance) {
             distance += stepSize;
             const checkX = startX + directionX * distance;
             const checkY = startY + directionY * distance;
-            
+
             if (this.isWallAtPosition(checkX, checkY)) {
                 return {
                     distance: distance - stepSize,
@@ -678,29 +630,29 @@ class GameMap {
                 };
             }
         }
-        
+
         return null;
     }
-    
+
     // Get all items within a radius
     getItemsInRadius(centerX, centerY, radius) {
         return this.items.filter(item => {
             if (item.collected) return false;
-            
+
             const dx = item.x - centerX;
             const dy = item.y - centerY;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            
+
             return distance <= radius;
         });
     }
-    
+
     // Collect an item
     collectItem(item) {
         item.collected = true;
         console.log(`Collected item: ${item.type} at (${item.x}, ${item.y})`);
     }
-    
+
     // Map coordinate conversions
     worldToMap(worldX, worldY) {
         return {
@@ -708,14 +660,14 @@ class GameMap {
             y: Math.floor(worldY / this.tileSize)
         };
     }
-    
+
     mapToWorld(mapX, mapY) {
         return {
             x: mapX * this.tileSize + this.tileSize / 2,
             y: mapY * this.tileSize + this.tileSize / 2
         };
     }
-    
+
     // Get tile center position
     getTileCenter(mapX, mapY) {
         return {
@@ -723,7 +675,7 @@ class GameMap {
             y: mapY * this.tileSize + this.tileSize / 2
         };
     }
-    
+
     // A* pathfinding - returns array of {x, y} world positions
     findPath(startX, startY, goalX, goalY) {
         const start = this.worldToMap(startX, startY);
@@ -823,11 +775,11 @@ class GameMap {
             {x: -1, y: -1}, {x: 1, y: -1},
             {x: -1, y: 1}, {x: 1, y: 1}
         ];
-        
+
         for (const dir of directions) {
             const newX = mapX + dir.x;
             const newY = mapY + dir.y;
-            
+
             if (!this.isWall(newX, newY)) {
                 neighbors.push({
                     x: newX,
@@ -836,10 +788,10 @@ class GameMap {
                 });
             }
         }
-        
+
         return neighbors;
     }
-    
+
     // Get spawn points for different entities
     getPlayerSpawn() {
         return {
@@ -848,40 +800,40 @@ class GameMap {
             angle: this.spawnAngle
         };
     }
-    
+
     getEnemySpawns() {
         return this.enemies.slice(); // Return copy
     }
-    
+
     // Map validation
     validateMap() {
         const issues = [];
-        
+
         // Check if spawn point is valid
         if (this.isWallAtPosition(this.spawnX, this.spawnY)) {
             issues.push('Player spawn point is inside a wall');
         }
-        
+
         // Check if map is properly bounded
         for (let x = 0; x < this.width; x++) {
             if (this.grid[0][x] === 0) issues.push(`Top border has opening at x=${x}`);
             if (this.grid[this.height-1][x] === 0) issues.push(`Bottom border has opening at x=${x}`);
         }
-        
+
         for (let y = 0; y < this.height; y++) {
             if (this.grid[y][0] === 0) issues.push(`Left border has opening at y=${y}`);
             if (this.grid[y][this.width-1] === 0) issues.push(`Right border has opening at y=${y}`);
         }
-        
+
         if (issues.length > 0) {
             console.warn('Map validation issues:', issues);
         } else {
             console.log('Map validation passed');
         }
-        
+
         return issues.length === 0;
     }
-    
+
     // Debug helpers
     printMap() {
         console.log('Map layout:');
@@ -893,11 +845,11 @@ class GameMap {
             console.log(row);
         }
     }
-    
+
     getMapStats() {
         let wallCount = 0;
         let emptyCount = 0;
-        
+
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 if (this.grid[y][x] > 0) {
@@ -907,7 +859,7 @@ class GameMap {
                 }
             }
         }
-        
+
         return {
             totalTiles: this.width * this.height,
             wallTiles: wallCount,

@@ -260,16 +260,11 @@ class Renderer {
     }
 
     // Get zone-based color tint for a tile position (returns RGB offsets)
+    // Delegates to map's theme-based zone system
     getZoneTintForTile(tx, ty) {
-        // Reactor Core: warm orange (cols 9-15, rows 10-15)
-        if (tx >= 9 && tx <= 15 && ty >= 10 && ty <= 15) return { r: 0.15, g: 0.06, b: 0 };
-        // Waste Storage: sickly green (cols 1-6, rows 18-22)
-        if (tx >= 1 && tx <= 6 && ty >= 18 && ty <= 22) return { r: 0, g: 0.12, b: 0.02 };
-        // Cooling Tunnels: cold blue (cols 1-6 or 18-22, rows 10-15)
-        if (((tx >= 1 && tx <= 6) || (tx >= 18 && tx <= 22)) && ty >= 10 && ty <= 15) return { r: 0, g: 0.04, b: 0.14 };
-        // Control Room: neutral/white (cols 3-6, rows 3-7)
-        if (tx >= 3 && tx <= 6 && ty >= 3 && ty <= 7) return null;
-        // Corridor: dim gray/brown
+        if (this.map && this.map.getZoneLightTint) {
+            return this.map.getZoneLightTint(tx, ty);
+        }
         return { r: 0.04, g: 0.03, b: 0.01 };
     }
 

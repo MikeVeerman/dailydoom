@@ -78,21 +78,11 @@ class GameEngine {
             announceDuration: 2000, // 2s announcement
             delayBetweenWaves: 3000, // 3s between waves
             lastWaveClearTime: 0,
-            spawnPoints: [
-                { x: 14, y: 8 },
-                { x: 4, y: 16 },
-                { x: 12, y: 16 },
-                { x: 8, y: 12 },
-                { x: 20, y: 8 },
-                { x: 8, y: 4 },
-                { x: 16, y: 12 },
-                { x: 4, y: 12 },
-                { x: 18, y: 16 },
-                { x: 12, y: 4 },
-                { x: 4, y: 20 },
-                { x: 16, y: 20 }
-            ]
+            spawnPoints: [] // populated from theme in initialize()
         };
+
+        // Map theme — defaults to reactor, can be set by rotation system
+        this.currentTheme = null;
 
         // Initialize systems
         this.initialize();
@@ -105,8 +95,13 @@ class GameEngine {
         this.inputManager = new InputManager(this.canvas);
         console.log('Input Manager initialized');
         
-        // Initialize map (will be created in map.js)
-        this.map = new GameMap();
+        // Initialize map from theme
+        this.currentTheme = this.currentTheme || (window.MapThemes && window.MapThemes.reactor) || null;
+        this.map = new GameMap(this.currentTheme);
+        // Load wave spawn points from theme
+        if (this.currentTheme && this.currentTheme.waveSpawnPoints) {
+            this.waveSystem.spawnPoints = this.currentTheme.waveSpawnPoints.slice();
+        }
         console.log('Map initialized');
         
         // Initialize player
@@ -256,8 +251,12 @@ class GameEngine {
         this.levelCompleteTime = 0;
         this.momentum = 1.0;
 
-        // Re-initialize map and player
-        this.map = new GameMap();
+        // Re-initialize map and player from current theme
+        this.currentTheme = this.currentTheme || (window.MapThemes && window.MapThemes.reactor) || null;
+        this.map = new GameMap(this.currentTheme);
+        if (this.currentTheme && this.currentTheme.waveSpawnPoints) {
+            this.waveSystem.spawnPoints = this.currentTheme.waveSpawnPoints.slice();
+        }
         this.player = new Player(this.map.spawnX, this.map.spawnY, this.map.spawnAngle);
         this.renderer = new Renderer(this.canvas, this.map);
         this.pickupManager = new PickupManager();
@@ -937,8 +936,12 @@ class GameEngine {
         this.showDeathScreen = false;
         this.momentum = 1.0;
 
-        // Re-initialize map and enemies
-        this.map = new GameMap();
+        // Re-initialize map and enemies from current theme
+        this.currentTheme = this.currentTheme || (window.MapThemes && window.MapThemes.reactor) || null;
+        this.map = new GameMap(this.currentTheme);
+        if (this.currentTheme && this.currentTheme.waveSpawnPoints) {
+            this.waveSystem.spawnPoints = this.currentTheme.waveSpawnPoints.slice();
+        }
         this.player.x = this.map.spawnX;
         this.player.y = this.map.spawnY;
         this.player.angle = this.map.spawnAngle;
@@ -1000,8 +1003,11 @@ class GameEngine {
         const savedXP = this.player.xp;
         const savedWeaponManager = this.player.weaponManager;
 
-        // Re-initialize map
-        this.map = new GameMap();
+        // Re-initialize map from current theme
+        this.map = new GameMap(this.currentTheme);
+        if (this.currentTheme && this.currentTheme.waveSpawnPoints) {
+            this.waveSystem.spawnPoints = this.currentTheme.waveSpawnPoints.slice();
+        }
         this.player.x = this.map.spawnX;
         this.player.y = this.map.spawnY;
         this.player.angle = this.map.spawnAngle;

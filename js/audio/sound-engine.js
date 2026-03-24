@@ -1040,22 +1040,17 @@ class SoundEngine {
 
     /**
      * Determine which ambient zone the player is in based on tile position.
-     * Returns: 'control', 'reactor', 'waste', 'cooling', 'corridor'
+     * Delegates to map's theme-based zone system.
+     * Returns audio profile: 'control', 'reactor', 'waste', 'cooling', 'corridor'
      */
     getAmbientZone(playerX, playerY) {
-        const tileSize = 64;
-        const tx = Math.floor(playerX / tileSize);
-        const ty = Math.floor(playerY / tileSize);
-
-        // Control Room: cols 3-6, rows 3-7
-        if (tx >= 3 && tx <= 6 && ty >= 3 && ty <= 7) return 'control';
-        // Reactor Core: cols 9-15, rows 10-15
-        if (tx >= 9 && tx <= 15 && ty >= 10 && ty <= 15) return 'reactor';
-        // Waste Storage: cols 1-6, rows 18-22
-        if (tx >= 1 && tx <= 6 && ty >= 18 && ty <= 22) return 'waste';
-        // Cooling Tunnels: cols 1-6 or 18-22, rows 10-15
-        if (((tx >= 1 && tx <= 6) || (tx >= 18 && tx <= 22)) && ty >= 10 && ty <= 15) return 'cooling';
-        // Default: corridor
+        // Use map's zone system if available
+        if (window.game && window.game.map && window.game.map.getZoneAudioProfile) {
+            const tileSize = 64;
+            const tx = Math.floor(playerX / tileSize);
+            const ty = Math.floor(playerY / tileSize);
+            return window.game.map.getZoneAudioProfile(tx, ty);
+        }
         return 'corridor';
     }
 
