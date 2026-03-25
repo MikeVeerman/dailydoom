@@ -38,7 +38,7 @@ class GameEngine {
         this.levelComplete = false;
         this.levelCompleteTime = 0;
         this.currentLevel = 1;
-        this.wavesPerLevel = 5;
+        this.wavesPerLevel = 3;
 
         // High score persistence
         this.STORAGE_KEY = 'dailydoom_highscores';
@@ -81,8 +81,13 @@ class GameEngine {
             spawnPoints: [] // populated from theme in initialize()
         };
 
-        // Map theme — defaults to reactor, can be set by rotation system
+        // Map rotation system
         this.currentTheme = null;
+        this.mapQueue = [];
+        this.mapQueueIndex = 0;
+
+        // Title card display
+        this.titleCard = { active: false, text: '', startTime: 0, duration: 2000 };
 
         // Initialize systems
         this.initialize();
@@ -95,14 +100,16 @@ class GameEngine {
         this.inputManager = new InputManager(this.canvas);
         console.log('Input Manager initialized');
         
-        // Initialize map from theme
-        this.currentTheme = this.currentTheme || (window.MapThemes && window.MapThemes.reactor) || null;
+        // Initialize map rotation and pick first theme
+        this.shuffleMapQueue();
+        this.currentTheme = this.mapQueue[this.mapQueueIndex];
         this.map = new GameMap(this.currentTheme);
-        // Load wave spawn points from theme
         if (this.currentTheme && this.currentTheme.waveSpawnPoints) {
             this.waveSystem.spawnPoints = this.currentTheme.waveSpawnPoints.slice();
         }
-        console.log('Map initialized');
+        // Show title card for first map
+        this.showTitleCard(this.map.themeName);
+        console.log('Map initialized:', this.map.themeName);
         
         // Initialize player
         this.player = new Player(this.map.spawnX, this.map.spawnY, this.map.spawnAngle);
@@ -249,14 +256,18 @@ class GameEngine {
         this.pauseMenuSelection = -1;
         this.levelComplete = false;
         this.levelCompleteTime = 0;
+        this.showDeathScreen = false;
         this.momentum = 1.0;
+        this.currentLevel = 1;
 
-        // Re-initialize map and player from current theme
-        this.currentTheme = this.currentTheme || (window.MapThemes && window.MapThemes.reactor) || null;
+        // Reshuffle map rotation and pick first theme
+        this.shuffleMapQueue();
+        this.currentTheme = this.mapQueue[this.mapQueueIndex];
         this.map = new GameMap(this.currentTheme);
         if (this.currentTheme && this.currentTheme.waveSpawnPoints) {
             this.waveSystem.spawnPoints = this.currentTheme.waveSpawnPoints.slice();
         }
+        this.showTitleCard(this.map.themeName);
         this.player = new Player(this.map.spawnX, this.map.spawnY, this.map.spawnAngle);
         this.renderer = new Renderer(this.canvas, this.map);
         this.pickupManager = new PickupManager();
@@ -268,12 +279,20 @@ class GameEngine {
         this.levelStartTime = performance.now();
         this.totalEnemyCount = this.map.enemies.length;
 
+        // Re-apply difficulty
+        if (window.CONFIG && window.CONFIG.difficulty) {
+            window.applyDifficulty(window.CONFIG.difficulty);
+        }
+
         // Reset wave system — start at wave 1 immediately
         this.waveSystem.active = true;
         this.waveSystem.currentWave = 1;
         this.waveSystem.state = 'fighting';
 
-        console.log('Level restarted');
+        // Reset dynamic difficulty
+        this.initDifficultyScaler();
+
+        console.log('Game restarted');
     }
 
     gameLoop(currentTime = performance.now()) {
@@ -930,66 +949,6 @@ class GameEngine {
         }
     }
 
-    restartLevel() {
-        console.log('Restarting level...');
-        this.levelComplete = false;
-        this.showDeathScreen = false;
-        this.momentum = 1.0;
-
-        // Re-initialize map and enemies from current theme
-        this.currentTheme = this.currentTheme || (window.MapThemes && window.MapThemes.reactor) || null;
-        this.map = new GameMap(this.currentTheme);
-        if (this.currentTheme && this.currentTheme.waveSpawnPoints) {
-            this.waveSystem.spawnPoints = this.currentTheme.waveSpawnPoints.slice();
-        }
-        this.player.x = this.map.spawnX;
-        this.player.y = this.map.spawnY;
-        this.player.angle = this.map.spawnAngle;
-        this.player.health = this.player.maxHealth;
-        this.player.armor = 0;
-        this.player.isDead = false;
-        this.player.stats = {
-            enemiesKilled: 0, shotsFired: 0, shotsHit: 0, headshots: 0,
-            damageTaken: 0, damageDealt: 0, itemsCollected: 0,
-            deaths: 0, timeSurvived: 0
-        };
-        this.player.weaponManager = new WeaponManager();
-        this.player.combo = { count: 0, lastKillTime: 0, window: 3000, bestStreak: 0, totalComboKills: 0 };
-
-        // Re-initialize pickups
-        this.pickupManager = new PickupManager();
-        this.pickupManager.spawnWeaponPickups(this.map);
-        this.pickupManager.spawnRandomPickups(this.map, 6);
-        this.pickupManager.spawnModPickups(this.map);
-
-        // Clear projectiles
-        this.projectileManager.clear();
-
-        // Re-apply difficulty
-        if (window.CONFIG && window.CONFIG.difficulty) {
-            window.applyDifficulty(window.CONFIG.difficulty);
-        }
-
-        // Reset fog of war
-        if (this.hud) {
-            this.hud.resetFog();
-        }
-
-        // Update renderer with new map
-        this.renderer.map = this.map;
-
-        this.totalEnemyCount = this.map.enemies.length;
-        this.levelStartTime = performance.now();
-
-        // Reset wave system — start at wave 1 immediately
-        this.waveSystem.active = true;
-        this.waveSystem.currentWave = 1;
-        this.waveSystem.state = 'fighting';
-
-        // Reset dynamic difficulty
-        this.initDifficultyScaler();
-    }
-
     nextLevel() {
         console.log(`Advancing to level ${this.currentLevel + 1}...`);
         this.currentLevel++;
@@ -1003,11 +962,15 @@ class GameEngine {
         const savedXP = this.player.xp;
         const savedWeaponManager = this.player.weaponManager;
 
-        // Re-initialize map from current theme
+        // Advance to next map in rotation
+        this.currentTheme = this.advanceMapQueue();
         this.map = new GameMap(this.currentTheme);
         if (this.currentTheme && this.currentTheme.waveSpawnPoints) {
             this.waveSystem.spawnPoints = this.currentTheme.waveSpawnPoints.slice();
         }
+
+        // Show title card for the new map
+        this.showTitleCard(this.map.themeName);
         this.player.x = this.map.spawnX;
         this.player.y = this.map.spawnY;
         this.player.angle = this.map.spawnAngle;
@@ -1073,6 +1036,38 @@ class GameEngine {
         this.initDifficultyScaler();
     }
 
+    // Fisher-Yates shuffle of all map themes
+    shuffleMapQueue() {
+        if (!window.MapThemes || !window.MapThemes.allThemes) {
+            this.mapQueue = [window.MapThemes ? window.MapThemes.reactor : null];
+            this.mapQueueIndex = 0;
+            return;
+        }
+        const keys = window.MapThemes.allThemes.slice();
+        for (let i = keys.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [keys[i], keys[j]] = [keys[j], keys[i]];
+        }
+        this.mapQueue = keys.map(k => window.MapThemes[k]);
+        this.mapQueueIndex = 0;
+    }
+
+    // Advance to next map in the rotation queue
+    advanceMapQueue() {
+        this.mapQueueIndex++;
+        if (this.mapQueueIndex >= this.mapQueue.length) {
+            // All maps played — reshuffle
+            this.shuffleMapQueue();
+        }
+        return this.mapQueue[this.mapQueueIndex];
+    }
+
+    showTitleCard(text) {
+        this.titleCard.active = true;
+        this.titleCard.text = text;
+        this.titleCard.startTime = performance.now();
+    }
+
     render() {
         // Apply screen shake offset
         const shake = this.hud.getScreenShakeOffset();
@@ -1099,10 +1094,55 @@ class GameEngine {
             this.renderDeathScreen();
         }
 
+        // Render title card overlay
+        if (this.titleCard.active) {
+            this.renderTitleCard();
+        }
+
         // Render debug information if enabled (last layer)
         if (this.debugMode) {
             this.renderDebugInfo();
         }
+    }
+
+    renderTitleCard() {
+        const elapsed = performance.now() - this.titleCard.startTime;
+        if (elapsed > this.titleCard.duration) {
+            this.titleCard.active = false;
+            return;
+        }
+
+        const ctx = this.canvas.getContext('2d');
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Fade in for first 500ms, hold, fade out for last 500ms
+        let alpha;
+        if (elapsed < 500) {
+            alpha = elapsed / 500;
+        } else if (elapsed > this.titleCard.duration - 500) {
+            alpha = (this.titleCard.duration - elapsed) / 500;
+        } else {
+            alpha = 1;
+        }
+
+        // Dark overlay
+        ctx.fillStyle = `rgba(0, 0, 0, ${0.6 * alpha})`;
+        ctx.fillRect(0, 0, w, h);
+
+        // "ENTERING:" subtitle
+        ctx.textAlign = 'center';
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#AAAAAA';
+        ctx.font = 'bold 18px monospace';
+        ctx.fillText('ENTERING', w / 2, h / 2 - 25);
+
+        // Theme name
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 36px monospace';
+        ctx.fillText(this.titleCard.text, w / 2, h / 2 + 15);
+
+        ctx.globalAlpha = 1;
     }
 
     renderCompletionScreen() {

@@ -523,15 +523,9 @@ class PickupManager {
         this.pickups = [];
     }
     
-    // Spawn weapon pickups at fixed map locations
+    // Spawn weapon pickups at theme-defined map locations
     spawnWeaponPickups(map) {
-        const tileSize = map.tileSize;
-        const weaponLocations = [
-            { type: 'weapon_shotgun',  x: 5.5  * tileSize, y: 5.5  * tileSize }, // Control Room area
-            { type: 'weapon_rifle',    x: 1.5  * tileSize, y: 12.5 * tileSize }, // Cooling tunnel west
-            { type: 'weapon_rocket',   x: 12.5 * tileSize, y: 14.5 * tileSize }, // Reactor Core south
-            { type: 'weapon_chaingun', x: 20.5 * tileSize, y: 11.5 * tileSize }  // Containment Wing east
-        ];
+        const weaponLocations = map.weaponPickups || [];
 
         for (const loc of weaponLocations) {
             if (!map.isWallAtPosition(loc.x, loc.y)) {

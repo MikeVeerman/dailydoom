@@ -1645,7 +1645,7 @@ class HUD {
 
         const momentum = (window.game && window.game.momentum) || 1.0;
         const hasMomentum = momentum > 1.0;
-        const bgWidth = hasMomentum ? 260 : 192;
+        const bgWidth = hasMomentum ? 320 : 250;
 
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.fillRect(x - bgWidth + 2, y - 14, bgWidth, 20);
@@ -1674,8 +1674,10 @@ class HUD {
             ctx.font = 'bold 14px monospace';
         }
 
+        // Show map theme name if available, otherwise FLOOR number
+        const themeName = (window.game && window.game.map && window.game.map.themeName) || `FLOOR ${currentLevel}`;
         ctx.fillStyle = '#AAAAFF';
-        ctx.fillText(`FLOOR ${currentLevel}`, x - 115, y);
+        ctx.fillText(themeName, x - 115, y);
         ctx.fillStyle = '#FF4444';
         ctx.fillText(`WAVE ${waveSystem.currentWave}`, x, y);
 
