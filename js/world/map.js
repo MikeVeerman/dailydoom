@@ -45,6 +45,8 @@ class GameMap {
         this.secretsFound = 0;
         this.totalSecrets = 0;
         this.weaponPickups = [];
+        this.pressurePlates = [];
+        this.dartTraps = [];
 
         // Initialize from theme data
         if (theme) {
@@ -124,6 +126,36 @@ class GameMap {
                 this.addSecretWall(s.wallX, s.wallY, s.roomX, s.roomY);
             }
             console.log(`Secret rooms initialized: ${this.totalSecrets} secrets`);
+        }
+
+        // Traps: pressure plates linked to dart walls
+        if (theme.traps) {
+            for (const trap of theme.traps) {
+                const plate = {
+                    x: trap.plateX * this.tileSize + this.tileSize / 2,
+                    y: trap.plateY * this.tileSize + this.tileSize / 2,
+                    tileX: trap.plateX,
+                    tileY: trap.plateY,
+                    radius: 24,
+                    triggered: false,
+                    cooldown: 0,
+                    cooldownTime: 3000, // ms before can trigger again
+                    dartTrapIndex: this.dartTraps.length
+                };
+                const dart = {
+                    x: trap.dartX * this.tileSize + this.tileSize / 2,
+                    y: trap.dartY * this.tileSize + this.tileSize / 2,
+                    direction: trap.direction, // 'north','south','east','west'
+                    damage: 15,
+                    speed: 250,
+                    active: true
+                };
+                this.pressurePlates.push(plate);
+                this.dartTraps.push(dart);
+            }
+            if (this.pressurePlates.length > 0) {
+                console.log(`Traps initialized: ${this.pressurePlates.length} pressure plates`);
+            }
         }
     }
 
@@ -435,6 +467,81 @@ class GameMap {
             if (window.game.hud && window.game.hud.addKillFeedMessage) {
                 window.game.hud.addKillFeedMessage('Crate destroyed!', '#C8A030');
             }
+        }
+    }
+
+    // --- Trap methods ---
+
+    updateTraps(deltaTime, player) {
+        const now = performance.now();
+        for (const plate of this.pressurePlates) {
+            // Decrease cooldown
+            if (plate.cooldown > 0) {
+                plate.cooldown -= deltaTime * 1000;
+                if (plate.cooldown <= 0) {
+                    plate.cooldown = 0;
+                    plate.triggered = false;
+                }
+                continue;
+            }
+
+            // Check if player is on the plate
+            const pdx = player.x - plate.x;
+            const pdy = player.y - plate.y;
+            let stepped = (pdx * pdx + pdy * pdy) < plate.radius * plate.radius;
+
+            // Check if any enemy is on the plate
+            if (!stepped) {
+                for (const enemy of this.enemies) {
+                    if (!enemy.active || enemy.dying) continue;
+                    const edx = enemy.x - plate.x;
+                    const edy = enemy.y - plate.y;
+                    if ((edx * edx + edy * edy) < plate.radius * plate.radius) {
+                        stepped = true;
+                        break;
+                    }
+                }
+            }
+
+            if (stepped && !plate.triggered) {
+                plate.triggered = true;
+                plate.cooldown = plate.cooldownTime;
+                this.fireDartTrap(plate.dartTrapIndex);
+            }
+        }
+    }
+
+    fireDartTrap(index) {
+        const trap = this.dartTraps[index];
+        if (!trap || !trap.active) return;
+
+        // Calculate target position based on direction
+        const dist = this.tileSize * 20; // fire across the map
+        let targetX = trap.x;
+        let targetY = trap.y;
+        switch (trap.direction) {
+            case 'north': targetY -= dist; break;
+            case 'south': targetY += dist; break;
+            case 'east':  targetX += dist; break;
+            case 'west':  targetX -= dist; break;
+        }
+
+        // Spawn dart projectile
+        if (window.game && window.game.projectileManager) {
+            window.game.projectileManager.spawn(
+                trap.x, trap.y, targetX, targetY,
+                trap.damage, trap.speed, '#FF8800', null
+            );
+        }
+
+        // Trap trigger sound
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playTrapTrigger();
+        }
+
+        // Particle burst at dart origin
+        if (window.game && window.game.hud) {
+            window.game.hud.emitExplosionParticles(trap.x, trap.y, 4);
         }
     }
 

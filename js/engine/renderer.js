@@ -1153,6 +1153,32 @@ class Renderer {
             });
         }
 
+        // Add pressure plates to rendering queue
+        if (this.map.pressurePlates) {
+            this.map.pressurePlates.forEach(plate => {
+                const dx = plate.x - player.x;
+                const dy = plate.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > this.maxRenderDistance) return;
+
+                let plateAngle = Math.atan2(dy, dx);
+                let angleDiff = plateAngle - player.angle;
+                while (angleDiff > Math.PI) angleDiff -= MathUtils.PI2;
+                while (angleDiff < -Math.PI) angleDiff += MathUtils.PI2;
+                if (Math.abs(angleDiff) > this.fov / 2) return;
+                if (this.isOccludedByWall(player.x, player.y, plate.x, plate.y)) return;
+
+                spritesToRender.push({
+                    entity: plate,
+                    entityType: 'pressure_plate',
+                    distance: distance,
+                    angleDiff: angleDiff,
+                    x: plate.x,
+                    y: plate.y
+                });
+            });
+        }
+
         // Add projectiles to rendering queue
         if (window.game && window.game.projectileManager) {
             window.game.projectileManager.getActiveProjectiles().forEach(proj => {
@@ -1526,6 +1552,25 @@ class Renderer {
                 this.ctx.lineWidth = 1;
                 this.ctx.strokeRect(barrelX, barrelY, size, size);
             }
+        } else if (entityType === 'pressure_plate') {
+            // Flat diamond on the floor
+            const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
+            const floorY = this.halfHeight + wallScreenHeight / 2;
+            const plateSize = (this.wallHeight * this.projectionDistance) / distance * 0.25;
+            const plateColor = entity.triggered ? '#FF4400' : '#CCAA00';
+
+            this.ctx.fillStyle = plateColor;
+            this.ctx.beginPath();
+            this.ctx.moveTo(screenX, floorY - plateSize * 0.15);
+            this.ctx.lineTo(screenX - plateSize * 0.4, floorY);
+            this.ctx.lineTo(screenX, floorY + plateSize * 0.15);
+            this.ctx.lineTo(screenX + plateSize * 0.4, floorY);
+            this.ctx.closePath();
+            this.ctx.fill();
+
+            this.ctx.strokeStyle = '#555500';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
         }
     }
 }

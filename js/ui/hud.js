@@ -2230,6 +2230,18 @@ class HUD {
             this.ctx.fill();
         }
 
+        // Draw pressure plates
+        if (map.pressurePlates) {
+            for (const plate of map.pressurePlates) {
+                if (!this.isTileRevealed(plate.tileX, plate.tileY)) continue;
+                const rx = (plate.x - player.x) * scale;
+                const ry = (plate.y - player.y) * scale;
+                this.ctx.fillStyle = plate.triggered ? '#FF4400' : '#CCAA00';
+                const s = Math.max(cellSize * 0.35, 2);
+                this.ctx.fillRect(rx - s / 2, ry - s / 2, s, s);
+            }
+        }
+
         this.ctx.restore();
 
         // Draw FOV cone (fixed pointing up, matching arrow behavior)
@@ -2300,6 +2312,7 @@ class HUD {
             { color: 'rgba(255, 100, 0, 0.8)', label: 'Lava' },
             { color: '#886600', label: 'Door' },
             { color: '#00CCFF', label: 'Pickup' },
+            { color: '#CCAA00', label: 'Trap' },
         ];
 
         // Background

@@ -122,6 +122,12 @@ const MapThemes = {
             { type: 'weapon_rifle', x: 1.5, y: 12.5 },
             { type: 'weapon_rocket', x: 12.5, y: 14.5 },
             { type: 'weapon_chaingun', x: 20.5, y: 11.5 }
+        ],
+        traps: [
+            // Corridor between control room and reactor — plate in hallway, dart from north wall
+            { plateX: 12, plateY: 8, dartX: 12, dartY: 7, direction: 'south' },
+            // South corridor near waste storage — plate triggers dart from east
+            { plateX: 8, plateY: 17, dartX: 9, dartY: 17, direction: 'west' }
         ]
     },
 
@@ -240,6 +246,12 @@ const MapThemes = {
             { type: 'weapon_rifle', x: 1.5, y: 12.5 },
             { type: 'weapon_rocket', x: 12.5, y: 12.5 },
             { type: 'weapon_chaingun', x: 20.5, y: 11.5 }
+        ],
+        traps: [
+            // Main road ambush — plate mid-road, dart from north
+            { plateX: 12, plateY: 9, dartX: 12, dartY: 8, direction: 'south' },
+            // South corridor near bunker — plate triggers dart from east wall
+            { plateX: 7, plateY: 16, dartX: 8, dartY: 16, direction: 'west' }
         ]
     },
 
@@ -358,6 +370,12 @@ const MapThemes = {
             { type: 'weapon_rifle', x: 1.5, y: 11.5 },
             { type: 'weapon_rocket', x: 14.5, y: 11.5 },
             { type: 'weapon_chaingun', x: 20.5, y: 9.5 }
+        ],
+        traps: [
+            // Main tunnel crossing — plate in tunnel, dart from south wall
+            { plateX: 10, plateY: 7, dartX: 10, dartY: 8, direction: 'north' },
+            // South passage — plate in corridor, dart from west wall
+            { plateX: 4, plateY: 15, dartX: 3, dartY: 15, direction: 'east' }
         ]
     },
 
@@ -476,6 +494,12 @@ const MapThemes = {
             { type: 'weapon_rifle', x: 2.5, y: 11.5 },
             { type: 'weapon_rocket', x: 12.5, y: 11.5 },
             { type: 'weapon_chaingun', x: 20.5, y: 11.5 }
+        ],
+        traps: [
+            // Entry cavern corridor — plate in open area, dart from south
+            { plateX: 7, plateY: 7, dartX: 7, dartY: 8, direction: 'north' },
+            // South passage near altar — plate triggers dart from east
+            { plateX: 7, plateY: 16, dartX: 8, dartY: 16, direction: 'west' }
         ]
     },
 
@@ -594,6 +618,12 @@ const MapThemes = {
             { type: 'weapon_rifle', x: 1.5, y: 12.5 },
             { type: 'weapon_rocket', x: 12.5, y: 12.5 },
             { type: 'weapon_chaingun', x: 20.5, y: 11.5 }
+        ],
+        traps: [
+            // Frozen corridor — plate mid-corridor, dart from south
+            { plateX: 12, plateY: 9, dartX: 12, dartY: 8, direction: 'south' },
+            // South observation area — plate triggers dart from east
+            { plateX: 7, plateY: 16, dartX: 8, dartY: 16, direction: 'west' }
         ]
     }
 };
