@@ -66,6 +66,13 @@ class HUD {
         this.damageIndicators = [];
         this.damageIndicatorDuration = 1000; // 1 second
 
+        // Minimap zoom and legend
+        this.minimapZoom = 1.0; // 1.0 = default, higher = zoomed in
+        this.minimapZoomMin = 0.5;
+        this.minimapZoomMax = 2.0;
+        this.minimapZoomStep = 0.25;
+        this.showMinimapLegend = false;
+
         // Fog of war
         this.revealedTiles = new Set();
         this.visibleTiles = new Set();
@@ -2089,8 +2096,8 @@ class HUD {
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         this.ctx.fillRect(centerX - radius, centerY - radius, size, size);
 
-        // Scale: pixels per world unit (show ~10 tiles around player)
-        const viewRange = 10; // tiles visible in each direction
+        // Scale: pixels per world unit (zoom adjusts view range)
+        const viewRange = 10 / this.minimapZoom; // tiles visible in each direction
         const scale = radius / (viewRange * map.tileSize);
 
         // Rotate so player's facing direction points up on screen
@@ -2264,7 +2271,72 @@ class HUD {
         this.ctx.textAlign = 'center';
         this.ctx.fillText('N', northX, northY + 4);
 
+        // Zoom level indicator (show when not default)
+        if (this.minimapZoom !== 1.0) {
+            this.ctx.font = '9px monospace';
+            this.ctx.fillStyle = 'rgba(0, 255, 0, 0.6)';
+            this.ctx.textAlign = 'right';
+            this.ctx.fillText(this.minimapZoom.toFixed(1) + 'x', centerX + radius - 4, centerY + radius - 4);
+        }
+
+        // Legend
+        this.renderMinimapLegend(centerX, centerY, radius);
+
         this.ctx.lineWidth = 1;
+    }
+
+    renderMinimapLegend(centerX, centerY, radius) {
+        if (!this.showMinimapLegend) return;
+
+        const legendX = centerX - radius;
+        const legendY = centerY + radius + 8;
+        const lineHeight = 12;
+        const dotSize = 4;
+        const items = [
+            { color: '#FF4444', label: 'Enemy' },
+            { color: '#FFD700', label: 'Boss' },
+            { color: '#CC4400', label: 'Barrel' },
+            { color: 'rgba(0, 255, 0, 0.8)', label: 'Acid' },
+            { color: 'rgba(255, 100, 0, 0.8)', label: 'Lava' },
+            { color: '#886600', label: 'Door' },
+            { color: '#00CCFF', label: 'Pickup' },
+        ];
+
+        // Background
+        const legendW = radius * 2;
+        const legendH = items.length * lineHeight + 6;
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        this.ctx.fillRect(legendX, legendY, legendW, legendH);
+        this.ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(legendX, legendY, legendW, legendH);
+
+        this.ctx.font = '9px monospace';
+        this.ctx.textAlign = 'left';
+
+        for (let i = 0; i < items.length; i++) {
+            const y = legendY + 9 + i * lineHeight;
+            // Color dot
+            this.ctx.fillStyle = items[i].color;
+            this.ctx.beginPath();
+            this.ctx.arc(legendX + 8, y - 2, dotSize, 0, Math.PI * 2);
+            this.ctx.fill();
+            // Label
+            this.ctx.fillStyle = '#CCCCCC';
+            this.ctx.fillText(items[i].label, legendX + 16, y);
+        }
+    }
+
+    zoomMinimapIn() {
+        this.minimapZoom = Math.min(this.minimapZoomMax, this.minimapZoom + this.minimapZoomStep);
+    }
+
+    zoomMinimapOut() {
+        this.minimapZoom = Math.max(this.minimapZoomMin, this.minimapZoom - this.minimapZoomStep);
+    }
+
+    toggleMinimapLegend() {
+        this.showMinimapLegend = !this.showMinimapLegend;
     }
 
     // Toggle functions
