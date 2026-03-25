@@ -1443,6 +1443,28 @@ class GameEngine {
                     this.hud.toggleMinimap();
                     console.log('Minimap:', this.hud.showMinimap ? 'ON' : 'OFF');
                     break;
+
+                case '=':
+                case '+':
+                    if (this.hud.showMinimap) {
+                        this.hud.zoomMinimapIn();
+                        console.log('Minimap zoom:', this.hud.minimapZoom.toFixed(1) + 'x');
+                    }
+                    break;
+
+                case '-':
+                    if (this.hud.showMinimap) {
+                        this.hud.zoomMinimapOut();
+                        console.log('Minimap zoom:', this.hud.minimapZoom.toFixed(1) + 'x');
+                    }
+                    break;
+
+                case 'l':
+                    if (this.hud.showMinimap) {
+                        this.hud.toggleMinimapLegend();
+                        console.log('Minimap legend:', this.hud.showMinimapLegend ? 'ON' : 'OFF');
+                    }
+                    break;
             }
         });
     }
