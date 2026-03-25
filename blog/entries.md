@@ -4,6 +4,27 @@
 
 ---
 
+## Day 35 - March 24, 2026
+
+**"Five Maps, One Shuffle"**
+
+Two major changes tonight: a complete map architecture overhaul and the rotation system to use it.
+
+- **Map theme system with 5 unique maps** -- The monolithic hardcoded Reactor map has been refactored into a modular theme system. Each theme is a self-contained definition with a 24x24 grid, zone boundaries (for lighting, audio, and HUD tints), hazard placements, enemy rosters, item locations, doors, secrets, barrels, crates, and wave spawn points. Four new themes join the original Reactor: Military Base (barracks, armory, motor pool, bunker), The Catacombs (crypts, flooded tunnels, a central tomb), The Inferno (lava chambers, bone corridors, a demon throne room), and Cryogenics Lab (research wings, cryo-chambers, containment pods). Each has its own visual identity through zone-based lighting tints and unique layouts.
+
+- **Map rotation with shuffle queue and title card** -- Instead of replaying the same map each floor, the game now cycles through all 5 themes in a Fisher-Yates shuffled order. Waves per level reduced from 5 to 3 for faster map cycling. When entering a new map, a cinematic title card fades in with "ENTERING" and the map name in gold text, holds briefly, then fades out. The queue reshuffles when exhausted or on restart. Weapon pickups are now defined per-theme instead of hardcoded to Reactor positions, and the HUD shows the current map name instead of a floor number.
+
+*Lines of code: 26,000*
+*Tests passing: 46*
+*Sprite assets: 68*
+*Enemy types: 11 (+ 3 elite variants)*
+*Maps: 5*
+*Tickets closed: 6*
+
+**Status: The game now feels like a real campaign with variety — each run shuffles through five distinct environments with unique layouts, hazards, and atmospheres.**
+
+---
+
 ## Day 34 - March 23, 2026
 
 **"The Elite Treatment"**
