@@ -44,6 +44,7 @@ class GameMap {
         this.secretWalls = [];
         this.secretsFound = 0;
         this.totalSecrets = 0;
+        this.weaponPickups = [];
 
         // Initialize from theme data
         if (theme) {
@@ -106,6 +107,15 @@ class GameMap {
             for (const c of theme.crates) {
                 this.addCrate(c.x * this.tileSize, c.y * this.tileSize);
             }
+        }
+
+        // Weapon pickup locations
+        if (theme.weaponPickups) {
+            this.weaponPickups = theme.weaponPickups.map(wp => ({
+                type: wp.type,
+                x: wp.x * this.tileSize,
+                y: wp.y * this.tileSize
+            }));
         }
 
         // Secret rooms
