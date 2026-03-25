@@ -389,6 +389,9 @@ class GameEngine {
         // Update doors (proximity-based opening + animation)
         this.map.updateDoors(this.player.x, this.player.y, deltaTime);
 
+        // Update traps (pressure plates + dart walls)
+        this.map.updateTraps(deltaTime, this.player);
+
         // Hazard zone damage (acid: 5 HP/sec, lava: 8 HP/sec)
         const inAcid = this.map.isAcidAtPosition(this.player.x, this.player.y);
         const inLava = this.map.isLavaAtPosition(this.player.x, this.player.y);

@@ -1519,6 +1519,43 @@ class SoundEngine {
         osc.stop(now + 0.12);
     }
 
+    playTrapTrigger() {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Mechanical click
+        const click = this.audioContext.createOscillator();
+        const clickGain = this.audioContext.createGain();
+        click.connect(clickGain);
+        clickGain.connect(this.masterGain);
+        click.type = 'square';
+        click.frequency.setValueAtTime(600, now);
+        click.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+        clickGain.gain.setValueAtTime(this.sfxVolume * 0.3, now);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        click.start(now);
+        click.stop(now + 0.08);
+
+        // Dart whoosh
+        const noiseBuffer = this.createNoiseBuffer(0.12);
+        if (noiseBuffer) {
+            const noise = this.audioContext.createBufferSource();
+            noise.buffer = noiseBuffer;
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.setValueAtTime(2000, now + 0.04);
+            const noiseGain = this.audioContext.createGain();
+            noise.connect(filter);
+            filter.connect(noiseGain);
+            noiseGain.connect(this.masterGain);
+            noiseGain.gain.setValueAtTime(0, now + 0.04);
+            noiseGain.gain.linearRampToValueAtTime(this.sfxVolume * 0.25, now + 0.06);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+            noise.start(now + 0.04);
+            noise.stop(now + 0.16);
+        }
+    }
+
     playDash() {
         if (!this.isInitialized) return;
         const now = this.audioContext.currentTime;
