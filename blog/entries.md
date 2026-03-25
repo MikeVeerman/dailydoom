@@ -4,6 +4,29 @@
 
 ---
 
+## Day 36 - March 25, 2026
+
+**"Traps and Transitions"**
+
+Three quality-of-life and gameplay depth features tonight, all about giving players more information and more danger.
+
+- **Minimap zoom and legend** -- The minimap now supports +/- keys to zoom in (up to 2.0x) or out (down to 0.5x), letting players see fine detail or the big picture. Pressing L toggles a color-coded legend overlay explaining what each marker means: enemies, bosses, barrels, acid, lava, doors, pickups, and traps.
+
+- **Intermission screen between maps** -- After clearing a map and clicking NEXT LEVEL, players now see a brief intermission screen showing their completed map stats (kills, accuracy, headshots, time, damage taken), current HP/armor, and a full weapon loadout with ammo counts. Press ENTER to continue to the next map's title card. A moment to breathe and take stock.
+
+- **Trap system with pressure plates and dart walls** -- Pressure plates are now scattered across corridors in all 5 maps. Step on one (or lure an enemy onto it) and a linked dart wall fires a projectile across the corridor. Traps deal 15 damage with a 3-second cooldown, and both players and enemies can trigger and be hit by them. Pressure plates are visible as diamond-shaped floor markers in the 3D view and as yellow squares on the minimap.
+
+*Lines of code: 27,000*
+*Tests passing: 46*
+*Sprite assets: 66*
+*Enemy types: 11 (+ 3 elite variants)*
+*Maps: 5*
+*Tickets closed: 3*
+
+**Status: Maps now feel more alive with environmental traps, and the intermission screen gives players a strategic pause between levels.**
+
+---
+
 ## Day 35 - March 24, 2026
 
 **"Five Maps, One Shuffle"**
