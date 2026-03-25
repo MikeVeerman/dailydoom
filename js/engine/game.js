@@ -89,6 +89,9 @@ class GameEngine {
         // Title card display
         this.titleCard = { active: false, text: '', startTime: 0, duration: 2000 };
 
+        // Intermission screen between maps
+        this.intermission = { active: false, stats: null, weapons: null };
+
         // Initialize systems
         this.initialize();
     }
@@ -367,7 +370,7 @@ class GameEngine {
     
     update(deltaTime) {
         // Skip updates while player is dead or level is complete
-        if (this.player.isDead || this.levelComplete || this.showDeathScreen) return;
+        if (this.player.isDead || this.levelComplete || this.showDeathScreen || this.intermission.active) return;
 
         // Update game systems
         this.player.update(deltaTime, this.map);
@@ -1068,6 +1071,148 @@ class GameEngine {
         this.titleCard.startTime = performance.now();
     }
 
+    showIntermission() {
+        const stats = this.player.stats;
+        const elapsed = (this.levelCompleteTime - this.levelStartTime) / 1000;
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = Math.floor(elapsed % 60);
+        const accuracy = stats.shotsFired > 0
+            ? Math.round((stats.shotsHit / stats.shotsFired) * 100) : 0;
+
+        // Gather weapon loadout
+        const wm = this.player.weaponManager;
+        const weapons = [];
+        for (const name of wm.unlockedWeapons) {
+            const w = wm.weapons[name];
+            weapons.push({
+                name: name,
+                ammo: w.ammo,
+                reserve: w.maxAmmo,
+                current: name === wm.currentWeapon
+            });
+        }
+
+        this.intermission = {
+            active: true,
+            stats: {
+                kills: stats.enemiesKilled,
+                total: this.totalEnemyCount,
+                accuracy: accuracy,
+                time: `${minutes}:${seconds.toString().padStart(2, '0')}`,
+                damageTaken: Math.round(stats.damageTaken),
+                headshots: stats.headshots || 0,
+                mapName: this.map.themeName || 'Unknown'
+            },
+            weapons: weapons,
+            playerHealth: this.player.health,
+            playerArmor: this.player.armor,
+            playerLevel: this.player.level
+        };
+
+        this.levelComplete = false;
+    }
+
+    renderIntermission() {
+        const ctx = this.canvas.getContext('2d');
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const im = this.intermission;
+
+        // Full dark overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.textAlign = 'center';
+
+        // Header
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 28px monospace';
+        ctx.fillText('INTERMISSION', w / 2, h * 0.10);
+
+        ctx.fillStyle = '#AAAAAA';
+        ctx.font = '14px monospace';
+        ctx.fillText(`${im.stats.mapName} cleared`, w / 2, h * 0.15);
+
+        // Stats panel
+        const panelX = w * 0.2;
+        const panelW = w * 0.6;
+        const panelY = h * 0.20;
+        ctx.fillStyle = 'rgba(20, 20, 30, 0.8)';
+        ctx.fillRect(panelX, panelY, panelW, 130);
+        ctx.strokeStyle = '#444444';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(panelX, panelY, panelW, 130);
+
+        ctx.font = 'bold 14px monospace';
+        ctx.fillStyle = '#FFD700';
+        ctx.fillText('MAP STATS', w / 2, panelY + 20);
+
+        ctx.font = '13px monospace';
+        ctx.textAlign = 'left';
+        const col1 = panelX + 20;
+        const col2 = panelX + panelW / 2 + 10;
+        let y = panelY + 42;
+        const lineH = 20;
+
+        ctx.fillStyle = '#CCCCCC';
+        ctx.fillText(`Kills: ${im.stats.kills} / ${im.stats.total}`, col1, y);
+        ctx.fillText(`Accuracy: ${im.stats.accuracy}%`, col2, y);
+        y += lineH;
+        ctx.fillText(`Headshots: ${im.stats.headshots}`, col1, y);
+        ctx.fillText(`Time: ${im.stats.time}`, col2, y);
+        y += lineH;
+        ctx.fillText(`Damage Taken: ${im.stats.damageTaken}`, col1, y);
+
+        // Player status
+        y += lineH + 5;
+        ctx.fillStyle = '#00FF00';
+        ctx.fillText(`HP: ${Math.round(im.playerHealth)}`, col1, y);
+        ctx.fillStyle = '#0088FF';
+        ctx.fillText(`Armor: ${Math.round(im.playerArmor)}`, col2, y);
+
+        // Loadout panel
+        const loadoutY = panelY + 150;
+        ctx.fillStyle = 'rgba(20, 20, 30, 0.8)';
+        ctx.fillRect(panelX, loadoutY, panelW, 30 + im.weapons.length * 22);
+        ctx.strokeStyle = '#444444';
+        ctx.strokeRect(panelX, loadoutY, panelW, 30 + im.weapons.length * 22);
+
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 14px monospace';
+        ctx.fillStyle = '#FFD700';
+        ctx.fillText('LOADOUT', w / 2, loadoutY + 20);
+
+        ctx.font = '13px monospace';
+        ctx.textAlign = 'left';
+        const weaponColors = {
+            pistol: '#FFFF00', shotgun: '#FF8800', rifle: '#00CCFF',
+            rocket: '#FF4444', chaingun: '#AAAAFF'
+        };
+        let wy = loadoutY + 40;
+        for (const wp of im.weapons) {
+            const isCurrent = wp.current;
+            ctx.fillStyle = isCurrent ? '#FFFFFF' : '#888888';
+            const marker = isCurrent ? '>' : ' ';
+            const name = wp.name.charAt(0).toUpperCase() + wp.name.slice(1);
+            ctx.fillStyle = weaponColors[wp.name] || '#CCCCCC';
+            if (!isCurrent) ctx.globalAlpha = 0.6;
+            ctx.fillText(`${marker} ${name}`, col1, wy);
+            ctx.fillStyle = '#AAAAAA';
+            ctx.fillText(`${wp.ammo} / ${wp.reserve}`, col2, wy);
+            ctx.globalAlpha = 1;
+            wy += 22;
+        }
+
+        // Continue prompt (pulsing)
+        const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 400);
+        ctx.textAlign = 'center';
+        ctx.globalAlpha = 0.5 + pulse * 0.5;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 16px monospace';
+        ctx.fillText('PRESS ENTER TO CONTINUE', w / 2, h * 0.88);
+        ctx.globalAlpha = 1;
+    }
+
     render() {
         // Apply screen shake offset
         const shake = this.hud.getScreenShakeOffset();
@@ -1087,6 +1232,11 @@ class GameEngine {
         // Render level completion screen
         if (this.levelComplete) {
             this.renderCompletionScreen();
+        }
+
+        // Render intermission screen
+        if (this.intermission.active) {
+            this.renderIntermission();
         }
 
         // Render death stats screen
@@ -1313,7 +1463,7 @@ class GameEngine {
                 if (this._nextLevelBtn) {
                     const btn = this._nextLevelBtn;
                     if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
-                        this.nextLevel();
+                        this.showIntermission();
                         return;
                     }
                 }
@@ -1465,6 +1615,13 @@ class GameEngine {
                         console.log('Minimap legend:', this.hud.showMinimapLegend ? 'ON' : 'OFF');
                     }
                     break;
+
+                case 'Enter':
+                    if (this.intermission.active) {
+                        this.intermission.active = false;
+                        this.nextLevel();
+                    }
+                    break;
             }
         });
     }
@@ -1509,7 +1666,7 @@ class GameEngine {
     }
 
     isMenuOpen() {
-        return this.paused || this.levelComplete || this.showDeathScreen;
+        return this.paused || this.levelComplete || this.showDeathScreen || this.intermission.active;
     }
     
     getCurrentState() {
