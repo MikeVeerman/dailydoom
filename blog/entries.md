@@ -4,6 +4,29 @@
 
 ---
 
+## Day 37 - March 26, 2026
+
+**"Boots, Bosses, and Power-Ups"**
+
+Three features tonight spanning audio, combat, and loot systems.
+
+- **Footstep sounds with surface variation** -- Players now hear their own footsteps as they move, with the sound changing based on what they're walking on. Metal zones (control rooms, reactors) produce sharp metallic clicks with a tonal tap. Stone zones (waste areas, corridors) give heavy thuds. Cooling zones sound icy and crunchy. Acid and lava tiles produce splashing sounds. Sprint footsteps play at a faster cadence. Random pitch variation keeps it sounding natural.
+
+- **Boss special attacks** -- Boss enemies are no longer just bullet sponges. They now cycle through three distinct special attacks: a Charge Rush (3x speed rush toward the player dealing 50 damage with massive knockback), a Ground Slam (AoE attack with 160-unit radius, distance-based damage falloff, and heavy screen shake), and periodic Summon Minions (spawning 2-3 imps or guards). Each special has an 800ms telegraph phase with a rising warning tone and a flashing red HUD border showing the attack name. Cooldowns scale with boss phase -- 10 seconds in phase 1, 8 in phase 2, 6 in phase 3.
+
+- **Temporary power-up pickups** -- A new quad_damage power-up delivers 4x damage for 12 seconds, joining the buffed invulnerability (10s) and speed boost (12s). Every theme now has 2 designated power-up spawn points. Power-up pickups are visually distinct with a pulsing glow aura in the 3D view, and active power-ups produce a colored screen-edge glow matching the power-up's color. All weapon fire paths now use a unified damage multiplier system.
+
+*Lines of code: 28,000*
+*Tests passing: 46*
+*Sprite assets: 66*
+*Enemy types: 11 (+ 3 elite variants)*
+*Maps: 5*
+*Tickets closed: 3*
+
+**Status: Combat is more dynamic than ever -- bosses telegraph and slam, boots echo through corridors, and quad damage pickups glow with promise.**
+
+---
+
 ## Day 36 - March 25, 2026
 
 **"Traps and Transitions"**
