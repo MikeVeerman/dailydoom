@@ -88,39 +88,52 @@ class Pickup {
                 message: '+25 Armor'
             },
             speed_boost: {
-                value: 10000, // duration in ms
-                color: '#FF0088',
+                value: 12000, // duration in ms
+                color: '#00AAFF',
                 maxValue: 0, // no limit
                 sound: 'powerup',
-                message: 'Speed Boost!'
+                message: 'Speed Boost!',
+                isPowerup: true
             },
             damage_boost: {
                 value: 15000, // duration in ms
                 color: '#FF4400',
                 maxValue: 0,
                 sound: 'powerup',
-                message: 'Damage Boost!'
+                message: 'Damage Boost!',
+                isPowerup: true
+            },
+            quad_damage: {
+                value: 12000, // duration in ms
+                color: '#FFD700',
+                maxValue: 0,
+                sound: 'powerup',
+                message: 'QUAD DAMAGE!',
+                isPowerup: true
             },
             rapid_fire: {
                 value: 8000, // duration in ms
                 color: '#00FF88',
                 maxValue: 0,
                 sound: 'powerup',
-                message: 'Rapid Fire!'
+                message: 'Rapid Fire!',
+                isPowerup: true
             },
             invulnerability: {
-                value: 5000, // duration in ms
-                color: '#FFD700',
+                value: 10000, // duration in ms
+                color: '#FF00FF',
                 maxValue: 0,
                 sound: 'powerup',
-                message: 'Invulnerable!'
+                message: 'INVULNERABLE!',
+                isPowerup: true
             },
             health_regen: {
                 value: 12000, // duration in ms
                 color: '#FF88CC',
                 maxValue: 0,
                 sound: 'powerup',
-                message: 'Health Regen!'
+                message: 'Health Regen!',
+                isPowerup: true
             },
             weapon_shotgun: {
                 value: 0,
@@ -187,7 +200,7 @@ class Pickup {
         this.bobOffset += this.bobSpeed * deltaTime;
         
         // Animate rotation for power-ups, weapon pickups, and mods
-        if (this.type.includes('boost') || this.type.startsWith('weapon_') || this.type.startsWith('mod_')) {
+        if (this.properties.isPowerup || this.type.includes('boost') || this.type.startsWith('weapon_') || this.type.startsWith('mod_')) {
             this.rotation += this.rotationSpeed * deltaTime;
         }
         
@@ -271,6 +284,11 @@ class Pickup {
                 
             case 'damage_boost':
                 player.applyDamageBoost(props.value);
+                canCollect = true;
+                break;
+
+            case 'quad_damage':
+                player.applyQuadDamage(props.value);
                 canCollect = true;
                 break;
 
@@ -587,42 +605,52 @@ class PickupManager {
         }
     }
 
+    // Spawn power-ups at theme-defined locations or random positions
+    spawnPowerups(map) {
+        const powerupLocations = map.powerupSpawns || [];
+        if (powerupLocations.length > 0) {
+            for (const loc of powerupLocations) {
+                if (!map.isWallAtPosition(loc.x, loc.y)) {
+                    this.addPickup(loc.x, loc.y, loc.type);
+                }
+            }
+        } else {
+            // Fallback: spawn 1-2 random power-ups
+            const powerupTypes = ['quad_damage', 'invulnerability', 'speed_boost'];
+            const count = 1 + (Math.random() < 0.4 ? 1 : 0);
+            for (let i = 0; i < count; i++) {
+                let x, y, attempts = 0;
+                do {
+                    x = (Math.random() * (map.width - 2) + 1) * map.tileSize;
+                    y = (Math.random() * (map.height - 2) + 1) * map.tileSize;
+                    attempts++;
+                } while (map.isWallAtPosition(x, y) && attempts < 100);
+                if (attempts < 100) {
+                    const type = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
+                    this.addPickup(x, y, type);
+                }
+            }
+        }
+    }
+
     // Spawn random pickups around the map
     spawnRandomPickups(map, count = 5) {
         const pickupTypes = ['health', 'ammo_pistol', 'ammo_shotgun', 'ammo_rifle', 'ammo_rocket', 'ammo_chaingun', 'armor'];
-        
+
         for (let i = 0; i < count; i++) {
             let x, y;
             let attempts = 0;
-            
+
             // Find valid spawn position
             do {
                 x = (Math.random() * (map.width - 2) + 1) * map.tileSize;
                 y = (Math.random() * (map.height - 2) + 1) * map.tileSize;
                 attempts++;
             } while (map.isWallAtPosition(x, y) && attempts < 100);
-            
+
             if (attempts < 100) {
                 const type = pickupTypes[Math.floor(Math.random() * pickupTypes.length)];
                 this.addPickup(x, y, type);
-            }
-        }
-        
-        // Add one power-up with lower probability
-        if (Math.random() < 0.3) {
-            let x, y;
-            let attempts = 0;
-            
-            do {
-                x = (Math.random() * (map.width - 2) + 1) * map.tileSize;
-                y = (Math.random() * (map.height - 2) + 1) * map.tileSize;
-                attempts++;
-            } while (map.isWallAtPosition(x, y) && attempts < 100);
-            
-            if (attempts < 100) {
-                const powerupTypes = ['speed_boost', 'damage_boost', 'rapid_fire', 'invulnerability', 'health_regen'];
-            const powerupType = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
-                this.addPickup(x, y, powerupType);
             }
         }
     }

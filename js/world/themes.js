@@ -123,6 +123,10 @@ const MapThemes = {
             { type: 'weapon_rocket', x: 12.5, y: 14.5 },
             { type: 'weapon_chaingun', x: 20.5, y: 11.5 }
         ],
+        powerupSpawns: [
+            { type: 'quad_damage', x: 12.5, y: 12.5 },
+            { type: 'invulnerability', x: 3.5, y: 20.5 }
+        ],
         traps: [
             // Corridor between control room and reactor — plate in hallway, dart from north wall
             { plateX: 12, plateY: 8, dartX: 12, dartY: 7, direction: 'south' },
@@ -246,6 +250,10 @@ const MapThemes = {
             { type: 'weapon_rifle', x: 1.5, y: 12.5 },
             { type: 'weapon_rocket', x: 12.5, y: 12.5 },
             { type: 'weapon_chaingun', x: 20.5, y: 11.5 }
+        ],
+        powerupSpawns: [
+            { type: 'speed_boost', x: 12.5, y: 11.5 },
+            { type: 'quad_damage', x: 3.5, y: 20.5 }
         ],
         traps: [
             // Main road ambush — plate mid-road, dart from north
@@ -371,6 +379,10 @@ const MapThemes = {
             { type: 'weapon_rocket', x: 14.5, y: 11.5 },
             { type: 'weapon_chaingun', x: 20.5, y: 9.5 }
         ],
+        powerupSpawns: [
+            { type: 'invulnerability', x: 10.5, y: 11.5 },
+            { type: 'speed_boost', x: 20.5, y: 20.5 }
+        ],
         traps: [
             // Main tunnel crossing — plate in tunnel, dart from south wall
             { plateX: 10, plateY: 7, dartX: 10, dartY: 8, direction: 'north' },
@@ -495,6 +507,10 @@ const MapThemes = {
             { type: 'weapon_rocket', x: 12.5, y: 11.5 },
             { type: 'weapon_chaingun', x: 20.5, y: 11.5 }
         ],
+        powerupSpawns: [
+            { type: 'quad_damage', x: 12.5, y: 20.5 },
+            { type: 'invulnerability', x: 4.5, y: 11.5 }
+        ],
         traps: [
             // Entry cavern corridor — plate in open area, dart from south
             { plateX: 7, plateY: 7, dartX: 7, dartY: 8, direction: 'north' },
@@ -618,6 +634,10 @@ const MapThemes = {
             { type: 'weapon_rifle', x: 1.5, y: 12.5 },
             { type: 'weapon_rocket', x: 12.5, y: 12.5 },
             { type: 'weapon_chaingun', x: 20.5, y: 11.5 }
+        ],
+        powerupSpawns: [
+            { type: 'speed_boost', x: 12.5, y: 12.5 },
+            { type: 'quad_damage', x: 20.5, y: 20.5 }
         ],
         traps: [
             // Frozen corridor — plate mid-corridor, dart from south

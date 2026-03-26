@@ -194,8 +194,10 @@ class Weapon {
                 if (player.stats) player.stats.criticalHits = (player.stats.criticalHits || 0) + 1;
             }
 
-            // Apply damage boost if active
-            if (player.hasDamageBoost && player.hasDamageBoost()) {
+            // Apply power-up damage multiplier (quad damage or damage boost)
+            if (player.getDamageMultiplierFromPowerups) {
+                actualDamage *= player.getDamageMultiplierFromPowerups();
+            } else if (player.hasDamageBoost && player.hasDamageBoost()) {
                 actualDamage *= 1.5;
             }
 
@@ -628,7 +630,7 @@ class Weapon {
                 actualDamage *= 2;
                 if (player.stats) player.stats.criticalHits = (player.stats.criticalHits || 0) + 1;
             }
-            if (player.hasDamageBoost && player.hasDamageBoost()) actualDamage *= 1.5;
+            actualDamage *= player.getDamageMultiplierFromPowerups ? player.getDamageMultiplierFromPowerups() : (player.hasDamageBoost && player.hasDamageBoost() ? 1.5 : 1.0);
             if (player.levelBonuses) actualDamage *= player.levelBonuses.damageMultiplier;
             actualDamage = Math.round(actualDamage);
 
@@ -727,7 +729,7 @@ class Weapon {
                 actualDamage *= 2;
                 if (player.stats) player.stats.criticalHits = (player.stats.criticalHits || 0) + 1;
             }
-            if (player.hasDamageBoost && player.hasDamageBoost()) actualDamage *= 1.5;
+            actualDamage *= player.getDamageMultiplierFromPowerups ? player.getDamageMultiplierFromPowerups() : (player.hasDamageBoost && player.hasDamageBoost() ? 1.5 : 1.0);
             if (player.levelBonuses) actualDamage *= player.levelBonuses.damageMultiplier;
             actualDamage = Math.round(actualDamage);
 

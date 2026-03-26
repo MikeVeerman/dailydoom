@@ -1274,13 +1274,40 @@ class HUD {
             this.ctx.fillRect(0, h - edgeSize, w, edgeSize);
         }
 
-        // Power-up glow: golden shimmer when any power-up is active
+        // Power-up glow: colored screen edge when any power-up is active
         if (player.getActivePowerups) {
             const powerups = player.getActivePowerups();
             if (powerups.length > 0) {
-                const glowAlpha = (Math.sin(now * 0.006) * 0.5 + 0.5) * 0.05;
-                this.ctx.fillStyle = `rgba(255, 215, 0, ${glowAlpha})`;
-                this.ctx.fillRect(0, 0, w, h);
+                // Use the most prominent power-up's color for the border glow
+                const primary = powerups[0];
+                const pulse = 0.08 + 0.06 * Math.sin(now * 0.008);
+                // Parse hex color to RGB
+                const hex = primary.color;
+                const r = parseInt(hex.slice(1, 3), 16) || 255;
+                const g = parseInt(hex.slice(3, 5), 16) || 215;
+                const b = parseInt(hex.slice(5, 7), 16) || 0;
+                // Edge glow on all 4 sides
+                const edgePx = 12;
+                const topGrad = this.ctx.createLinearGradient(0, 0, 0, edgePx);
+                topGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${pulse})`);
+                topGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+                this.ctx.fillStyle = topGrad;
+                this.ctx.fillRect(0, 0, w, edgePx);
+                const btmGrad = this.ctx.createLinearGradient(0, h, 0, h - edgePx);
+                btmGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${pulse})`);
+                btmGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+                this.ctx.fillStyle = btmGrad;
+                this.ctx.fillRect(0, h - edgePx, w, edgePx);
+                const lftGrad = this.ctx.createLinearGradient(0, 0, edgePx, 0);
+                lftGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${pulse})`);
+                lftGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+                this.ctx.fillStyle = lftGrad;
+                this.ctx.fillRect(0, 0, edgePx, h);
+                const rgtGrad = this.ctx.createLinearGradient(w, 0, w - edgePx, 0);
+                rgtGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${pulse})`);
+                rgtGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+                this.ctx.fillStyle = rgtGrad;
+                this.ctx.fillRect(w - edgePx, 0, edgePx, h);
             }
         }
     }

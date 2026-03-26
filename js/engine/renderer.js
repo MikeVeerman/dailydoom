@@ -1421,6 +1421,24 @@ class Renderer {
             const floorY = this.halfHeight + wallScreenHeight / 2;
             const screenY = floorY - size / 2;
 
+            // Power-up glow aura (pulsing halo behind the pickup)
+            const isPowerup = entity.properties && entity.properties.isPowerup;
+            if (isPowerup) {
+                const pulse = 0.4 + 0.3 * Math.sin(Date.now() * 0.006);
+                const glowSize = size * 1.8;
+                const glowColor = entity.properties.color || '#FFD700';
+                const grad = this.ctx.createRadialGradient(screenX, screenY, size * 0.2, screenX, screenY, glowSize / 2);
+                grad.addColorStop(0, glowColor.replace(')', `, ${pulse})`).replace('rgb', 'rgba').replace('#', ''));
+                // Simpler approach: use globalAlpha
+                this.ctx.save();
+                this.ctx.globalAlpha = pulse;
+                this.ctx.fillStyle = glowColor;
+                this.ctx.beginPath();
+                this.ctx.arc(screenX, screenY, glowSize / 2, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.restore();
+            }
+
             // Try sprite-based pickup rendering
             const pickupType = entity.type || '';
             const pickupImg = this.pickupSprites[pickupType];
