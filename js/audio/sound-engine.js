@@ -491,34 +491,58 @@ class SoundEngine {
         }
     }
     
-    // Footstep sounds
-    playFootstep() {
+    // Footstep sounds with surface-aware variation
+    playFootstep(surfaceType = 'stone') {
         if (!this.isInitialized) return;
-        
+
         const now = this.audioContext.currentTime;
-        const noiseBuffer = this.createNoiseBuffer(0.05); // Very short
+
+        // Surface profiles: filterFreq, filterQ, volume, duration, addTone
+        const surfaces = {
+            metal:  { freq: 800, Q: 6, vol: 0.25, dur: 0.06, tone: 4200 },
+            stone:  { freq: 200, Q: 2, vol: 0.20, dur: 0.05, tone: 0 },
+            ice:    { freq: 1200, Q: 8, vol: 0.18, dur: 0.04, tone: 6000 },
+            liquid: { freq: 400, Q: 1, vol: 0.22, dur: 0.08, tone: 0 }
+        };
+        const s = surfaces[surfaceType] || surfaces.stone;
+
+        // Slight random pitch variation for natural feel
+        const pitchVar = 0.85 + Math.random() * 0.3;
+
+        const noiseBuffer = this.createNoiseBuffer(s.dur);
         const noiseSource = this.audioContext.createBufferSource();
         const gainNode = this.audioContext.createGain();
         const filterNode = this.audioContext.createBiquadFilter();
-        
-        // Set up audio chain
+
         noiseSource.buffer = noiseBuffer;
         noiseSource.connect(filterNode);
         filterNode.connect(gainNode);
         gainNode.connect(this.masterGain);
-        
-        // Filter for more realistic footstep
+
         filterNode.type = 'lowpass';
-        filterNode.frequency.setValueAtTime(200, now);
-        filterNode.Q.setValueAtTime(2, now);
-        
-        // Quick envelope
+        filterNode.frequency.setValueAtTime(s.freq * pitchVar, now);
+        filterNode.Q.setValueAtTime(s.Q, now);
+
         gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(this.sfxVolume * 0.2, now + 0.01);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-        
+        gainNode.gain.linearRampToValueAtTime(this.sfxVolume * s.vol, now + 0.008);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + s.dur);
+
         noiseSource.start(now);
-        noiseSource.stop(now + 0.05);
+        noiseSource.stop(now + s.dur);
+
+        // Metal and ice get a brief tonal click for that sharp tap sound
+        if (s.tone > 0) {
+            const osc = this.audioContext.createOscillator();
+            const oscGain = this.audioContext.createGain();
+            osc.connect(oscGain);
+            oscGain.connect(this.masterGain);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(s.tone * pitchVar, now);
+            oscGain.gain.setValueAtTime(this.sfxVolume * 0.06, now);
+            oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+            osc.start(now);
+            osc.stop(now + 0.025);
+        }
     }
     
     // Reload sound
