@@ -228,6 +228,9 @@ class HUD {
             // Render hazard zone warning
             this.renderHazardWarning();
 
+            // Render boss attack telegraph warning
+            this.renderBossAttackWarning(gameEngine);
+
             this.ctx.restore();
         } catch (error) {
             console.error('HUD: Critical rendering error:', error);
@@ -1321,6 +1324,34 @@ class HUD {
         const textAlpha = 0.6 + 0.4 * Math.sin(now * 0.006);
         this.ctx.fillStyle = `rgba(${color}, ${textAlpha})`;
         this.ctx.fillText(`WARNING: ${label} ZONE`, w / 2, h - 52);
+        this.ctx.textAlign = 'left';
+    }
+
+    renderBossAttackWarning(gameEngine) {
+        if (!gameEngine || !gameEngine.map) return;
+        const boss = gameEngine.map.enemies.find(e => e.active && !e.dying && e.type === 'boss' && e.bossSpecialTelegraph);
+        if (!boss) return;
+
+        const now = Date.now();
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const pulse = 0.5 + 0.5 * Math.sin(now * 0.015);
+
+        // Red border flash
+        const edgeSize = 8;
+        this.ctx.fillStyle = `rgba(255, 50, 0, ${0.3 * pulse})`;
+        this.ctx.fillRect(0, 0, w, edgeSize);
+        this.ctx.fillRect(0, h - edgeSize, w, edgeSize);
+        this.ctx.fillRect(0, 0, edgeSize, h);
+        this.ctx.fillRect(w - edgeSize, 0, edgeSize, h);
+
+        // Warning text
+        const labels = { charge: 'BOSS CHARGING!', slam: 'GROUND SLAM!', summon: 'SUMMONING!' };
+        const label = labels[boss.bossSpecialTelegraph] || 'BOSS ATTACK!';
+        this.ctx.font = 'bold 22px monospace';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillStyle = `rgba(255, ${Math.floor(80 * pulse)}, 0, ${0.6 + 0.4 * pulse})`;
+        this.ctx.fillText(label, w / 2, 80);
         this.ctx.textAlign = 'left';
     }
 

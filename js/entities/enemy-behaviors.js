@@ -210,7 +210,7 @@ const EnemyBehaviors = {
         sniperRelocate: true // Relocates after firing
     },
 
-    // Boss enemy - massive health, multiple attack phases
+    // Boss enemy - massive health, multiple attack phases, special attacks
     boss: {
         health: 750,
         speed: 22,
@@ -229,7 +229,8 @@ const EnemyBehaviors = {
         useCover: false,
         chargeAttack: true,
         bossPhases: true, // Changes behavior at health thresholds
-        summonMinions: true // Spawns additional enemies
+        summonMinions: true, // Spawns additional enemies
+        bossSpecialAttacks: true // Charge rush, ground slam, periodic summon
     }
 };
 
@@ -427,6 +428,13 @@ class EnhancedEnemyAI {
         // Boss phase transitions
         if (this.behavior.bossPhases) {
             this.updateBossPhase(player, map);
+        }
+
+        // Boss special attacks (checked before normal attack)
+        if (this.behavior.bossSpecialAttacks) {
+            if (this.updateBossSpecialAttack(player, deltaTime, map)) {
+                return; // Special attack in progress, skip normal attack
+            }
         }
 
         // Check if should retreat to maintain distance
@@ -938,6 +946,198 @@ class EnhancedEnemyAI {
                 console.log('Boss summoned a minion!');
             }
         }
+    }
+
+    // Boss special attack system
+    updateBossSpecialAttack(player, deltaTime, map) {
+        const now = Date.now();
+        if (!this.bossSpecialCooldown) this.bossSpecialCooldown = 0;
+        if (!this.bossSpecialState) this.bossSpecialState = 'idle'; // idle, telegraph, executing
+
+        // Handle active special attack execution
+        if (this.bossSpecialState === 'executing') {
+            return this.executeBossSpecial(player, deltaTime, map);
+        }
+
+        // Telegraph phase: boss is winding up
+        if (this.bossSpecialState === 'telegraph') {
+            if (now - this.bossSpecialTelegraphStart >= 800) {
+                this.bossSpecialState = 'executing';
+                this.bossSpecialExecStart = now;
+            }
+            return true; // Block normal attacks during telegraph
+        }
+
+        // Check cooldown for next special
+        const specialInterval = this.bossPhase === 3 ? 6000 : this.bossPhase === 2 ? 8000 : 10000;
+        if (now - this.bossSpecialCooldown < specialInterval) return false;
+
+        // Pick a special attack
+        const distance = this.getDistanceToPlayer(player);
+        const phase = this.bossPhase || 1;
+        let specials = [];
+
+        // Ground slam: close range
+        if (distance < 200) specials.push('slam');
+        // Charge rush: medium-far range
+        if (distance > 100 && distance < 400) specials.push('charge');
+        // Summon: phase 2+, prefer when few minions alive
+        if (phase >= 2 && map) {
+            const minionCount = map.enemies.filter(e => e.active && !e.dying && e.type !== 'boss').length;
+            if (minionCount < 4) specials.push('summon');
+        }
+
+        if (specials.length === 0) return false;
+
+        // Start telegraph
+        this.bossCurrentSpecial = specials[Math.floor(Math.random() * specials.length)];
+        this.bossSpecialState = 'telegraph';
+        this.bossSpecialTelegraphStart = now;
+        this.bossSpecialCooldown = now;
+        this.enemy.bossSpecialTelegraph = this.bossCurrentSpecial; // for HUD
+
+        // Telegraph sound
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playBossTelegraph(this.bossCurrentSpecial);
+        }
+
+        return true;
+    }
+
+    executeBossSpecial(player, deltaTime, map) {
+        const now = Date.now();
+        const elapsed = now - this.bossSpecialExecStart;
+        const special = this.bossCurrentSpecial;
+
+        if (special === 'charge') {
+            return this.executeBossCharge(player, deltaTime, map, elapsed);
+        } else if (special === 'slam') {
+            return this.executeBossSlam(player, deltaTime, map, elapsed);
+        } else if (special === 'summon') {
+            return this.executeBossSummon(player, map, elapsed);
+        }
+
+        this.endBossSpecial();
+        return false;
+    }
+
+    executeBossCharge(player, deltaTime, map, elapsed) {
+        const chargeDuration = 600;
+        if (elapsed >= chargeDuration) {
+            this.endBossSpecial();
+            return false;
+        }
+
+        // Rush toward player at 3x speed
+        const chargeSpeed = this.behavior.speed * 3;
+        const dx = player.x - this.enemy.x;
+        const dy = player.y - this.enemy.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > 10) {
+            const moveX = (dx / dist) * chargeSpeed * deltaTime;
+            const moveY = (dy / dist) * chargeSpeed * deltaTime;
+            if (map && !map.isWallAtPosition(this.enemy.x + moveX, this.enemy.y)) {
+                this.enemy.x += moveX;
+            }
+            if (map && !map.isWallAtPosition(this.enemy.x, this.enemy.y + moveY)) {
+                this.enemy.y += moveY;
+            }
+        }
+
+        // Check collision with player
+        if (dist < 50) {
+            const chargeDamage = 50;
+            if (player.takeDamage(chargeDamage)) {
+                if (window.game && window.game.hud) {
+                    window.game.hud.onPlayerDamageFrom(this.enemy.x, this.enemy.y, chargeDamage);
+                    window.game.hud.triggerScreenShake(15);
+                    window.game.hud.addKillFeedMessage('BOSS CHARGE!', '#FF4400');
+                }
+                if (player.applyKnockback) {
+                    player.applyKnockback(this.enemy.x, this.enemy.y, 600);
+                }
+                if (window.soundEngine && window.soundEngine.isInitialized) {
+                    window.soundEngine.playPlayerHit();
+                }
+            }
+            this.endBossSpecial();
+            return false;
+        }
+
+        return true;
+    }
+
+    executeBossSlam(player, deltaTime, map, elapsed) {
+        if (elapsed >= 200) {
+            // Slam executes instantly after brief delay
+            const distance = this.getDistanceToPlayer(player);
+            const slamRadius = 160;
+            const slamDamage = 35;
+
+            if (distance < slamRadius) {
+                // Damage falls off with distance
+                const falloff = 1 - (distance / slamRadius);
+                const damage = Math.round(slamDamage * falloff);
+                if (player.takeDamage(damage)) {
+                    if (window.game && window.game.hud) {
+                        window.game.hud.onPlayerDamageFrom(this.enemy.x, this.enemy.y, damage);
+                        window.game.hud.addKillFeedMessage('BOSS SLAM!', '#FF8800');
+                    }
+                    if (player.applyKnockback) {
+                        player.applyKnockback(this.enemy.x, this.enemy.y, 400);
+                    }
+                }
+            }
+
+            // Visual + audio
+            if (window.game && window.game.hud) {
+                window.game.hud.triggerScreenShake(20);
+                window.game.hud.emitBloodParticles(this.enemy.x, this.enemy.y, 10);
+            }
+            if (window.soundEngine && window.soundEngine.isInitialized) {
+                window.soundEngine.playBossSlam();
+            }
+
+            this.endBossSpecial();
+            return false;
+        }
+        return true;
+    }
+
+    executeBossSummon(player, map, elapsed) {
+        if (elapsed >= 300) {
+            const count = (this.bossPhase || 1) >= 3 ? 3 : 2;
+            for (let i = 0; i < count; i++) {
+                const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+                const spawnX = this.enemy.x + Math.cos(angle) * 90;
+                const spawnY = this.enemy.y + Math.sin(angle) * 90;
+                if (map && !map.isWallAtPosition(spawnX, spawnY)) {
+                    const type = Math.random() < 0.5 ? 'imp' : 'guard';
+                    const minion = new Enemy(spawnX, spawnY, type);
+                    minion.state = 'chase';
+                    map.enemies.push(minion);
+                }
+            }
+
+            if (window.game && window.game.hud) {
+                window.game.hud.addKillFeedMessage('BOSS SUMMONS MINIONS!', '#FF00FF');
+                window.game.hud.triggerScreenShake(6);
+            }
+            if (window.soundEngine && window.soundEngine.isInitialized) {
+                window.soundEngine.playBossSummon();
+            }
+
+            this.endBossSpecial();
+            return false;
+        }
+        return true;
+    }
+
+    endBossSpecial() {
+        this.bossSpecialState = 'idle';
+        this.bossCurrentSpecial = null;
+        this.enemy.bossSpecialTelegraph = null;
     }
 
     findFleeTarget(player, map) {

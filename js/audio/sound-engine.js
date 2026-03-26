@@ -1748,6 +1748,90 @@ class SoundEngine {
         osc.stop(now + 0.3);
     }
 
+    // Boss special attack sounds
+    playBossTelegraph(attackType) {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        // Rising warning tone
+        osc.type = 'sawtooth';
+        if (attackType === 'charge') {
+            osc.frequency.setValueAtTime(100, now);
+            osc.frequency.linearRampToValueAtTime(300, now + 0.6);
+        } else if (attackType === 'slam') {
+            osc.frequency.setValueAtTime(60, now);
+            osc.frequency.linearRampToValueAtTime(200, now + 0.6);
+        } else {
+            osc.frequency.setValueAtTime(200, now);
+            osc.frequency.linearRampToValueAtTime(600, now + 0.6);
+        }
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.35, now + 0.1);
+        gain.gain.setValueAtTime(this.sfxVolume * 0.35, now + 0.5);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+        osc.start(now);
+        osc.stop(now + 0.7);
+    }
+
+    playBossSlam() {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Deep impact thud
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(50, now);
+        osc.frequency.exponentialRampToValueAtTime(15, now + 0.4);
+        gain.gain.setValueAtTime(this.sfxVolume * 0.7, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+
+        // Noise crunch
+        const nb = this.createNoiseBuffer(0.2);
+        if (nb) {
+            const noise = this.audioContext.createBufferSource();
+            noise.buffer = nb;
+            const ng = this.audioContext.createGain();
+            const filter = this.audioContext.createBiquadFilter();
+            noise.connect(filter);
+            filter.connect(ng);
+            ng.connect(this.masterGain);
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(300, now);
+            ng.gain.setValueAtTime(this.sfxVolume * 0.5, now);
+            ng.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            noise.start(now);
+            noise.stop(now + 0.25);
+        }
+    }
+
+    playBossSummon() {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Eerie descending tone
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(500, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.5);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.4, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        osc.start(now);
+        osc.stop(now + 0.6);
+    }
+
     playExplosion() {
         if (!this.isInitialized) return;
         const now = this.audioContext.currentTime;
