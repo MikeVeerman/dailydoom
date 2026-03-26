@@ -370,10 +370,12 @@ class Player {
         // Check for footsteps (if player moved significantly)
         const distanceMoved = Math.sqrt((this.x - originalX) ** 2 + (this.y - originalY) ** 2);
         const now = Date.now();
-        
-        if (distanceMoved > 2 && now - this.lastFootstepTime > this.footstepInterval) {
+        const stepInterval = this.isSprinting ? 280 : this.footstepInterval;
+
+        if (distanceMoved > 2 && now - this.lastFootstepTime > stepInterval) {
             if (window.soundEngine && window.soundEngine.isInitialized) {
-                window.soundEngine.playFootstep();
+                const surface = this.getSurfaceType(map);
+                window.soundEngine.playFootstep(surface);
                 this.lastFootstepTime = now;
             }
         }
@@ -1013,6 +1015,25 @@ class Player {
 
     getXPProgress() {
         return this.xp / this.xpToNextLevel;
+    }
+
+    getSurfaceType(map) {
+        if (!map) return 'stone';
+        const tx = Math.floor(this.x / 64);
+        const ty = Math.floor(this.y / 64);
+        // Liquid overrides everything
+        if (map.isAcidTile && map.isAcidTile(tx, ty)) return 'liquid';
+        if (map.isLavaTile && map.isLavaTile(tx, ty)) return 'liquid';
+        // Zone-based surface mapping
+        const profile = map.getZoneAudioProfile ? map.getZoneAudioProfile(tx, ty) : 'corridor';
+        const profileToSurface = {
+            control: 'metal',
+            reactor: 'metal',
+            cooling: 'ice',
+            waste: 'stone',
+            corridor: 'stone'
+        };
+        return profileToSurface[profile] || 'stone';
     }
 
     // Debug methods
