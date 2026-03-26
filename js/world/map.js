@@ -120,6 +120,16 @@ class GameMap {
             }));
         }
 
+        // Power-up spawn locations
+        this.powerupSpawns = [];
+        if (theme.powerupSpawns) {
+            this.powerupSpawns = theme.powerupSpawns.map(ps => ({
+                type: ps.type,
+                x: ps.x * this.tileSize,
+                y: ps.y * this.tileSize
+            }));
+        }
+
         // Secret rooms
         if (theme.secrets) {
             for (const s of theme.secrets) {

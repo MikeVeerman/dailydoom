@@ -131,6 +131,7 @@ class GameEngine {
         this.pickupManager.spawnWeaponPickups(this.map);
         this.pickupManager.spawnRandomPickups(this.map, 6);
         this.pickupManager.spawnModPickups(this.map);
+        this.pickupManager.spawnPowerups(this.map);
         console.log('Pickup system initialized');
 
         // Initialize projectile system
@@ -277,6 +278,7 @@ class GameEngine {
         this.pickupManager.spawnWeaponPickups(this.map);
         this.pickupManager.spawnRandomPickups(this.map, 6);
         this.pickupManager.spawnModPickups(this.map);
+        this.pickupManager.spawnPowerups(this.map);
         this.projectileManager.clear();
         this.hud.resetFog();
         this.levelStartTime = performance.now();
@@ -1000,6 +1002,7 @@ class GameEngine {
         this.pickupManager.spawnWeaponPickups(this.map);
         this.pickupManager.spawnRandomPickups(this.map, 6);
         this.pickupManager.spawnModPickups(this.map);
+        this.pickupManager.spawnPowerups(this.map);
 
         // Clear projectiles
         this.projectileManager.clear();

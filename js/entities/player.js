@@ -562,9 +562,9 @@ class Player {
                 damage = Math.round(damage * this.punchComboMultiplier);
             }
 
-            // Apply damage boost
-            if (this.hasDamageBoost && this.hasDamageBoost()) {
-                damage = Math.round(damage * 1.5);
+            // Apply power-up damage multiplier
+            if (this.getDamageMultiplierFromPowerups) {
+                damage = Math.round(damage * this.getDamageMultiplierFromPowerups());
             }
             if (this.levelBonuses) {
                 damage = Math.round(damage * this.levelBonuses.damageMultiplier);
@@ -849,6 +849,11 @@ class Player {
         console.log('Rapid fire activated!');
     }
 
+    applyQuadDamage(durationMs) {
+        this.quadDamageEndTime = Date.now() + durationMs;
+        console.log('Quad damage activated!');
+    }
+
     applyInvulnerability(durationMs) {
         this.invulnerabilityEndTime = Date.now() + durationMs;
         console.log('Invulnerability activated!');
@@ -901,14 +906,25 @@ class Player {
         return this.invulnerabilityEndTime && Date.now() < this.invulnerabilityEndTime;
     }
 
+    hasQuadDamage() {
+        return this.quadDamageEndTime && Date.now() < this.quadDamageEndTime;
+    }
+
+    getDamageMultiplierFromPowerups() {
+        if (this.hasQuadDamage()) return 4.0;
+        if (this.hasDamageBoost()) return 1.5;
+        return 1.0;
+    }
+
     // Get active power-ups for HUD display
     getActivePowerups() {
         const now = Date.now();
         const active = [];
-        if (now < this.speedBoostEndTime) active.push({ name: 'SPEED', remaining: this.speedBoostEndTime - now, color: '#FF0088' });
+        if (now < this.speedBoostEndTime) active.push({ name: 'SPEED', remaining: this.speedBoostEndTime - now, color: '#00AAFF' });
+        if (this.quadDamageEndTime && now < this.quadDamageEndTime) active.push({ name: 'QUAD', remaining: this.quadDamageEndTime - now, color: '#FFD700' });
         if (now < this.damageBoostEndTime) active.push({ name: 'DAMAGE', remaining: this.damageBoostEndTime - now, color: '#FF4400' });
         if (this.rapidFireEndTime && now < this.rapidFireEndTime) active.push({ name: 'RAPID', remaining: this.rapidFireEndTime - now, color: '#00FF88' });
-        if (this.invulnerabilityEndTime && now < this.invulnerabilityEndTime) active.push({ name: 'INVULN', remaining: this.invulnerabilityEndTime - now, color: '#FFD700' });
+        if (this.invulnerabilityEndTime && now < this.invulnerabilityEndTime) active.push({ name: 'INVULN', remaining: this.invulnerabilityEndTime - now, color: '#FF00FF' });
         if (this.healthRegenEndTime && now < this.healthRegenEndTime) active.push({ name: 'REGEN', remaining: this.healthRegenEndTime - now, color: '#FF88CC' });
         return active;
     }
