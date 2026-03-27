@@ -107,6 +107,10 @@ class HUD {
         this.crosshairTextDuration = 600; // ms
         this.crosshairTextColor = '#FFD700';
 
+        // Glory Kill flash
+        this.gloryKillFlashTime = 0;
+        this.gloryKillFlashDuration = 400; // ms
+
         // Zone vignette
         this.currentZoneTint = null;
         this.zoneTintAlpha = 0;
@@ -1159,6 +1163,24 @@ class HUD {
             this.ctx.fillRect(0, 0, w, h);
         }
 
+        // Glory Kill flash: brief green/gold edge flash
+        const timeSinceGloryKill = now - this.gloryKillFlashTime;
+        if (timeSinceGloryKill < this.gloryKillFlashDuration) {
+            const alpha = 1 - (timeSinceGloryKill / this.gloryKillFlashDuration);
+            const edgeSize = 60;
+            const r = 0, g = 255, b = 136;
+            const gradTop = this.ctx.createLinearGradient(0, 0, 0, edgeSize);
+            gradTop.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha * 0.6})`);
+            gradTop.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+            this.ctx.fillStyle = gradTop;
+            this.ctx.fillRect(0, 0, w, edgeSize);
+            const gradBottom = this.ctx.createLinearGradient(0, h, 0, h - edgeSize);
+            gradBottom.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha * 0.6})`);
+            gradBottom.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+            this.ctx.fillStyle = gradBottom;
+            this.ctx.fillRect(0, h - edgeSize, w, edgeSize);
+        }
+
         // Low-health pulse: vignette red border when health < 25%
         // Intensity scales inversely with health (lower health = stronger effect)
         if (player.health > 0 && player.health < player.maxHealth * 0.25) {
@@ -1889,6 +1911,10 @@ class HUD {
         this.crosshairText = text;
         this.crosshairTextTime = Date.now();
         this.crosshairTextColor = color || '#FFD700';
+    }
+
+    triggerGloryKillFlash() {
+        this.gloryKillFlashTime = Date.now();
     }
 
     // Called when player takes damage

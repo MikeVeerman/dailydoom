@@ -1389,6 +1389,14 @@ class Renderer {
                     }
                     this.ctx.fillRect(barX, barY, barWidth * healthPct, barHeight);
 
+                    // Glory Kill indicator: pulsing green glow when enemy < 25% HP (not bosses)
+                    if (healthPct <= 0.25 && !isBoss) {
+                        const gloryPulse = 0.3 + 0.4 * Math.sin(Date.now() * 0.008);
+                        this.ctx.strokeStyle = `rgba(0, 255, 136, ${gloryPulse})`;
+                        this.ctx.lineWidth = 2;
+                        this.ctx.strokeRect(barX - 2, barY - 2, barWidth + 4, barHeight + 4);
+                    }
+
                     // Elite indicator: colored diamond above health bar
                     if (entity.isElite && entity.eliteType && window.EliteVariants) {
                         const variantDef = window.EliteVariants[entity.eliteType];
