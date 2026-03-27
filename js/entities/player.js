@@ -570,6 +570,15 @@ class Player {
                 damage = Math.round(damage * this.levelBonuses.damageMultiplier);
             }
 
+            // Glory Kill: instant-kill enemies below 25% HP (not bosses)
+            const isGloryKill = closestEnemy.type !== 'boss' &&
+                closestEnemy.health > 0 &&
+                closestEnemy.health <= closestEnemy.maxHealth * 0.25;
+
+            if (isGloryKill) {
+                damage = closestEnemy.health + 1; // Guarantee kill
+            }
+
             this.lastPunchHitTime = now;
 
             if (this.stats) {
@@ -596,7 +605,8 @@ class Player {
                 if (this.stats) this.stats.enemiesKilled++;
                 const xpTable = { imp: 15, guard: 20, soldier: 30, demon: 40, berserker: 35, spitter: 25, shield_guard: 45, boss: 200 };
                 const eliteBonus = closestEnemy.isElite ? 1.5 : 1.0;
-                const xpReward = Math.round((xpTable[closestEnemy.type] || 20) * eliteBonus);
+                const xpMultiplier = isGloryKill ? 2.0 : 1.0;
+                const xpReward = Math.round((xpTable[closestEnemy.type] || 20) * eliteBonus * xpMultiplier);
                 if (this.addXP) this.addXP(xpReward);
                 this.registerKill();
 
@@ -604,25 +614,47 @@ class Player {
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
                     const typeName = (closestEnemy.type || 'enemy').charAt(0).toUpperCase() + (closestEnemy.type || 'enemy').slice(1);
                     const eliteTag = closestEnemy.isElite ? ' [ELITE]' : '';
-                    const comboText = isCombo ? 'COMBO! Punched' : 'Punched';
-                    window.game.hud.addKillFeedMessage(`${comboText} ${typeName}${eliteTag} +${xpReward} XP`, isCombo ? '#FFD700' : '#FF4444');
+                    if (isGloryKill) {
+                        window.game.hud.addKillFeedMessage(`GLORY KILL! ${typeName}${eliteTag} +${xpReward} XP`, '#00FF88');
+                    } else {
+                        const comboText = isCombo ? 'COMBO! Punched' : 'Punched';
+                        window.game.hud.addKillFeedMessage(`${comboText} ${typeName}${eliteTag} +${xpReward} XP`, isCombo ? '#FFD700' : '#FF4444');
+                    }
+                }
+
+                // Glory Kill bonus: drop a health pickup at enemy position
+                if (isGloryKill && window.game && window.game.pickupManager) {
+                    window.game.pickupManager.addPickup(closestEnemy.x, closestEnemy.y, 'health');
                 }
             }
 
             // Visual feedback
             closestEnemy.hitFlashTime = Date.now();
             if (window.game && window.game.hud) {
-                window.game.hud.emitBloodParticles(closestEnemy.x, closestEnemy.y, wasAlive && !closestEnemy.active ? 12 : 5);
-                window.game.hud.addDamageNumber(closestEnemy.x, closestEnemy.y, damage, isCombo);
-                window.game.hud.triggerScreenShake(isCombo ? 8 : 4);
+                if (isGloryKill) {
+                    // Glory Kill: green flash, large screen shake, crosshair text
+                    window.game.hud.emitBloodParticles(closestEnemy.x, closestEnemy.y, 15);
+                    window.game.hud.addDamageNumber(closestEnemy.x, closestEnemy.y, damage, true);
+                    window.game.hud.triggerScreenShake(10);
+                    window.game.hud.showCrosshairText('GLORY KILL!', '#00FF88');
+                    window.game.hud.triggerGloryKillFlash();
+                } else {
+                    window.game.hud.emitBloodParticles(closestEnemy.x, closestEnemy.y, wasAlive && !closestEnemy.active ? 12 : 5);
+                    window.game.hud.addDamageNumber(closestEnemy.x, closestEnemy.y, damage, isCombo);
+                    window.game.hud.triggerScreenShake(isCombo ? 8 : 4);
+                }
             }
 
-            // Play punch hit sound (enhanced)
-            if (window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playPunchHit) {
-                window.soundEngine.playPunchHit(isCombo);
+            // Play glory kill or punch hit sound
+            if (window.soundEngine && window.soundEngine.isInitialized) {
+                if (isGloryKill && window.soundEngine.playGloryKill) {
+                    window.soundEngine.playGloryKill();
+                } else if (window.soundEngine.playPunchHit) {
+                    window.soundEngine.playPunchHit(isCombo);
+                }
             }
 
-            console.log(`${isCombo ? 'COMBO! ' : ''}Punch hit ${closestEnemy.type} for ${damage} damage!`);
+            console.log(`${isGloryKill ? 'GLORY KILL! ' : isCombo ? 'COMBO! ' : ''}Punch hit ${closestEnemy.type} for ${damage} damage!`);
         }
     }
 

@@ -1342,6 +1342,57 @@ class SoundEngine {
         noiseSource.stop(now + 0.12);
     }
 
+    playGloryKill() {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        // Heavy impact bass
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(100, now);
+        osc.frequency.exponentialRampToValueAtTime(25, now + 0.25);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.9, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+
+        // Crunch noise burst
+        const noiseBuffer = this.createNoiseBuffer(0.15);
+        const noiseSource = this.audioContext.createBufferSource();
+        const noiseGain = this.audioContext.createGain();
+        const filter = this.audioContext.createBiquadFilter();
+        noiseSource.buffer = noiseBuffer;
+        noiseSource.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.masterGain);
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(800, now);
+        filter.Q.setValueAtTime(1.5, now);
+        noiseGain.gain.setValueAtTime(0, now);
+        noiseGain.gain.linearRampToValueAtTime(this.sfxVolume * 0.7, now + 0.005);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        noiseSource.start(now);
+        noiseSource.stop(now + 0.15);
+
+        // Rising confirmation tone
+        const tone = this.audioContext.createOscillator();
+        const toneGain = this.audioContext.createGain();
+        tone.connect(toneGain);
+        toneGain.connect(this.masterGain);
+        tone.type = 'square';
+        tone.frequency.setValueAtTime(200, now + 0.05);
+        tone.frequency.linearRampToValueAtTime(400, now + 0.2);
+        toneGain.gain.setValueAtTime(0, now + 0.05);
+        toneGain.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, now + 0.08);
+        toneGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        tone.start(now + 0.05);
+        tone.stop(now + 0.25);
+    }
+
     // Level complete victory fanfare
     playLevelComplete() {
         if (!this.isInitialized) return;
