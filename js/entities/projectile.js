@@ -7,6 +7,9 @@ class Projectile {
         this.y = y;
         this.damage = damage;
         this.speed = speed;
+        if (color && !color.startsWith('#')) {
+            color = '#' + color;
+        }
         this.color = color || '#FF4400';
         this.owner = owner; // Reference to the enemy that fired it
         this.active = true;
