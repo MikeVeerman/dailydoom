@@ -28,10 +28,11 @@ For each selected issue:
 
 1. Create a feature branch from `main`.
 2. Implement the change.
-3. Run the playtester suite (`./test-local.sh`) to verify nothing is broken.
-4. Commit with a message referencing the issue (e.g., `Fixes #42`).
-5. Push the branch and create a pull request.
-6. If tests pass, merge the PR.
+3. Add or update automated tests to cover the new or changed behavior. Every feature, bug fix, or behavioral change should include corresponding tests (unit tests, rendering tests, or integration tests as appropriate). Do not skip this step.
+4. Run the playtester suite (`./test-local.sh`) to verify nothing is broken.
+5. Commit with a message referencing the issue (e.g., `Fixes #42`).
+6. Push the branch and create a pull request.
+7. If tests pass, merge the PR.
 
 ### Step 5: Update the Site
 
