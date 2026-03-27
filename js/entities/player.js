@@ -615,10 +615,10 @@ class Player {
                     const typeName = (closestEnemy.type || 'enemy').charAt(0).toUpperCase() + (closestEnemy.type || 'enemy').slice(1);
                     const eliteTag = closestEnemy.isElite ? ' [ELITE]' : '';
                     if (isGloryKill) {
-                        window.game.hud.addKillFeedMessage(`GLORY KILL! ${typeName}${eliteTag} +${xpReward} XP`, '#00FF88');
+                        window.game.hud.addKillFeedMessage(`GLORY KILL! Punch → ${typeName}${eliteTag} +${xpReward}`, '#00FF88');
                     } else {
-                        const comboText = isCombo ? 'COMBO! Punched' : 'Punched';
-                        window.game.hud.addKillFeedMessage(`${comboText} ${typeName}${eliteTag} +${xpReward} XP`, isCombo ? '#FFD700' : '#FF4444');
+                        const prefix = isCombo ? 'COMBO! ' : '';
+                        window.game.hud.addKillFeedMessage(`${prefix}Punch → ${typeName}${eliteTag} +${xpReward}`, isCombo ? '#FFD700' : '#FF4444');
                     }
                 }
 

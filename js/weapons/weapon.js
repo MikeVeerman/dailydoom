@@ -219,13 +219,15 @@ class Weapon {
                 if (player.addXP) player.addXP(xpReward);
                 if (player.registerKill) player.registerKill();
 
-                // Kill feed message
+                // Kill feed message with weapon name
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
                     const typeName = (hit.enemy.type || 'enemy').charAt(0).toUpperCase() + (hit.enemy.type || 'enemy').slice(1);
                     const eliteTag = hit.enemy.isElite ? ' [ELITE]' : '';
-                    const prefix = isHeadshot ? 'HEADSHOT! Killed' : (isCritical ? 'CRITICAL! Killed' : 'Killed');
+                    const weaponName = (this.type || 'pistol').charAt(0).toUpperCase() + (this.type || 'pistol').slice(1);
+                    const prefix = isHeadshot ? 'HEADSHOT!' : (isCritical ? 'CRITICAL!' : '');
                     const color = isHeadshot ? '#FFD700' : (isCritical ? '#FFD700' : '#FF4444');
-                    window.game.hud.addKillFeedMessage(`${prefix} ${typeName}${eliteTag} +${xpReward} XP`, color);
+                    const msg = prefix ? `${prefix} ${weaponName} → ${typeName}${eliteTag}` : `${weaponName} → ${typeName}${eliteTag}`;
+                    window.game.hud.addKillFeedMessage(`${msg} +${xpReward}`, color);
                 }
             }
 
@@ -646,8 +648,10 @@ class Weapon {
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
                     const typeName = (hit.enemy.type || 'enemy').charAt(0).toUpperCase() + (hit.enemy.type || 'enemy').slice(1);
                     const eliteTag = hit.enemy.isElite ? ' [ELITE]' : '';
-                    const prefix = isHeadshot ? 'HEADSHOT!' : (isCritical ? 'CRITICAL!' : 'ALT!');
-                    window.game.hud.addKillFeedMessage(`${prefix} Killed ${typeName}${eliteTag} +${xpReward} XP`, isHeadshot ? '#FFD700' : '#00CCFF');
+                    const weaponName = (this.type || 'pistol').charAt(0).toUpperCase() + (this.type || 'pistol').slice(1);
+                    const prefix = isHeadshot ? 'HEADSHOT!' : (isCritical ? 'CRITICAL!' : '');
+                    const msg = prefix ? `${prefix} ${weaponName} → ${typeName}${eliteTag}` : `${weaponName} → ${typeName}${eliteTag}`;
+                    window.game.hud.addKillFeedMessage(`${msg} +${xpReward}`, isHeadshot ? '#FFD700' : '#00CCFF');
                 }
             }
 

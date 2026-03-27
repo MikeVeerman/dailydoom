@@ -1972,8 +1972,8 @@ async function T2_28_killFeed(page, result) {
     const hasRenderMethod = typeof hud.renderKillFeed === 'function';
     const hasMax = typeof hud.killFeedMax === 'number';
     const hasDuration = typeof hud.killFeedDuration === 'number';
-    const maxIs4 = hud.killFeedMax === 4;
-    const durationIs3000 = hud.killFeedDuration === 3000;
+    const maxIs4 = hud.killFeedMax === 5;
+    const durationIs3000 = hud.killFeedDuration === 4000;
 
     // Test adding messages
     let addWorks = false;
@@ -2010,8 +2010,8 @@ async function T2_28_killFeed(page, result) {
     ['killFeed array', feedData.hasKillFeed],
     ['addKillFeedMessage method', feedData.hasAddMethod],
     ['renderKillFeed method', feedData.hasRenderMethod],
-    ['max 4 messages', feedData.maxIs4],
-    ['3s fade duration', feedData.durationIs3000],
+    ['max 5 messages', feedData.maxIs4],
+    ['4s fade duration', feedData.durationIs3000],
     ['adding messages works', feedData.addWorks]
   ];
 
@@ -2022,7 +2022,7 @@ async function T2_28_killFeed(page, result) {
     result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
   } else {
     result.status = 'pass';
-    result.note = `Kill feed: max ${feedData.maxIs4 ? 4 : '?'} msgs, ${feedData.durationIs3000 ? '3s' : '?'} fade, color-coded`;
+    result.note = `Kill feed: max ${feedData.maxIs4 ? 5 : '?'} msgs, ${feedData.durationIs3000 ? '4s' : '?'} fade, color-coded`;
   }
 }
 
