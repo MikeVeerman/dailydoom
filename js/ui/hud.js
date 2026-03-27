@@ -44,8 +44,8 @@ class HUD {
 
         // Kill feed
         this.killFeed = [];
-        this.killFeedMax = 4;
-        this.killFeedDuration = 3000; // 3 seconds
+        this.killFeedMax = 5;
+        this.killFeedDuration = 4000; // 4 seconds
 
         // Crosshair rotation (for chaingun)
         this.crosshairRotation = 0;
@@ -1832,26 +1832,36 @@ class HUD {
         const visible = this.killFeed.slice(0, this.killFeedMax);
         if (visible.length === 0) return;
 
-        const x = this.canvas.width - 160;
         const startY = 175; // Below minimap (which is 150+10 padding)
+        const slideInDuration = 200; // ms for slide-in animation
 
         for (let i = 0; i < visible.length; i++) {
             const msg = visible[i];
             const age = now - msg.time;
-            const alpha = Math.max(0, 1 - (age / this.killFeedDuration));
+            // Fade out in last second
+            const fadeStart = this.killFeedDuration - 1000;
+            const alpha = age > fadeStart ? Math.max(0, 1 - (age - fadeStart) / 1000) : 1;
             const y = startY + i * 18;
 
+            // Slide in from right
+            const slideProgress = Math.min(1, age / slideInDuration);
+            const slideOffset = (1 - slideProgress) * 100;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = alpha;
+
             // Background
-            this.ctx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.5})`;
-            this.ctx.fillRect(x - 5, y - 11, 170, 16);
+            const bgX = this.canvas.width - 160 - 5 + slideOffset;
+            this.ctx.fillStyle = `rgba(0, 0, 0, 0.5)`;
+            this.ctx.fillRect(bgX, y - 11, 170, 16);
 
             // Text
-            this.ctx.globalAlpha = alpha;
             this.ctx.fillStyle = msg.color;
             this.ctx.font = this.smallFont;
             this.ctx.textAlign = 'right';
-            this.ctx.fillText(msg.text, this.canvas.width - 15, y);
-            this.ctx.globalAlpha = 1.0;
+            this.ctx.fillText(msg.text, this.canvas.width - 15 + slideOffset, y);
+
+            this.ctx.restore();
         }
     }
 
