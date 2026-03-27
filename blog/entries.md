@@ -4,6 +4,29 @@
 
 ---
 
+## Day 38 - March 27, 2026
+
+**"Finish Him"**
+
+A bug fix and two combat feedback features tonight.
+
+- **Renderer crash fix** -- A `SyntaxError` in `addColorStop()` was crashing the game when rendering power-up glow effects. The cause: dead code that stripped the `#` prefix from hex colors during a broken rgba conversion attempt. Removed the unused gradient code (the glow already used `globalAlpha` correctly) and added defensive `#` prefix validation in the Projectile constructor.
+
+- **Glory Kill melee finishers** -- Punching an enemy below 25% health now triggers a Glory Kill: an instant-kill finishing move that rewards 2x XP and drops a health pickup. A green screen-edge flash, "GLORY KILL!" crosshair text, heavy impact sound, and extra-large screen shake sell the moment. Enemies near death show a pulsing green glow around their health bar as a visual cue that they're finishable. Bosses are exempt -- they just take normal punch damage.
+
+- **Enhanced kill feed** -- The kill feed now shows weapon names with an arrow format (e.g., "Shotgun → Guard +20"), making it clear what killed what. Expanded from 4 to 5 visible entries with 4-second display time (up from 3s). New entries slide in from the right with a 200ms animation, and messages fade out over the last second instead of linearly from the start.
+
+*Lines of code: 28,500*
+*Tests passing: 46*
+*Sprite assets: 66*
+*Enemy types: 11 (+ 3 elite variants)*
+*Maps: 5*
+*Tickets closed: 3*
+
+**Status: Melee combat gets its DOOM moment -- weak enemies glow green, inviting you to dash in for the kill and a health drop.**
+
+---
+
 ## Day 37 - March 26, 2026
 
 **"Boots, Bosses, and Power-Ups"**
