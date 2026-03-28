@@ -116,6 +116,12 @@ class HUD {
         this.wallDecalMax = 80;
         this.wallDecalDuration = 8000; // 8 seconds
 
+        // Zone particles (environmental ambience)
+        this.zoneParticles = [];
+        this.zoneParticleMax = 40;
+        this.lastZoneParticleSpawn = 0;
+        this.zoneParticleSpawnInterval = 200; // ms between spawn attempts
+
         // Zone vignette
         this.currentZoneTint = null;
         this.zoneTintAlpha = 0;
@@ -219,6 +225,10 @@ class HUD {
 
             // Render particle effects
             this.updateAndRenderParticles(player, gameEngine);
+
+            // Update and render zone ambient particles
+            this.updateZoneParticles(player, gameEngine);
+            this.renderZoneParticles(player, gameEngine);
 
             // Apply screen shake
             this.updateScreenShake();
@@ -2177,6 +2187,135 @@ class HUD {
             } else {
                 this.ctx.fillStyle = `rgba(60, 55, 50, ${alpha * 0.7})`;
             }
+            this.ctx.beginPath();
+            this.ctx.arc(screenX, screenY, size, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+    }
+
+    updateZoneParticles(player, gameEngine) {
+        if (!player || !gameEngine || !gameEngine.map) return;
+        const now = Date.now();
+        const map = gameEngine.map;
+
+        // Spawn new zone particles periodically
+        if (now - this.lastZoneParticleSpawn > this.zoneParticleSpawnInterval
+            && this.zoneParticles.length < this.zoneParticleMax) {
+            this.lastZoneParticleSpawn = now;
+
+            // Spawn near acid tiles
+            if (map.acidTiles && map.acidTiles.size > 0) {
+                const tiles = Array.from(map.acidTiles);
+                const key = tiles[Math.floor(Math.random() * tiles.length)];
+                const [ax, ay] = key.split(',').map(Number);
+                const wx = (ax + 0.3 + Math.random() * 0.4) * map.tileSize;
+                const wy = (ay + 0.3 + Math.random() * 0.4) * map.tileSize;
+                this.zoneParticles.push({
+                    worldX: wx, worldY: wy,
+                    vy: -(5 + Math.random() * 10), // Rise upward
+                    vx: (Math.random() - 0.5) * 4,
+                    type: 'acid',
+                    size: 2 + Math.random() * 2,
+                    spawnTime: now,
+                    lifetime: 1500 + Math.random() * 1000
+                });
+            }
+
+            // Spawn near lava tiles
+            if (map.lavaTiles && map.lavaTiles.size > 0) {
+                const tiles = Array.from(map.lavaTiles);
+                const key = tiles[Math.floor(Math.random() * tiles.length)];
+                const [lx, ly] = key.split(',').map(Number);
+                const wx = (lx + 0.3 + Math.random() * 0.4) * map.tileSize;
+                const wy = (ly + 0.3 + Math.random() * 0.4) * map.tileSize;
+                this.zoneParticles.push({
+                    worldX: wx, worldY: wy,
+                    vy: -(8 + Math.random() * 15),
+                    vx: (Math.random() - 0.5) * 6,
+                    type: 'lava',
+                    size: 1.5 + Math.random() * 2.5,
+                    spawnTime: now,
+                    lifetime: 1000 + Math.random() * 800
+                });
+            }
+
+            // Spawn zone-specific particles near the player
+            const ptx = Math.floor(player.x / map.tileSize);
+            const pty = Math.floor(player.y / map.tileSize);
+            const zone = map.getZone(ptx, pty);
+            if (zone && zone.audioProfile && Math.random() < 0.3) {
+                const profile = zone.audioProfile;
+                const px = player.x + (Math.random() - 0.5) * map.tileSize * 3;
+                const py = player.y + (Math.random() - 0.5) * map.tileSize * 3;
+                if (profile === 'reactor') {
+                    this.zoneParticles.push({
+                        worldX: px, worldY: py,
+                        vy: -(3 + Math.random() * 8),
+                        vx: (Math.random() - 0.5) * 10,
+                        type: 'spark',
+                        size: 1 + Math.random() * 1.5,
+                        spawnTime: now,
+                        lifetime: 400 + Math.random() * 400
+                    });
+                } else if (profile === 'cooling') {
+                    this.zoneParticles.push({
+                        worldX: px, worldY: py,
+                        vy: -(1 + Math.random() * 3),
+                        vx: (Math.random() - 0.5) * 2,
+                        type: 'mist',
+                        size: 3 + Math.random() * 3,
+                        spawnTime: now,
+                        lifetime: 2000 + Math.random() * 1500
+                    });
+                }
+            }
+        }
+
+        // Remove expired
+        this.zoneParticles = this.zoneParticles.filter(p => now - p.spawnTime < p.lifetime);
+    }
+
+    renderZoneParticles(player, gameEngine) {
+        if (!player || !gameEngine || !gameEngine.renderer) return;
+        const renderer = gameEngine.renderer;
+        const now = Date.now();
+
+        for (const p of this.zoneParticles) {
+            const elapsed = (now - p.spawnTime) / 1000;
+            const progress = (now - p.spawnTime) / p.lifetime;
+
+            const currentX = p.worldX + p.vx * elapsed;
+            const currentY = p.worldY + p.vy * elapsed;
+
+            const dx = currentX - player.x;
+            const dy = currentY - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > renderer.maxRenderDistance || distance < 1) continue;
+
+            let angle = Math.atan2(dy, dx);
+            let angleDiff = angle - player.angle;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            if (Math.abs(angleDiff) > renderer.fov / 2) continue;
+
+            const screenX = this.canvas.width / 2 + (angleDiff / renderer.fov) * this.canvas.width;
+            const wallHeight = (renderer.wallHeight * renderer.projectionDistance) / distance;
+            // Particles float above floor level
+            const screenY = renderer.halfHeight + wallHeight * 0.2 - (elapsed * 15);
+
+            const alpha = (1 - progress) * 0.7;
+            const size = p.size * (1 - progress * 0.3);
+
+            if (p.type === 'acid') {
+                this.ctx.fillStyle = `rgba(0, 200, 50, ${alpha})`;
+            } else if (p.type === 'lava') {
+                this.ctx.fillStyle = `rgba(255, ${100 + Math.floor(Math.random() * 80)}, 0, ${alpha})`;
+            } else if (p.type === 'spark') {
+                this.ctx.fillStyle = `rgba(255, ${180 + Math.floor(Math.random() * 75)}, 50, ${alpha})`;
+            } else if (p.type === 'mist') {
+                this.ctx.fillStyle = `rgba(100, 180, 255, ${alpha * 0.5})`;
+            }
+
             this.ctx.beginPath();
             this.ctx.arc(screenX, screenY, size, 0, Math.PI * 2);
             this.ctx.fill();

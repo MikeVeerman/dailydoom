@@ -624,6 +624,7 @@ const TIER_2_TESTS = [
   { id: 'T2-34', name: 'Enemy sound barks', fn: T2_34_enemySoundBarks }, // issue: #60
   { id: 'T2-35', name: 'Wall decal system', fn: T2_35_wallDecals }, // issue: #296
   { id: 'T2-36', name: 'Death screen run statistics', fn: T2_36_deathScreenStats }, // issue: #297
+  { id: 'T2-37', name: 'Environmental zone particles', fn: T2_37_zoneParticles }, // issue: #298
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -2808,6 +2809,97 @@ async function T2_36_deathScreenStats(page, result) {
   } else {
     result.status = 'pass';
     result.note = 'Death screen: floor reached, critical hits, map name, best run tracking';
+  }
+}
+
+async function T2_37_zoneParticles(page, result) {
+  // T2-37: Environmental zone particles (issue: #298)
+  // Pass condition: HUD has zone particle system with update and render methods
+  await page.waitForTimeout(1000);
+
+  const particleData = await page.evaluate(() => {
+    if (!window.game || !window.game.hud) {
+      return { exists: false, reason: 'HUD not found' };
+    }
+
+    const hud = window.game.hud;
+
+    // Check zone particle system exists
+    const hasZoneParticles = Array.isArray(hud.zoneParticles);
+    const hasUpdateMethod = typeof hud.updateZoneParticles === 'function';
+    const hasRenderMethod = typeof hud.renderZoneParticles === 'function';
+    const hasMaxCap = typeof hud.zoneParticleMax === 'number' && hud.zoneParticleMax > 0;
+    const hasSpawnInterval = typeof hud.zoneParticleSpawnInterval === 'number';
+
+    // Check update method handles particle types
+    const updateSrc = hud.updateZoneParticles.toString();
+    const handlesAcid = updateSrc.includes('acid');
+    const handlesLava = updateSrc.includes('lava');
+    const handlesSpark = updateSrc.includes('spark');
+    const handlesMist = updateSrc.includes('mist');
+
+    // Check render method handles all types
+    const renderSrc = hud.renderZoneParticles.toString();
+    const rendersAcid = renderSrc.includes('acid');
+    const rendersLava = renderSrc.includes('lava');
+    const rendersSpark = renderSrc.includes('spark');
+    const rendersMist = renderSrc.includes('mist');
+
+    // Check map has acid/lava tiles for particles to spawn on
+    const map = window.game.map;
+    const hasAcidTiles = map && map.acidTiles && map.acidTiles.size > 0;
+    const hasLavaTiles = map && map.lavaTiles && map.lavaTiles.size > 0;
+    const hasHazardTiles = hasAcidTiles || hasLavaTiles;
+
+    return {
+      exists: true,
+      hasZoneParticles,
+      hasUpdateMethod,
+      hasRenderMethod,
+      hasMaxCap,
+      hasSpawnInterval,
+      handlesAcid,
+      handlesLava,
+      handlesSpark,
+      handlesMist,
+      rendersAcid,
+      rendersLava,
+      rendersSpark,
+      rendersMist,
+      hasHazardTiles
+    };
+  });
+
+  if (!particleData.exists) {
+    result.status = 'fail';
+    result.note = particleData.reason;
+    return;
+  }
+
+  const checks = [
+    ['zoneParticles array', particleData.hasZoneParticles],
+    ['updateZoneParticles method', particleData.hasUpdateMethod],
+    ['renderZoneParticles method', particleData.hasRenderMethod],
+    ['particle max cap', particleData.hasMaxCap],
+    ['spawn interval', particleData.hasSpawnInterval],
+    ['acid particle spawning', particleData.handlesAcid],
+    ['lava particle spawning', particleData.handlesLava],
+    ['spark particles (reactor)', particleData.handlesSpark],
+    ['mist particles (cooling)', particleData.handlesMist],
+    ['acid rendering', particleData.rendersAcid],
+    ['lava rendering', particleData.rendersLava],
+    ['spark rendering', particleData.rendersSpark],
+    ['mist rendering', particleData.rendersMist]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Zone particles: acid, lava, reactor sparks, cooling mist (max ${particleData.hasMaxCap ? 'capped' : 'uncapped'})`;
   }
 }
 
