@@ -719,7 +719,8 @@ class GameEngine {
                 bestStreak: bestStreak,
                 damageDealt: Math.round(stats.damageDealt),
                 survivalTime: Math.floor(elapsed),
-                level: this.player.level
+                level: this.player.level,
+                floor: this.currentLevel || 1
             };
 
             // Check for new records
@@ -794,7 +795,7 @@ class GameEngine {
         const panelX = w * 0.2;
         const panelY = h * 0.15;
         const panelW = w * 0.6;
-        const panelH = h * 0.58;
+        const panelH = h * 0.65;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.fillRect(panelX, panelY, panelW, panelH);
         ctx.strokeStyle = '#FF4444';
@@ -806,15 +807,21 @@ class GameEngine {
         let y = panelY + 32;
         const lineH = 28;
 
+        const floorReached = this.currentLevel || 1;
+        const mapName = this.map && this.map.themeName ? this.map.themeName : 'Unknown';
+        const critHits = stats.criticalHits || 0;
+
         const statLines = [
             ['Survival Time', timeStr, 'survivalTime'],
+            ['Floor Reached', `${floorReached} — ${mapName}`, 'floor'],
             ['Enemies Killed', `${stats.enemiesKilled}`, 'kills'],
             ['Accuracy', `${accuracy}%`, 'accuracy'],
             ['Headshots', `${headshots} (${headshotPct}%)`, 'headshots'],
+            ['Critical Hits', `${critHits}`, null],
             ['Damage Dealt', `${Math.round(stats.damageDealt)}`, 'damageDealt'],
             ['Damage Taken', `${Math.round(stats.damageTaken)}`, null],
             ['Best Combo', `${bestStreak}x`, 'bestStreak'],
-            ['Level Reached', `${this.player.level}`, 'level'],
+            ['Player Level', `${this.player.level}`, 'level'],
             ['Secrets Found', `${this.map.secretsFound}/${this.map.totalSecrets}`, null]
         ];
 
