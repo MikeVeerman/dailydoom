@@ -235,6 +235,12 @@ class Weapon {
             hit.enemy.hitFlashTime = Date.now();
             if (window.game && window.game.hud) {
                 window.game.hud.emitBloodParticles(hit.enemy.x, hit.enemy.y, wasAlive && hit.enemy.dying ? 12 : 5);
+                // Blood splatter decal behind enemy (in bullet direction)
+                const bx = hit.enemy.x + Math.cos(player.angle) * 30;
+                const by = hit.enemy.y + Math.sin(player.angle) * 30;
+                if (map.isWallAtPosition(bx, by)) {
+                    window.game.hud.addWallDecal(bx, by, 'blood');
+                }
             }
 
             // Show floating damage number (gold for headshots, colored for resistance)
@@ -296,6 +302,7 @@ class Weapon {
             // Wall impact effect
             if (window.game && window.game.hud) {
                 window.game.hud.addImpactSpark(hit.hitPoint.x, hit.hitPoint.y);
+                window.game.hud.addWallDecal(hit.hitPoint.x, hit.hitPoint.y, 'impact');
             }
         }
 
@@ -685,6 +692,7 @@ class Weapon {
         if (!hit.enemy && !hit.barrel && !hit.crate && hit.hitWall) {
             if (window.game && window.game.hud) {
                 window.game.hud.addImpactSpark(hit.hitPoint.x, hit.hitPoint.y);
+                window.game.hud.addWallDecal(hit.hitPoint.x, hit.hitPoint.y, 'impact');
             }
         }
 

@@ -111,6 +111,11 @@ class HUD {
         this.gloryKillFlashTime = 0;
         this.gloryKillFlashDuration = 400; // ms
 
+        // Wall decals (bullet impacts, blood splatters)
+        this.wallDecals = [];
+        this.wallDecalMax = 80;
+        this.wallDecalDuration = 8000; // 8 seconds
+
         // Zone vignette
         this.currentZoneTint = null;
         this.zoneTintAlpha = 0;
@@ -210,6 +215,7 @@ class HUD {
             // Render floating damage numbers and impact effects
             this.renderDamageNumbers(player, gameEngine);
             this.renderImpactSparks(player, gameEngine);
+            this.renderWallDecals(player, gameEngine);
 
             // Render particle effects
             this.updateAndRenderParticles(player, gameEngine);
@@ -2120,7 +2126,63 @@ class HUD {
             this.ctx.fill();
         }
     }
-    
+
+    addWallDecal(worldX, worldY, type) {
+        // type: 'impact' (gray bullet mark) or 'blood' (red splatter)
+        this.wallDecals.push({
+            worldX, worldY,
+            type: type || 'impact',
+            spawnTime: Date.now(),
+            size: type === 'blood' ? 3 + Math.random() * 4 : 2 + Math.random() * 2
+        });
+        // Cap decal count
+        if (this.wallDecals.length > this.wallDecalMax) {
+            this.wallDecals.shift();
+        }
+    }
+
+    renderWallDecals(player, gameEngine) {
+        const now = Date.now();
+        this.wallDecals = this.wallDecals.filter(d => now - d.spawnTime < this.wallDecalDuration);
+
+        if (!player || !gameEngine || !gameEngine.renderer) return;
+        const renderer = gameEngine.renderer;
+
+        for (const decal of this.wallDecals) {
+            const elapsed = now - decal.spawnTime;
+            const progress = elapsed / this.wallDecalDuration;
+
+            const dx = decal.worldX - player.x;
+            const dy = decal.worldY - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > renderer.maxRenderDistance || distance < 1) continue;
+
+            let angle = Math.atan2(dy, dx);
+            let angleDiff = angle - player.angle;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            if (Math.abs(angleDiff) > renderer.fov / 2) continue;
+
+            const screenX = this.canvas.width / 2 + (angleDiff / renderer.fov) * this.canvas.width;
+            const screenY = renderer.halfHeight;
+
+            // Fade out in the last 30% of lifetime
+            const alpha = progress > 0.7 ? (1 - progress) / 0.3 : 1.0;
+            // Scale down with distance
+            const sizeFactor = Math.max(0.5, 1 - distance / renderer.maxRenderDistance);
+            const size = decal.size * sizeFactor;
+
+            if (decal.type === 'blood') {
+                this.ctx.fillStyle = `rgba(139, 0, 0, ${alpha * 0.8})`;
+            } else {
+                this.ctx.fillStyle = `rgba(60, 55, 50, ${alpha * 0.7})`;
+            }
+            this.ctx.beginPath();
+            this.ctx.arc(screenX, screenY, size, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+    }
+
     updateFogOfWar(player, map) {
         const tileX = Math.floor(player.x / map.tileSize);
         const tileY = Math.floor(player.y / map.tileSize);

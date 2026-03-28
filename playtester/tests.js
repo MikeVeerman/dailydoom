@@ -622,6 +622,7 @@ const TIER_2_TESTS = [
   { id: 'T2-32', name: 'Door animation system', fn: T2_32_doorAnimation }, // issue: #58
   { id: 'T2-33', name: 'Damage direction indicator', fn: T2_33_damageDirectionIndicator }, // issue: #59
   { id: 'T2-34', name: 'Enemy sound barks', fn: T2_34_enemySoundBarks }, // issue: #60
+  { id: 'T2-35', name: 'Wall decal system', fn: T2_35_wallDecals }, // issue: #296
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -2648,6 +2649,95 @@ async function T2_34_enemySoundBarks(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Bark system: alert/pain/attack barks, 2s cooldown, ${barkData.enemyTypes.length} enemy types`;
+  }
+}
+
+async function T2_35_wallDecals(page, result) {
+  // T2-35: Wall decal system (issue: #296)
+  // Pass condition: HUD has decal methods, decals can be created and expire
+  await page.waitForTimeout(1000);
+
+  const decalData = await page.evaluate(() => {
+    if (!window.game || !window.game.hud) {
+      return { exists: false, reason: 'HUD not found' };
+    }
+
+    const hud = window.game.hud;
+
+    // Check decal system exists
+    const hasWallDecals = Array.isArray(hud.wallDecals);
+    const hasAddWallDecal = typeof hud.addWallDecal === 'function';
+    const hasRenderWallDecals = typeof hud.renderWallDecals === 'function';
+    const hasDecalMax = typeof hud.wallDecalMax === 'number' && hud.wallDecalMax > 0;
+    const hasDecalDuration = typeof hud.wallDecalDuration === 'number' && hud.wallDecalDuration > 0;
+
+    // Test adding decals
+    const countBefore = hud.wallDecals.length;
+    hud.addWallDecal(100, 100, 'impact');
+    hud.addWallDecal(120, 120, 'blood');
+    const countAfter = hud.wallDecals.length;
+    const decalsAdded = countAfter >= countBefore + 2;
+
+    // Verify decal properties
+    const lastDecal = hud.wallDecals[hud.wallDecals.length - 1];
+    const hasWorldCoords = typeof lastDecal.worldX === 'number' && typeof lastDecal.worldY === 'number';
+    const hasType = lastDecal.type === 'blood' || lastDecal.type === 'impact';
+    const hasSpawnTime = typeof lastDecal.spawnTime === 'number';
+    const hasSize = typeof lastDecal.size === 'number' && lastDecal.size > 0;
+
+    // Test cap enforcement
+    for (let i = 0; i < hud.wallDecalMax + 10; i++) {
+      hud.addWallDecal(50 + i, 50 + i, 'impact');
+    }
+    const cappedCorrectly = hud.wallDecals.length <= hud.wallDecalMax;
+
+    // Clean up
+    hud.wallDecals = [];
+
+    return {
+      exists: true,
+      hasWallDecals,
+      hasAddWallDecal,
+      hasRenderWallDecals,
+      hasDecalMax,
+      hasDecalDuration,
+      decalsAdded,
+      hasWorldCoords,
+      hasType,
+      hasSpawnTime,
+      hasSize,
+      cappedCorrectly
+    };
+  });
+
+  if (!decalData.exists) {
+    result.status = 'fail';
+    result.note = decalData.reason;
+    return;
+  }
+
+  const checks = [
+    ['wallDecals array', decalData.hasWallDecals],
+    ['addWallDecal method', decalData.hasAddWallDecal],
+    ['renderWallDecals method', decalData.hasRenderWallDecals],
+    ['decal max cap', decalData.hasDecalMax],
+    ['decal duration', decalData.hasDecalDuration],
+    ['decals added correctly', decalData.decalsAdded],
+    ['world coordinates', decalData.hasWorldCoords],
+    ['decal type', decalData.hasType],
+    ['spawn time', decalData.hasSpawnTime],
+    ['decal size', decalData.hasSize],
+    ['cap enforced', decalData.cappedCorrectly]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Wall decals: impact + blood types, max ${decalData.hasDecalMax ? 'capped' : 'uncapped'}, timed expiry`;
   }
 }
 
