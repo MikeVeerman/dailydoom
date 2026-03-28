@@ -623,6 +623,7 @@ const TIER_2_TESTS = [
   { id: 'T2-33', name: 'Damage direction indicator', fn: T2_33_damageDirectionIndicator }, // issue: #59
   { id: 'T2-34', name: 'Enemy sound barks', fn: T2_34_enemySoundBarks }, // issue: #60
   { id: 'T2-35', name: 'Wall decal system', fn: T2_35_wallDecals }, // issue: #296
+  { id: 'T2-36', name: 'Death screen run statistics', fn: T2_36_deathScreenStats }, // issue: #297
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -2738,6 +2739,75 @@ async function T2_35_wallDecals(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Wall decals: impact + blood types, max ${decalData.hasDecalMax ? 'capped' : 'uncapped'}, timed expiry`;
+  }
+}
+
+async function T2_36_deathScreenStats(page, result) {
+  // T2-36: Death screen run statistics (issue: #297)
+  // Pass condition: Death screen shows floor reached, critical hits, and map name
+  await page.waitForTimeout(1000);
+
+  const statsData = await page.evaluate(() => {
+    if (!window.game) {
+      return { exists: false, reason: 'Game not found' };
+    }
+
+    const game = window.game;
+
+    // Check renderDeathScreen method exists
+    const hasRenderDeathScreen = typeof game.renderDeathScreen === 'function';
+
+    // Check that renderDeathScreen source includes floor and critical hit stats
+    const src = game.renderDeathScreen.toString();
+    const hasFloorReached = src.includes('Floor Reached') || src.includes('floorReached');
+    const hasCriticalHits = src.includes('Critical Hits') || src.includes('critHits');
+    const hasMapName = src.includes('themeName') || src.includes('mapName');
+    const hasPlayerLevel = src.includes('Player Level') || src.includes('player.level');
+
+    // Check saveBestRun tracks floor
+    const hasSaveBestRun = typeof game.saveBestRun === 'function';
+    const saveSrc = hasSaveBestRun ? game.saveBestRun.toString() : '';
+    const bestRunTracksFloor = saveSrc.includes('floor');
+
+    // Check currentLevel property exists
+    const hasCurrentLevel = typeof game.currentLevel === 'number';
+
+    return {
+      exists: true,
+      hasRenderDeathScreen,
+      hasFloorReached,
+      hasCriticalHits,
+      hasMapName,
+      hasPlayerLevel,
+      bestRunTracksFloor,
+      hasCurrentLevel
+    };
+  });
+
+  if (!statsData.exists) {
+    result.status = 'fail';
+    result.note = statsData.reason;
+    return;
+  }
+
+  const checks = [
+    ['renderDeathScreen method', statsData.hasRenderDeathScreen],
+    ['Floor Reached stat', statsData.hasFloorReached],
+    ['Critical Hits stat', statsData.hasCriticalHits],
+    ['Map name display', statsData.hasMapName],
+    ['Player Level stat', statsData.hasPlayerLevel],
+    ['Best run tracks floor', statsData.bestRunTracksFloor],
+    ['currentLevel property', statsData.hasCurrentLevel]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = 'Death screen: floor reached, critical hits, map name, best run tracking';
   }
 }
 
