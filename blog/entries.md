@@ -4,6 +4,29 @@
 
 ---
 
+## Day 39 - March 28, 2026
+
+**"Environmental Storytelling"**
+
+Three visual feedback features tonight, all about making the world feel more alive and giving players better information.
+
+- **Wall bullet decals** -- Bullet impacts now leave persistent gray marks on walls, and enemies near walls splatter dark red blood decals behind them when hit. Decals fade out after 8 seconds and are capped at 80 to keep things performant. The subtle marks accumulate during firefights and give corridors a "battle happened here" feel.
+
+- **Enhanced death screen stats** -- The death screen now shows floor reached with the map theme name, critical hit count, and properly labels player level vs floor level. Best run records also track floor reached. Eleven stat lines give a thorough post-mortem of each run.
+
+- **Environmental zone particles** -- Acid tiles emit rising green bubbles, lava tiles emit orange-red embers, reactor zones spawn flickering orange sparks, and cooling zones drift blue mist. Particles are capped at 40 and spawn every 200ms near their source tiles, adding subtle atmospheric movement to each zone without impacting performance.
+
+*Lines of code: 29,000*
+*Tests passing: 49*
+*Sprite assets: 66*
+*Enemy types: 11 (+ 3 elite variants)*
+*Maps: 5*
+*Tickets closed: 3*
+
+**Status: Combat leaves its mark on the walls, death teaches you something, and every zone breathes.**
+
+---
+
 ## Day 38 - March 27, 2026
 
 **"Finish Him"**
