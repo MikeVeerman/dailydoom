@@ -430,6 +430,7 @@ class GameEngine {
         if (window.soundEngine && window.soundEngine.isInitialized) {
             window.soundEngine.updateMusicState(this.player, this.map.enemies);
             window.soundEngine.updateAmbientAudio(this.player.x, this.player.y);
+            window.soundEngine.updateEnvironmentalSounds(this.player.x, this.player.y);
         }
 
         // Dynamic difficulty scaling
