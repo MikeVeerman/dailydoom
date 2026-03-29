@@ -2001,6 +2001,43 @@ class SoundEngine {
             this.masterGain.gain.setValueAtTime(volume, this.audioContext.currentTime);
         }
     }
+    // Alert bark — louder, two-tone call when an enemy alerts nearby allies
+    playAlertBark(enemyType = 'guard') {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+
+        const params = {
+            guard:       { freq: 280, type: 'sawtooth' },
+            imp:         { freq: 450, type: 'square' },
+            demon:       { freq: 100, type: 'sawtooth' },
+            soldier:     { freq: 300, type: 'square' },
+            berserker:   { freq: 160, type: 'sawtooth' },
+            spitter:     { freq: 380, type: 'triangle' },
+            shield_guard:{ freq: 240, type: 'square' },
+            boss:        { freq: 70,  type: 'sawtooth' },
+            phantom:     { freq: 500, type: 'sine' },
+            exploder:    { freq: 340, type: 'square' },
+            sniper:      { freq: 320, type: 'triangle' },
+        };
+        const p = params[enemyType] || params.guard;
+
+        // Two quick rising tones (alarm call)
+        for (let i = 0; i < 2; i++) {
+            const t = now + i * 0.12;
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.type = p.type;
+            osc.frequency.setValueAtTime(p.freq * (1 + i * 0.3), t);
+            osc.frequency.linearRampToValueAtTime(p.freq * (1.5 + i * 0.3), t + 0.08);
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, t + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+            osc.start(t);
+            osc.stop(t + 0.1);
+        }
+    }
 }
 
 // Global sound engine instance

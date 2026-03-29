@@ -2517,7 +2517,9 @@ class HUD {
             if (!this.isTileVisible(egx, egy)) continue;
             const rx = (enemy.x - player.x) * scale;
             const ry = (enemy.y - player.y) * scale;
-            this.ctx.fillStyle = enemy.type === 'boss' ? '#FFD700' : '#FF4444';
+            // Yellow for recently alerted enemies, gold for boss, red for actively engaged
+            const isRecentlyAlerted = enemy.alertedTime && (Date.now() - enemy.alertedTime < 3000);
+            this.ctx.fillStyle = enemy.type === 'boss' ? '#FFD700' : (isRecentlyAlerted ? '#FFCC00' : '#FF4444');
             const dotScale = enemyScales[enemy.type] || 0.6;
             const dotRadius = Math.max(cellSize * 0.4 * (dotScale / 0.6), 2.5);
             this.ctx.beginPath();

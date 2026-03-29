@@ -1423,6 +1423,26 @@ class Renderer {
                     this.ctx.globalAlpha = 1.0;
                 }
             }
+
+            // Alert indicator: "!" above enemy when freshly alerted by another enemy
+            if (!entity.dying && entity.alertIndicatorTime) {
+                const alertAge = Date.now() - entity.alertIndicatorTime;
+                if (alertAge < 1500) {
+                    const alertAlpha = alertAge < 200 ? alertAge / 200 : Math.max(0, 1 - (alertAge - 800) / 700);
+                    const bounceY = alertAge < 300 ? -8 * (1 - alertAge / 300) : 0;
+                    this.ctx.globalAlpha = alertAlpha;
+                    const alertSize = Math.max(12, spriteSize * 0.15);
+                    this.ctx.font = `bold ${alertSize}px monospace`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillStyle = '#FFD700';
+                    this.ctx.strokeStyle = '#000000';
+                    this.ctx.lineWidth = 2;
+                    const alertY = spriteY - 8 + bounceY;
+                    this.ctx.strokeText('!', screenX, alertY);
+                    this.ctx.fillText('!', screenX, alertY);
+                    this.ctx.globalAlpha = 1.0;
+                }
+            }
         } else if (entityType === 'pickup') {
             const size = (this.wallHeight * this.projectionDistance) / distance * 0.3;
             const wallScreenHeight = (this.wallHeight * this.projectionDistance) / distance;
