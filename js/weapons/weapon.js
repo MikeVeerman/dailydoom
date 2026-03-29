@@ -892,6 +892,7 @@ class WeaponManager {
         };
 
         this.currentWeapon = 'pistol';
+        this.previousWeapon = null; // For quick-switch (Q key)
 
         // Only pistol is unlocked at start; others must be picked up
         this.unlockedWeapons = new Set(['pistol']);
@@ -925,8 +926,11 @@ class WeaponManager {
         if (!this.weapons[weaponType] || !this.unlockedWeapons.has(weaponType)) return false;
         if (weaponType === this.currentWeapon) return false;
 
+        const fromWeapon = this.currentWeapon;
+
         if (!animated || this.switchState !== 'ready') {
             // Instant switch (for programmatic/test use, or if already switching)
+            this.previousWeapon = fromWeapon;
             this.currentWeapon = weaponType;
             this.switchState = 'ready';
             this.switchProgress = 0;
@@ -936,6 +940,7 @@ class WeaponManager {
         }
 
         // Start lowering animation
+        this.previousWeapon = fromWeapon;
         this.switchState = 'lowering';
         this.switchStartTime = Date.now();
         this.pendingWeapon = weaponType;
@@ -960,6 +965,11 @@ class WeaponManager {
         }
 
         return result;
+    }
+
+    quickSwitch() {
+        if (!this.previousWeapon) return false;
+        return this.switchWeapon(this.previousWeapon, true);
     }
 
     altFire(player, enemies, map) {
