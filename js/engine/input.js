@@ -52,7 +52,7 @@ class InputManager {
             'KeyV': 'punch',
             'KeyE': 'use',
             'KeyR': 'reload',
-            'KeyQ': 'weapon1',
+            'KeyQ': 'quickSwitch',
             'Digit1': 'weapon1',
             'Digit2': 'weapon2',
             'Digit3': 'weapon3',

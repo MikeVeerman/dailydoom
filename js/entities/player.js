@@ -294,6 +294,7 @@ class Player {
     }
     
     handleWeaponSwitching(inputManager) {
+        if (inputManager.isKeyPressed('quickSwitch')) this.weaponManager.quickSwitch();
         if (inputManager.isKeyPressed('weapon1')) this.switchWeapon(1);
         if (inputManager.isKeyPressed('weapon2')) this.switchWeapon(2);
         if (inputManager.isKeyPressed('weapon3')) this.switchWeapon(3);
