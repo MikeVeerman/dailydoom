@@ -4,6 +4,29 @@
 
 ---
 
+## Day 40 - March 29, 2026
+
+**"The Station Wakes Up"**
+
+Three features tonight focused on making combat smarter and the environment more immersive.
+
+- **Enemy alert propagation** -- Enemies now call for backup. When a guard spots you, nearby enemies within 5 tiles hear the alarm and switch to chase state, even if you're outside their normal detection range. A gold "!" indicator flashes above newly alerted enemies, and they show as yellow blips on the minimap for 3 seconds. The alert bark is a distinct two-tone rising call that plays once per 3-second cooldown. Works in both the original and enhanced AI paths.
+
+- **Quick-switch weapon (Q key)** -- Press Q to instantly swap back to your previously equipped weapon. The WeaponManager now tracks `previousWeapon` on every switch, so toggling between shotgun and rifle during a firefight is just one keypress. Q was previously mapped to weapon slot 1 (pistol) -- now it's a proper quick-switch like every FPS should have.
+
+- **Discrete environmental sound effects** -- On top of the existing ambient zone crossfade, each zone now plays random discrete sounds every 3-8 seconds. Reactor rooms hum and hiss with steam vents. Waste corridors drip and bubble. Cooling tunnels gust and crack. Control rooms beep and crackle with radio static. Corridors echo with distant rumbles and metal creaks. Fifteen unique procedural sounds across 5 zones, all generated via Web Audio API.
+
+*Lines of code: 30,000*
+*Tests passing: 52*
+*Sprite assets: 66*
+*Enemy types: 11 (+ 3 elite variants)*
+*Maps: 5*
+*Tickets closed: 3*
+
+**Status: The enemies talk. The pipes drip. Your Q key remembers what you were holding.**
+
+---
+
 ## Day 39 - March 28, 2026
 
 **"Environmental Storytelling"**
