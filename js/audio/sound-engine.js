@@ -2001,6 +2001,311 @@ class SoundEngine {
             this.masterGain.gain.setValueAtTime(volume, this.audioContext.currentTime);
         }
     }
+    // ========== DISCRETE ENVIRONMENTAL SOUNDS ==========
+
+    lastEnvSoundTime = 0;
+    envSoundInterval = 5000; // Base interval (randomized 3-8s)
+
+    // Called from game loop to periodically play zone-specific environmental sounds
+    updateEnvironmentalSounds(playerX, playerY) {
+        if (!this.isInitialized || this.musicMuted) return;
+        const now = Date.now();
+        if (now - this.lastEnvSoundTime < this.envSoundInterval) return;
+
+        this.lastEnvSoundTime = now;
+        this.envSoundInterval = 3000 + Math.random() * 5000; // 3-8s randomized
+
+        const zone = this.getAmbientZone(playerX, playerY);
+        this.playEnvironmentalSound(zone);
+    }
+
+    // Play a discrete environmental sound effect based on zone type
+    playEnvironmentalSound(zoneType = 'corridor') {
+        if (!this.isInitialized) return;
+        const now = this.audioContext.currentTime;
+        const vol = this.sfxVolume * 0.12; // Subtle background volume
+
+        switch (zoneType) {
+            case 'reactor':
+                this._playEnvReactor(now, vol);
+                break;
+            case 'waste':
+                this._playEnvWaste(now, vol);
+                break;
+            case 'cooling':
+                this._playEnvCooling(now, vol);
+                break;
+            case 'control':
+                this._playEnvControl(now, vol);
+                break;
+            case 'corridor':
+            default:
+                this._playEnvCorridor(now, vol);
+                break;
+        }
+    }
+
+    _playEnvReactor(now, vol) {
+        // Random choice: electrical hum, steam vent, or mechanical clunk
+        const choice = Math.random();
+        if (choice < 0.4) {
+            // Electrical hum/buzz
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(60 + Math.random() * 20, now);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(vol, now + 0.1);
+            gain.gain.setValueAtTime(vol, now + 0.3);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+            osc.start(now);
+            osc.stop(now + 0.6);
+        } else if (choice < 0.7) {
+            // Steam vent hiss
+            const buf = this.createNoiseBuffer(0.4);
+            if (!buf) return;
+            const src = this.audioContext.createBufferSource();
+            src.buffer = buf;
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.setValueAtTime(2000, now);
+            const gain = this.audioContext.createGain();
+            src.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(vol * 1.5, now + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            src.start(now);
+            src.stop(now + 0.4);
+        } else {
+            // Mechanical clunk
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(120, now);
+            osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+            gain.gain.setValueAtTime(vol * 0.8, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            osc.start(now);
+            osc.stop(now + 0.15);
+        }
+    }
+
+    _playEnvWaste(now, vol) {
+        // Random choice: dripping liquid, bubbling, or pipe groan
+        const choice = Math.random();
+        if (choice < 0.4) {
+            // Dripping
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.type = 'sine';
+            const pitch = 800 + Math.random() * 600;
+            osc.frequency.setValueAtTime(pitch, now);
+            osc.frequency.exponentialRampToValueAtTime(pitch * 0.5, now + 0.08);
+            gain.gain.setValueAtTime(vol * 0.6, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        } else if (choice < 0.7) {
+            // Bubbling
+            for (let i = 0; i < 3; i++) {
+                const t = now + i * 0.08 + Math.random() * 0.04;
+                const osc = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200 + Math.random() * 300, t);
+                osc.frequency.exponentialRampToValueAtTime(100, t + 0.06);
+                gain.gain.setValueAtTime(vol * 0.4, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+                osc.start(t);
+                osc.stop(t + 0.08);
+            }
+        } else {
+            // Pipe groan
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(40 + Math.random() * 20, now);
+            osc.frequency.linearRampToValueAtTime(50 + Math.random() * 30, now + 0.5);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(vol * 0.5, now + 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            osc.start(now);
+            osc.stop(now + 0.5);
+        }
+    }
+
+    _playEnvCooling(now, vol) {
+        // Random choice: wind gust, ice crack, or ventilation whoosh
+        const choice = Math.random();
+        if (choice < 0.4) {
+            // Wind gust (filtered noise)
+            const buf = this.createNoiseBuffer(0.6);
+            if (!buf) return;
+            const src = this.audioContext.createBufferSource();
+            src.buffer = buf;
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(400, now);
+            filter.Q.setValueAtTime(2, now);
+            const gain = this.audioContext.createGain();
+            src.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(vol, now + 0.2);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+            src.start(now);
+            src.stop(now + 0.6);
+        } else if (choice < 0.7) {
+            // Ice crack
+            const buf = this.createNoiseBuffer(0.05);
+            if (!buf) return;
+            const src = this.audioContext.createBufferSource();
+            src.buffer = buf;
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.setValueAtTime(3000, now);
+            const gain = this.audioContext.createGain();
+            src.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            gain.gain.setValueAtTime(vol * 0.8, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+            src.start(now);
+            src.stop(now + 0.08);
+        } else {
+            // Ventilation whoosh
+            const buf = this.createNoiseBuffer(0.5);
+            if (!buf) return;
+            const src = this.audioContext.createBufferSource();
+            src.buffer = buf;
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(600, now);
+            filter.frequency.linearRampToValueAtTime(1200, now + 0.2);
+            filter.frequency.linearRampToValueAtTime(400, now + 0.5);
+            const gain = this.audioContext.createGain();
+            src.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(vol * 0.7, now + 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            src.start(now);
+            src.stop(now + 0.5);
+        }
+    }
+
+    _playEnvControl(now, vol) {
+        // Random choice: computer beep, button click, or radio static
+        const choice = Math.random();
+        if (choice < 0.4) {
+            // Computer beep
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.type = 'sine';
+            const freq = [880, 1046, 1318, 1568][Math.floor(Math.random() * 4)];
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(vol * 0.4, now);
+            gain.gain.setValueAtTime(vol * 0.4, now + 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+            osc.start(now);
+            osc.stop(now + 0.12);
+        } else if (choice < 0.7) {
+            // Button click
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(2000, now);
+            osc.frequency.exponentialRampToValueAtTime(500, now + 0.03);
+            gain.gain.setValueAtTime(vol * 0.5, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+            osc.start(now);
+            osc.stop(now + 0.04);
+        } else {
+            // Radio static burst
+            const buf = this.createNoiseBuffer(0.15);
+            if (!buf) return;
+            const src = this.audioContext.createBufferSource();
+            src.buffer = buf;
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(1500, now);
+            filter.Q.setValueAtTime(5, now);
+            const gain = this.audioContext.createGain();
+            src.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.masterGain);
+            gain.gain.setValueAtTime(vol * 0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            src.start(now);
+            src.stop(now + 0.15);
+        }
+    }
+
+    _playEnvCorridor(now, vol) {
+        // Random choice: distant rumble, metal creak, or echoing drip
+        const choice = Math.random();
+        if (choice < 0.4) {
+            // Distant rumble
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(30 + Math.random() * 15, now);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(vol * 0.5, now + 0.2);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+            osc.start(now);
+            osc.stop(now + 0.8);
+        } else if (choice < 0.7) {
+            // Metal creak
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150 + Math.random() * 100, now);
+            osc.frequency.linearRampToValueAtTime(80 + Math.random() * 60, now + 0.3);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(vol * 0.3, now + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        } else {
+            // Echoing drip
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.type = 'sine';
+            const pitch = 1200 + Math.random() * 400;
+            osc.frequency.setValueAtTime(pitch, now);
+            osc.frequency.exponentialRampToValueAtTime(pitch * 0.6, now + 0.05);
+            gain.gain.setValueAtTime(vol * 0.5, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            osc.start(now);
+            osc.stop(now + 0.15);
+        }
+    }
+
     // Alert bark — louder, two-tone call when an enemy alerts nearby allies
     playAlertBark(enemyType = 'guard') {
         if (!this.isInitialized) return;

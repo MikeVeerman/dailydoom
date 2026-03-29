@@ -627,6 +627,7 @@ const TIER_2_TESTS = [
   { id: 'T2-37', name: 'Environmental zone particles', fn: T2_37_zoneParticles }, // issue: #298
   { id: 'T2-38', name: 'Enemy alert propagation', fn: T2_38_enemyAlertPropagation }, // issue: #304
   { id: 'T2-39', name: 'Quick-switch weapon (Q key)', fn: T2_39_quickSwitchWeapon }, // issue: #309
+  { id: 'T2-40', name: 'Environmental sound effects', fn: T2_40_environmentalSounds }, // issue: #307
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -3074,6 +3075,75 @@ async function T2_39_quickSwitchWeapon(page, result) {
   } else {
     result.status = 'pass';
     result.note = 'Quick-switch: Q key mapped, previousWeapon tracked, switch behavior verified';
+  }
+}
+
+async function T2_40_environmentalSounds(page, result) {
+  // T2-40: Discrete environmental sound effects (issue: #307)
+  // Pass condition: SoundEngine has environmental sound methods, update loop calls them
+  await page.waitForTimeout(1000);
+
+  const envData = await page.evaluate(() => {
+    const se = window.soundEngine;
+    if (!se) return { exists: false, reason: 'No sound engine' };
+
+    // Check main methods exist
+    const hasPlayEnvSound = typeof se.playEnvironmentalSound === 'function';
+    const hasUpdateEnvSounds = typeof se.updateEnvironmentalSounds === 'function';
+
+    // Check zone-specific helper methods
+    const hasReactor = typeof se._playEnvReactor === 'function';
+    const hasWaste = typeof se._playEnvWaste === 'function';
+    const hasCooling = typeof se._playEnvCooling === 'function';
+    const hasControl = typeof se._playEnvControl === 'function';
+    const hasCorridor = typeof se._playEnvCorridor === 'function';
+
+    // Check timing properties
+    const hasLastEnvTime = typeof se.lastEnvSoundTime === 'number';
+    const hasInterval = typeof se.envSoundInterval === 'number';
+
+    // Check game loop calls updateEnvironmentalSounds
+    const gameUpdateStr = window.game && window.game.update ? window.game.update.toString() : '';
+    const calledInLoop = gameUpdateStr.includes('updateEnvironmentalSounds');
+
+    return {
+      exists: true,
+      hasPlayEnvSound,
+      hasUpdateEnvSounds,
+      hasReactor,
+      hasWaste,
+      hasCooling,
+      hasControl,
+      hasCorridor,
+      hasLastEnvTime,
+      hasInterval,
+      calledInLoop,
+      zoneCount: [hasReactor, hasWaste, hasCooling, hasControl, hasCorridor].filter(Boolean).length
+    };
+  });
+
+  if (!envData.exists) {
+    result.status = 'fail';
+    result.note = envData.reason;
+    return;
+  }
+
+  const checks = [
+    ['playEnvironmentalSound method', envData.hasPlayEnvSound],
+    ['updateEnvironmentalSounds method', envData.hasUpdateEnvSounds],
+    ['zone sound methods (5 zones)', envData.zoneCount === 5],
+    ['timing properties', envData.hasLastEnvTime && envData.hasInterval],
+    ['called in game loop', envData.calledInLoop]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Environmental sounds: ${envData.zoneCount} zone profiles, timer-based triggers, game loop integration`;
   }
 }
 
