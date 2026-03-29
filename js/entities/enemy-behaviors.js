@@ -819,10 +819,53 @@ class EnhancedEnemyAI {
     }
     
     callForHelpIfNeeded(player) {
-        if (this.behavior.callForHelp && !this.helpCalled) {
+        if (!this.helpCalled) {
             this.helpCalled = true;
-            // Alert nearby enemies (would be handled by enemy manager)
-            console.log('Enemy calls for help!');
+            // Propagate alert to nearby enemies
+            this.alertNearbyEnemies(player);
+        }
+    }
+
+    alertNearbyEnemies(player) {
+        const now = Date.now();
+        // Cooldown: don't spam alerts (3 seconds)
+        if (now - this.enemy.lastAlertPropagation < 3000) return;
+        this.enemy.lastAlertPropagation = now;
+
+        if (!window.game || !window.game.map) return;
+        const allEnemies = window.game.map.enemies;
+        const alertRadius = 5 * (window.game.map.tileSize || 64); // 5 tiles
+
+        for (const other of allEnemies) {
+            if (other === this.enemy) continue;
+            if (!other.active || other.dying) continue;
+            // Only alert idle/patrol enemies (already engaged enemies don't need alerting)
+            if (other.state !== 'idle' && other.state !== 'patrol') continue;
+
+            const dx = other.x - this.enemy.x;
+            const dy = other.y - this.enemy.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < alertRadius) {
+                // Alert the other enemy
+                other.alertedTime = now;
+                other.alertIndicatorTime = now;
+                other.lastPlayerX = player.x;
+                other.lastPlayerY = player.y;
+                other.state = 'chase';
+                other.hasPlayedAlert = true;
+
+                // If other enemy has enhanced AI, update its state too
+                if (other.enhancedAI) {
+                    other.enhancedAI.alertLevel = Math.max(other.enhancedAI.alertLevel, 0.7);
+                    other.enhancedAI.lastKnownPlayerPos = { x: player.x, y: player.y };
+                }
+            }
+        }
+
+        // Play alert bark sound
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playAlertBark(this.enemy.type);
         }
     }
     

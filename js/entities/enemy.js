@@ -39,6 +39,11 @@ class Enemy {
         this.painCooldown = 500; // 0.5s between pain sounds
         this.hasPlayedAlert = false;
 
+        // Alert propagation
+        this.alertedTime = 0; // When this enemy was alerted by another
+        this.alertIndicatorTime = 0; // When to show "!" indicator
+        this.lastAlertPropagation = 0; // Cooldown for outgoing alerts
+
         // Knockback velocity (from explosions)
         this.knockbackVX = 0;
         this.knockbackVY = 0;
@@ -150,13 +155,14 @@ class Enemy {
                     if (!this.hasPlayedAlert) {
                         this.hasPlayedAlert = true;
                         this.tryBark('alert');
+                        this.alertNearby(player);
                     }
                     console.log('Enemy detected player!');
                 } else if (now - this.lastMoveTime > this.moveInterval) {
                     this.state = 'patrol';
                 }
                 break;
-                
+
             case 'patrol':
                 this.patrol(deltaTime, map);
                 if (playerDistance < this.detectionRange) {
@@ -164,6 +170,7 @@ class Enemy {
                     if (!this.hasPlayedAlert) {
                         this.hasPlayedAlert = true;
                         this.tryBark('alert');
+                        this.alertNearby(player);
                     }
                 }
                 break;
@@ -536,6 +543,42 @@ class Enemy {
             case 'attack':
                 window.soundEngine.playEnemyAttackBark(this.type);
                 break;
+        }
+    }
+
+    // Alert nearby enemies when this enemy detects the player (fallback AI path)
+    alertNearby(player) {
+        const now = Date.now();
+        if (now - this.lastAlertPropagation < 3000) return;
+        this.lastAlertPropagation = now;
+
+        if (!window.game || !window.game.map) return;
+        const allEnemies = window.game.map.enemies;
+        const tileSize = window.game.map.tileSize || 64;
+        const alertRadius = 5 * tileSize;
+
+        for (const other of allEnemies) {
+            if (other === this || !other.active || other.dying) continue;
+            if (other.state !== 'idle' && other.state !== 'patrol') continue;
+
+            const dx = other.x - this.x;
+            const dy = other.y - this.y;
+            if (Math.sqrt(dx * dx + dy * dy) < alertRadius) {
+                other.alertedTime = now;
+                other.alertIndicatorTime = now;
+                other.lastPlayerX = player.x;
+                other.lastPlayerY = player.y;
+                other.state = 'chase';
+                other.hasPlayedAlert = true;
+                if (other.enhancedAI) {
+                    other.enhancedAI.alertLevel = Math.max(other.enhancedAI.alertLevel, 0.7);
+                    other.enhancedAI.lastKnownPlayerPos = { x: player.x, y: player.y };
+                }
+            }
+        }
+
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playAlertBark(this.type);
         }
     }
 

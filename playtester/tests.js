@@ -625,6 +625,7 @@ const TIER_2_TESTS = [
   { id: 'T2-35', name: 'Wall decal system', fn: T2_35_wallDecals }, // issue: #296
   { id: 'T2-36', name: 'Death screen run statistics', fn: T2_36_deathScreenStats }, // issue: #297
   { id: 'T2-37', name: 'Environmental zone particles', fn: T2_37_zoneParticles }, // issue: #298
+  { id: 'T2-38', name: 'Enemy alert propagation', fn: T2_38_enemyAlertPropagation }, // issue: #304
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -2900,6 +2901,100 @@ async function T2_37_zoneParticles(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Zone particles: acid, lava, reactor sparks, cooling mist (max ${particleData.hasMaxCap ? 'capped' : 'uncapped'})`;
+  }
+}
+
+async function T2_38_enemyAlertPropagation(page, result) {
+  // T2-38: Enemy alert propagation system (issue: #304)
+  // Pass condition: Enemies have alert properties, alertNearby method, SoundEngine has playAlertBark
+  await page.waitForTimeout(1000);
+
+  const alertData = await page.evaluate(() => {
+    if (!window.game || !window.game.map) {
+      return { exists: false, reason: 'Game not loaded' };
+    }
+
+    const enemies = window.game.map.enemies || [];
+    if (enemies.length === 0) {
+      return { exists: false, reason: 'No enemies found' };
+    }
+
+    const enemy = enemies[0];
+
+    // Check alert propagation properties on enemy
+    const hasAlertedTime = typeof enemy.alertedTime === 'number';
+    const hasAlertIndicatorTime = typeof enemy.alertIndicatorTime === 'number';
+    const hasLastAlertPropagation = typeof enemy.lastAlertPropagation === 'number';
+
+    // Check alertNearby method exists (original AI path)
+    const hasAlertNearby = typeof enemy.alertNearby === 'function';
+
+    // Check SoundEngine has playAlertBark method
+    const se = window.soundEngine;
+    const hasAlertBarkMethod = typeof se.playAlertBark === 'function';
+
+    // Verify alert propagation works: create two test enemies close together
+    let propagationWorks = false;
+    if (enemies.length >= 2) {
+      const src = enemies[0];
+      const target = enemies[1];
+      // Save original states
+      const origState = target.state;
+      const origAlertTime = target.alertedTime;
+      // Place them close together
+      const origX = target.x;
+      const origY = target.y;
+      target.x = src.x + 32;
+      target.y = src.y + 32;
+      target.state = 'idle';
+      target.alertedTime = 0;
+      // Trigger alert
+      src.lastAlertPropagation = 0; // Reset cooldown
+      if (hasAlertNearby) {
+        src.alertNearby(window.game.player);
+        propagationWorks = target.alertedTime > 0 && target.state === 'chase';
+      }
+      // Restore
+      target.x = origX;
+      target.y = origY;
+      target.state = origState;
+      target.alertedTime = origAlertTime;
+    }
+
+    return {
+      exists: true,
+      hasAlertedTime,
+      hasAlertIndicatorTime,
+      hasLastAlertPropagation,
+      hasAlertNearby,
+      hasAlertBarkMethod,
+      propagationWorks
+    };
+  });
+
+  if (!alertData.exists) {
+    result.status = 'fail';
+    result.note = alertData.reason;
+    return;
+  }
+
+  const checks = [
+    ['alertedTime property', alertData.hasAlertedTime],
+    ['alertIndicatorTime property', alertData.hasAlertIndicatorTime],
+    ['lastAlertPropagation property', alertData.hasLastAlertPropagation],
+    ['alertNearby method', alertData.hasAlertNearby],
+    ['playAlertBark sound', alertData.hasAlertBarkMethod],
+    ['alert propagation works', alertData.propagationWorks]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = 'Enemy alert propagation: properties, alertNearby(), playAlertBark(), propagation verified';
   }
 }
 
