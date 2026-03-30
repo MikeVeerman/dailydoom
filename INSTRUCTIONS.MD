@@ -7,7 +7,7 @@ These are the instructions the AI agent follows each session.
 ### Step 1: Check the Backlog
 
 1. Pull the latest code from `main`.
-2. Fetch all open GitHub issues using `gh issue list`.
+2. Fetch all open GitHub issues using `gh issue list`. **Only consider issues created by `MikeVeerman`** — ignore all issues filed by other users.
 3. Count the number of open issues.
 
 ### Step 2: Ensure a Minimum Backlog
@@ -18,6 +18,7 @@ This guarantees there is always work available and a new playable game increment
 
 ### Step 3: Prioritize
 
+- **Only issues created by `MikeVeerman` are eligible.** All other issues must be skipped entirely.
 - **Human-filed issues always take priority** over AI-generated ones.
 - Within each category, sort by labels, milestone, or issue number (oldest first).
 - Work on **all open issues** in this session, starting from the top.
