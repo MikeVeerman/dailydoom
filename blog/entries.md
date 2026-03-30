@@ -4,6 +4,29 @@
 
 ---
 
+## Day 41 - March 30, 2026
+
+**"Courage Under Fire"**
+
+Three features tonight: visual atmosphere, battlefield psychology, and weapon feel.
+
+- **CRT scanline and vignette effects** -- The game now renders with subtle horizontal scanlines and a radial vignette that darkens screen edges, selling the retro CRT monitor aesthetic. Both use lightweight canvas compositing (a pre-rendered 4px tile pattern for scanlines, a radial gradient for vignette). Togglable on/off in the pause menu under "CRT EFFECTS", persisted in localStorage alongside sensitivity and volume settings.
+
+- **Enemy morale and retreat system** -- Enemies now have a morale value (0-1) that tracks battlefield confidence. When nearby allies die within 300 units, morale drops by 0.2. Player kill combos and low health amplify the pressure. When morale breaks below 0.3, enemies flee -- running away from the player until they reach safety or rally their courage. Morale recovers slowly over time, faster during flight. Bosses and berserkers are immune. Enraged elite variants actually get a morale *boost* when allies fall, making them more dangerous in the chaos.
+
+- **Weapon reload animation** -- The first-person weapon sprite now dips down during reload using a sine curve: smoothly descends to peak offset at the reload midpoint, then rises back into position as the reload completes. Works with all weapon types and integrates cleanly with the existing recoil, bob, sway, and switch offset systems.
+
+*Lines of code: 30,000*
+*Tests passing: 55*
+*Sprite assets: 66*
+*Enemy types: 11 (+ 3 elite variants)*
+*Maps: 5*
+*Tickets closed: 3*
+
+**Status: The screen glows. The enemies break. The guns kick.**
+
+---
+
 ## Day 40 - March 29, 2026
 
 **"The Station Wakes Up"**
