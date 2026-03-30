@@ -127,6 +127,10 @@ class HUD {
         this.zoneTintAlpha = 0;
         this.targetZoneTint = null;
 
+        // CRT post-processing effects
+        this.crtEnabled = true; // default on, toggled in pause menu
+        this.scanlinePattern = null; // pre-rendered scanline pattern
+
         // Low health heartbeat tracking
         this.lastHeartbeatTime = 0;
 
@@ -241,6 +245,9 @@ class HUD {
 
             // Render zone atmosphere vignette
             this.renderZoneVignette(player);
+
+            // Render CRT post-processing effects (scanlines + vignette)
+            this.renderCRTEffects();
 
             // Render damage flash effect
             this.renderDamageFlash(player);
@@ -1164,6 +1171,35 @@ class HUD {
         gradRight.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
         this.ctx.fillStyle = gradRight;
         this.ctx.fillRect(w - edgeSize, 0, edgeSize, h);
+    }
+
+    renderCRTEffects() {
+        if (!this.crtEnabled) return;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Scanlines: draw semi-transparent dark lines every 3 pixels
+        if (!this.scanlinePattern) {
+            const patCanvas = document.createElement('canvas');
+            patCanvas.width = 1;
+            patCanvas.height = 4;
+            const patCtx = patCanvas.getContext('2d');
+            patCtx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+            patCtx.fillRect(0, 2, 1, 2);
+            this.scanlinePattern = this.ctx.createPattern(patCanvas, 'repeat');
+        }
+        this.ctx.fillStyle = this.scanlinePattern;
+        this.ctx.fillRect(0, 0, w, h);
+
+        // Vignette: radial darkening at screen edges
+        const cx = w / 2;
+        const cy = h / 2;
+        const maxR = Math.sqrt(cx * cx + cy * cy);
+        const grad = this.ctx.createRadialGradient(cx, cy, maxR * 0.45, cx, cy, maxR);
+        grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0.35)');
+        this.ctx.fillStyle = grad;
+        this.ctx.fillRect(0, 0, w, h);
     }
 
     renderDamageFlash(player) {

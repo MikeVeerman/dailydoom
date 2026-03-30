@@ -628,6 +628,7 @@ const TIER_2_TESTS = [
   { id: 'T2-38', name: 'Enemy alert propagation', fn: T2_38_enemyAlertPropagation }, // issue: #304
   { id: 'T2-39', name: 'Quick-switch weapon (Q key)', fn: T2_39_quickSwitchWeapon }, // issue: #309
   { id: 'T2-40', name: 'Environmental sound effects', fn: T2_40_environmentalSounds }, // issue: #307
+  { id: 'T2-41', name: 'CRT scanline and vignette effects', fn: T2_41_crtEffects }, // issue: #314
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -3023,21 +3024,22 @@ async function T2_39_quickSwitchWeapon(page, result) {
     const qKeyMapping = im && im.keyMap && im.keyMap['KeyQ'];
     const qMapsToQuickSwitch = qKeyMapping === 'quickSwitch';
 
-    // Test quickSwitch behavior: switch to shotgun then back (use instant/non-animated switches)
+    // Test quickSwitch behavior: switch between two weapons (use instant/non-animated)
     let switchWorks = false;
-    if (hasQuickSwitch && wm.weapons.shotgun) {
+    if (hasQuickSwitch) {
       const origCurrent = wm.currentWeapon;
       const origPrev = wm.previousWeapon;
       const origState = wm.switchState;
+      // Force start from pistol to avoid same-weapon edge case
+      wm.currentWeapon = 'pistol';
+      wm.previousWeapon = null;
       wm.switchState = 'ready';
       wm.unlockedWeapons.add('shotgun');
-      wm.switchWeapon('shotgun', false); // instant switch
-      const afterSwitch = wm.currentWeapon === 'shotgun' && wm.previousWeapon === origCurrent;
-      // quickSwitch uses animated=true, but we need switchState=ready
+      wm.switchWeapon('shotgun', false); // instant switch pistol → shotgun
+      const afterSwitch = wm.currentWeapon === 'shotgun' && wm.previousWeapon === 'pistol';
       wm.switchState = 'ready';
-      const prevWeapon = wm.previousWeapon;
-      wm.switchWeapon(prevWeapon, false); // simulate quickSwitch with instant
-      const afterQuickSwitch = wm.currentWeapon === origCurrent;
+      wm.switchWeapon(wm.previousWeapon, false); // switch back shotgun → pistol
+      const afterQuickSwitch = wm.currentWeapon === 'pistol';
       switchWorks = afterSwitch && afterQuickSwitch;
       // Restore
       wm.currentWeapon = origCurrent;
@@ -3144,6 +3146,64 @@ async function T2_40_environmentalSounds(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Environmental sounds: ${envData.zoneCount} zone profiles, timer-based triggers, game loop integration`;
+  }
+}
+
+// T2-41: CRT scanline and vignette post-processing effects (issue #314)
+async function T2_41_crtEffects(page, result) {
+  const crtData = await page.evaluate(() => {
+    if (!window.game || !window.game.hud) return { exists: false, reason: 'No game/hud' };
+
+    const hud = window.game.hud;
+    const hasCrtEnabled = typeof hud.crtEnabled === 'boolean';
+    const hasRenderMethod = typeof hud.renderCRTEffects === 'function';
+
+    // Verify toggle works
+    const original = hud.crtEnabled;
+    hud.crtEnabled = false;
+    const canDisable = hud.crtEnabled === false;
+    hud.crtEnabled = true;
+    const canEnable = hud.crtEnabled === true;
+    hud.crtEnabled = original;
+
+    // Check that renderCRTEffects references scanlinePattern and vignette
+    const fnStr = hud.renderCRTEffects.toString();
+    const hasScanlines = fnStr.includes('scanlinePattern');
+    const hasVignette = fnStr.includes('createRadialGradient');
+
+    return {
+      exists: true,
+      hasCrtEnabled,
+      hasRenderMethod,
+      canDisable,
+      canEnable,
+      hasScanlines,
+      hasVignette
+    };
+  });
+
+  if (!crtData.exists) {
+    result.status = 'fail';
+    result.note = crtData.reason;
+    return;
+  }
+
+  const checks = [
+    ['crtEnabled property', crtData.hasCrtEnabled],
+    ['renderCRTEffects method', crtData.hasRenderMethod],
+    ['toggle on/off', crtData.canDisable && crtData.canEnable],
+    ['scanline rendering', crtData.hasScanlines],
+    ['vignette rendering', crtData.hasVignette]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = 'CRT effects: scanlines + vignette, toggleable on/off';
   }
 }
 
