@@ -481,6 +481,21 @@ class Enemy {
                 window.game.hud.emitBloodParticles(this.x, this.y, 15);
             }
 
+            // Morale impact: nearby enemies lose morale when ally dies
+            if (window.game && window.game.map) {
+                const deathX = this.x;
+                const deathY = this.y;
+                const moraleRadius = 300;
+                for (const other of window.game.map.enemies) {
+                    if (other === this || !other.active || other.dying) continue;
+                    const dx = other.x - deathX;
+                    const dy = other.y - deathY;
+                    if (Math.sqrt(dx * dx + dy * dy) < moraleRadius && other.enhancedAI) {
+                        other.enhancedAI.onNearbyAllyDeath();
+                    }
+                }
+            }
+
             // Loot drops based on enemy type (ammo via spawnAmmoCrate + health/armor)
             if (window.game && window.game.pickupManager) {
                 this.dropLoot();
