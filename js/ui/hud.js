@@ -837,10 +837,17 @@ class HUD {
         // Weapon switch animation offset (slides weapon down off screen)
         const switchOffset = (weaponInfo.switchProgress || 0) * 250;
 
+        // Weapon reload animation offset (dip down and back up)
+        let reloadOffset = 0;
+        if (weaponInfo.isReloading && weaponInfo.reloadProgress != null) {
+            // Sine curve: 0→peak→0 over reload duration
+            reloadOffset = Math.sin(weaponInfo.reloadProgress * Math.PI) * 120;
+        }
+
         // First-person weapon view (larger, bottom-right of screen)
         const fpsWeaponSize = 200;
         const fpsX = this.canvas.width / 2 + 50 + this.weaponBobX + this.weaponSwayX;
-        const fpsY = this.canvas.height - fpsWeaponSize + 20 - this.weaponRecoilOffset + this.weaponBobY + switchOffset;
+        const fpsY = this.canvas.height - fpsWeaponSize + 20 - this.weaponRecoilOffset + this.weaponBobY + switchOffset + reloadOffset;
 
         // Choose between gun and melee first-person sprite
         const fpsSprite = (weaponName === 'PUNCH') ? this.fpsMeleeSprite : this.fpsGunSprite;

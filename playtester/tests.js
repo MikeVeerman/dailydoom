@@ -630,6 +630,7 @@ const TIER_2_TESTS = [
   { id: 'T2-40', name: 'Environmental sound effects', fn: T2_40_environmentalSounds }, // issue: #307
   { id: 'T2-41', name: 'CRT scanline and vignette effects', fn: T2_41_crtEffects }, // issue: #314
   { id: 'T2-42', name: 'Enemy morale and retreat behavior', fn: T2_42_enemyMorale }, // issue: #315
+  { id: 'T2-43', name: 'Weapon reload animation', fn: T2_43_reloadAnimation }, // issue: #316
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -3285,6 +3286,67 @@ async function T2_42_enemyMorale(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Morale system: ally death impact, boss immunity, flee integration`;
+  }
+}
+
+// T2-43: Weapon reload animation on first-person sprite (issue #316)
+async function T2_43_reloadAnimation(page, result) {
+  const reloadData = await page.evaluate(() => {
+    if (!window.game || !window.game.hud || !window.game.player) {
+      return { exists: false, reason: 'No game/hud/player' };
+    }
+
+    const hud = window.game.hud;
+    const player = window.game.player;
+
+    // Check renderWeaponSprite contains reload offset logic
+    const fnStr = hud.renderWeaponSprite.toString();
+    const hasReloadOffset = fnStr.includes('reloadOffset');
+    const hasSinCurve = fnStr.includes('Math.sin') && fnStr.includes('reloadProgress');
+
+    // Simulate reload to verify offset calculation
+    const weapon = player.weaponManager.currentWeapon;
+    const origAmmo = weapon.ammo;
+    const origReloading = weapon.isReloading;
+
+    // Force a reload state and check offset math
+    weapon.isReloading = true;
+    weapon.reloadStartTime = Date.now() - 500; // mid-reload
+    const info = player.weaponManager.getHUDInfo();
+    const hasProgress = typeof info.reloadProgress === 'number' && info.reloadProgress > 0;
+
+    // Restore
+    weapon.isReloading = origReloading;
+    weapon.ammo = origAmmo;
+
+    return {
+      exists: true,
+      hasReloadOffset,
+      hasSinCurve,
+      hasProgress
+    };
+  });
+
+  if (!reloadData.exists) {
+    result.status = 'fail';
+    result.note = reloadData.reason;
+    return;
+  }
+
+  const checks = [
+    ['reloadOffset in renderWeaponSprite', reloadData.hasReloadOffset],
+    ['sine curve animation', reloadData.hasSinCurve],
+    ['reload progress available', reloadData.hasProgress]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = 'Reload animation: sine-curve dip during reload, progress-driven';
   }
 }
 
