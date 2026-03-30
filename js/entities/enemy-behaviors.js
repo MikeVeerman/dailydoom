@@ -256,7 +256,12 @@ class EnhancedEnemyAI {
         this.coverPosition = null;
         this.strafeDirection = Math.random() > 0.5 ? 1 : -1;
         this.fleeTarget = null;
-        
+
+        // Morale system
+        this.morale = 1.0; // 1.0 = full courage, 0.0 = broken
+        this.moraleRecoveryRate = 0.05; // per second recovery when not stressed
+        this.moraleFleeThreshold = 0.3; // flee when morale drops below this
+
         // Group coordination
         this.groupId = null;
         this.isGroupLeader = false;
@@ -267,6 +272,9 @@ class EnhancedEnemyAI {
     update(deltaTime, player, map, allEnemies) {
         // Update alert level
         this.updateAlertLevel(player);
+
+        // Update morale (recover slowly over time)
+        this.updateMorale(deltaTime, player);
 
         // Clear dead infight targets
         if (this.enemy.infightTarget && (!this.enemy.infightTarget.active || this.enemy.infightTarget.dying)) {
@@ -362,9 +370,9 @@ class EnhancedEnemyAI {
     chaseBehavior(player, deltaTime, map, allEnemies) {
         const distance = this.getDistanceToPlayer(player);
 
-        // Check if should flee
+        // Check if should flee (health OR morale)
         const healthPercent = this.enemy.health / this.enemy.maxHealth;
-        if (healthPercent < this.behavior.fleeHealthThreshold) {
+        if (healthPercent < this.behavior.fleeHealthThreshold || this.morale < this.moraleFleeThreshold) {
             this.enemy.state = 'flee';
             return;
         }
@@ -416,6 +424,12 @@ class EnhancedEnemyAI {
         const distance = this.getDistanceToPlayer(player);
         const now = Date.now();
 
+        // Check morale - flee if broken
+        if (this.morale < this.moraleFleeThreshold) {
+            this.enemy.state = 'flee';
+            return;
+        }
+
         // Berserker rage - boost speed and damage at low health
         if (this.behavior.berserkerRage) {
             const healthPercent = this.enemy.health / this.enemy.maxHealth;
@@ -461,20 +475,25 @@ class EnhancedEnemyAI {
     }
     
     fleeBehavior(player, deltaTime, map) {
+        // Morale recovers faster while fleeing (relief from disengagement)
+        this.morale += 0.1 * deltaTime;
+        this.morale = Math.min(1, this.morale);
+
         // Find safe retreat position
         if (!this.fleeTarget) {
             this.findFleeTarget(player, map);
         }
-        
+
         this.enemy.targetX = this.fleeTarget.x;
         this.enemy.targetY = this.fleeTarget.y;
-        
-        // Check if reached safety or health improved
-        const distance = Math.sqrt((this.enemy.x - this.fleeTarget.x) ** 2 + 
+
+        // Check if reached safety, health improved, or morale rallied
+        const distance = Math.sqrt((this.enemy.x - this.fleeTarget.x) ** 2 +
                                  (this.enemy.y - this.fleeTarget.y) ** 2);
-        
+
         const healthPercent = this.enemy.health / this.enemy.maxHealth;
-        if (distance < 20 || healthPercent > this.behavior.fleeHealthThreshold + 0.1) {
+        const rallied = this.morale > this.moraleFleeThreshold + 0.2;
+        if (distance < 20 || healthPercent > this.behavior.fleeHealthThreshold + 0.1 || rallied) {
             this.enemy.state = 'patrol';
             this.fleeTarget = null;
         }
@@ -1183,6 +1202,46 @@ class EnhancedEnemyAI {
         this.enemy.bossSpecialTelegraph = null;
     }
 
+    updateMorale(deltaTime, player) {
+        const type = this.enemy.type;
+        // Bosses and berserkers are immune to morale loss
+        if (type === 'boss' || type === 'berserker') {
+            this.morale = 1.0;
+            return;
+        }
+
+        // Player combo pressure: reduce morale when player is on a kill streak
+        if (player.comboCount && player.comboCount >= 3) {
+            this.morale -= 0.02 * deltaTime;
+        }
+
+        // Low health amplifies morale loss
+        const healthPct = this.enemy.health / this.enemy.maxHealth;
+        if (healthPct < 0.4) {
+            this.morale -= 0.03 * deltaTime;
+        }
+
+        // Slowly recover morale when not under immediate stress
+        if (healthPct > 0.5 && (!player.comboCount || player.comboCount < 2)) {
+            this.morale += this.moraleRecoveryRate * deltaTime;
+        }
+
+        this.morale = Math.max(0, Math.min(1, this.morale));
+    }
+
+    onNearbyAllyDeath() {
+        const type = this.enemy.type;
+        // Bosses and berserkers are immune
+        if (type === 'boss' || type === 'berserker') return;
+        // Enraged elites get a morale boost instead
+        if (this.enemy.isElite && this.enemy.eliteType === 'enraged') {
+            this.morale = Math.min(1, this.morale + 0.15);
+            return;
+        }
+        this.morale -= 0.2;
+        this.morale = Math.max(0, this.morale);
+    }
+
     findFleeTarget(player, map) {
         // Find position away from player
         const fleeAngle = Math.atan2(this.enemy.y - player.y, this.enemy.x - player.x);
@@ -1267,9 +1326,10 @@ function applyEliteVariant(enemy, variantType) {
         enemy.regenRate = variant.regenRate;
     }
 
-    // Enraged: never flee
-    if (variantType === 'enraged' && enemy.enhancedAI && enemy.enhancedAI.behavior) {
-        enemy.enhancedAI.behavior.fleeHealthThreshold = 0;
+    // Enraged: never flee (neither from health nor morale)
+    if (variantType === 'enraged' && enemy.enhancedAI) {
+        if (enemy.enhancedAI.behavior) enemy.enhancedAI.behavior.fleeHealthThreshold = 0;
+        enemy.enhancedAI.moraleFleeThreshold = 0;
     }
 }
 

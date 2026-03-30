@@ -629,6 +629,7 @@ const TIER_2_TESTS = [
   { id: 'T2-39', name: 'Quick-switch weapon (Q key)', fn: T2_39_quickSwitchWeapon }, // issue: #309
   { id: 'T2-40', name: 'Environmental sound effects', fn: T2_40_environmentalSounds }, // issue: #307
   { id: 'T2-41', name: 'CRT scanline and vignette effects', fn: T2_41_crtEffects }, // issue: #314
+  { id: 'T2-42', name: 'Enemy morale and retreat behavior', fn: T2_42_enemyMorale }, // issue: #315
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -3204,6 +3205,86 @@ async function T2_41_crtEffects(page, result) {
   } else {
     result.status = 'pass';
     result.note = 'CRT effects: scanlines + vignette, toggleable on/off';
+  }
+}
+
+// T2-42: Enemy morale and retreat behavior (issue #315)
+async function T2_42_enemyMorale(page, result) {
+  const moraleData = await page.evaluate(() => {
+    if (!window.game || !window.game.map) return { exists: false, reason: 'No game/map' };
+
+    const enemies = window.game.map.enemies.filter(e => e.active && !e.dying && e.enhancedAI);
+    if (enemies.length === 0) return { exists: false, reason: 'No enhanced AI enemies' };
+
+    const enemy = enemies.find(e => e.type !== 'boss' && e.type !== 'berserker') || enemies[0];
+    const ai = enemy.enhancedAI;
+
+    const hasMorale = typeof ai.morale === 'number';
+    const hasUpdateMorale = typeof ai.updateMorale === 'function';
+    const hasOnAllyDeath = typeof ai.onNearbyAllyDeath === 'function';
+    const hasFleeThreshold = typeof ai.moraleFleeThreshold === 'number';
+    const hasRecoveryRate = typeof ai.moraleRecoveryRate === 'number';
+
+    // Test morale decrease on ally death
+    const before = ai.morale;
+    ai.onNearbyAllyDeath();
+    const after = ai.morale;
+    const decreased = after < before;
+    ai.morale = before; // restore
+
+    // Boss immunity check
+    const bosses = enemies.filter(e => e.type === 'boss');
+    let bossImmune = true;
+    if (bosses.length > 0 && bosses[0].enhancedAI) {
+      const bAi = bosses[0].enhancedAI;
+      const bBefore = bAi.morale;
+      bAi.onNearbyAllyDeath();
+      bossImmune = bAi.morale === bBefore;
+      bAi.morale = bBefore;
+    }
+
+    // Check flee integration: chaseBehavior references morale
+    const chaseStr = ai.chaseBehavior ? ai.chaseBehavior.toString() : '';
+    const fleeCheckInChase = chaseStr.includes('morale') || chaseStr.includes('moraleFleeThreshold');
+
+    return {
+      exists: true,
+      hasMorale,
+      hasUpdateMorale,
+      hasOnAllyDeath,
+      hasFleeThreshold,
+      hasRecoveryRate,
+      decreased,
+      bossImmune,
+      fleeCheckInChase,
+      initialMorale: before
+    };
+  });
+
+  if (!moraleData.exists) {
+    result.status = 'fail';
+    result.note = moraleData.reason;
+    return;
+  }
+
+  const checks = [
+    ['morale property', moraleData.hasMorale],
+    ['updateMorale method', moraleData.hasUpdateMorale],
+    ['onNearbyAllyDeath method', moraleData.hasOnAllyDeath],
+    ['moraleFleeThreshold', moraleData.hasFleeThreshold],
+    ['morale decreased on ally death', moraleData.decreased],
+    ['boss immune to morale loss', moraleData.bossImmune],
+    ['flee check in chase behavior', moraleData.fleeCheckInChase]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Morale system: ally death impact, boss immunity, flee integration`;
   }
 }
 
