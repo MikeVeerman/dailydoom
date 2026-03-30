@@ -124,6 +124,14 @@ class GameEngine {
         
         // Initialize HUD
         this.hud = new HUD(this.canvas);
+        // Apply saved CRT setting
+        try {
+            const saved = localStorage.getItem('dailydoom_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                if (settings.crtEnabled != null) this.hud.crtEnabled = settings.crtEnabled;
+            }
+        } catch (e) { /* ignore */ }
         console.log('HUD initialized');
         
         // Initialize pickup system
@@ -185,6 +193,13 @@ class GameEngine {
                                     : Math.min(1, vol + volStep);
                                 window.soundEngine.setMasterVolume(newVol);
                                 if (window.saveSettings) window.saveSettings({ masterVolume: newVol });
+                            }
+                            break;
+                        }
+                        case 'toggleCRT': {
+                            if (this.hud) {
+                                this.hud.crtEnabled = !this.hud.crtEnabled;
+                                if (window.saveSettings) window.saveSettings({ crtEnabled: this.hud.crtEnabled });
                             }
                             break;
                         }
@@ -1725,7 +1740,7 @@ class GameEngine {
 
         // Menu box
         const menuW = 300;
-        const menuH = 340;
+        const menuH = 380;
         const menuX = (w - menuW) / 2;
         const menuY = (h - menuH) / 2;
 
@@ -1747,12 +1762,14 @@ class GameEngine {
         const volume = window.soundEngine ? Math.round(window.soundEngine.masterVolume * 100) : 50;
 
         // Menu items
+        const crtLabel = this.hud && this.hud.crtEnabled ? 'ON' : 'OFF';
         const items = [
             { label: 'RESUME', action: 'resume' },
             { label: 'RESTART LEVEL', action: 'restart' },
             { label: 'MUSIC: ' + (window.soundEngine && window.soundEngine.musicMuted ? 'OFF' : 'ON'), action: 'toggleMusic' },
             { label: `SENSITIVITY: ${sensLabel}`, action: 'sensitivity' },
-            { label: `VOLUME: ${volume}%`, action: 'volume' }
+            { label: `VOLUME: ${volume}%`, action: 'volume' },
+            { label: `CRT EFFECTS: ${crtLabel}`, action: 'toggleCRT' }
         ];
 
         const itemH = 40;
