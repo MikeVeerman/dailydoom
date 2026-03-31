@@ -92,6 +92,9 @@ class GameEngine {
         // Intermission screen between maps
         this.intermission = { active: false, stats: null, weapons: null };
 
+        // Weapon mod selection screen (shown after intermission)
+        this.modSelection = { active: false, choices: [], hoveredIndex: -1 };
+
         // Initialize systems
         this.initialize();
     }
@@ -278,6 +281,7 @@ class GameEngine {
         this.showDeathScreen = false;
         this.momentum = 1.0;
         this.currentLevel = 1;
+        this.modSelection = { active: false, choices: [], hoveredIndex: -1 };
 
         // Reshuffle map rotation and pick first theme
         this.shuffleMapQueue();
@@ -387,7 +391,7 @@ class GameEngine {
     
     update(deltaTime) {
         // Skip updates while player is dead or level is complete
-        if (this.player.isDead || this.levelComplete || this.showDeathScreen || this.intermission.active) return;
+        if (this.player.isDead || this.levelComplete || this.showDeathScreen || this.intermission.active || this.modSelection.active) return;
 
         // Update game systems
         this.player.update(deltaTime, this.map);
@@ -1242,6 +1246,250 @@ class GameEngine {
         ctx.globalAlpha = 1;
     }
 
+    showModSelection() {
+        const wm = this.player.weaponManager;
+        const unlocked = Array.from(wm.unlockedWeapons);
+        const allMods = Weapon.MOD_POOL;
+
+        // Generate 3 unique mod+weapon combinations
+        const choices = [];
+        const usedCombos = new Set();
+
+        for (let attempts = 0; choices.length < 3 && attempts < 50; attempts++) {
+            const mod = allMods[Math.floor(Math.random() * allMods.length)];
+            const weaponName = unlocked[Math.floor(Math.random() * unlocked.length)];
+            const weapon = wm.weapons[weaponName];
+            const key = `${mod.id}_${weaponName}`;
+
+            // Skip if already chosen or weapon already has this mod
+            if (usedCombos.has(key) || weapon.mods.includes(mod.id)) continue;
+            usedCombos.add(key);
+
+            choices.push({
+                mod: mod,
+                weaponName: weaponName,
+                weaponLabel: weaponName.charAt(0).toUpperCase() + weaponName.slice(1)
+            });
+        }
+
+        // If we couldn't find 3 unique choices (rare), pad with what we have
+        this.modSelection = {
+            active: true,
+            choices: choices,
+            hoveredIndex: -1
+        };
+
+        // Attach click handler for mod selection
+        if (!this._modClickBound) {
+            this._modClickBound = true;
+            this.canvas.addEventListener('click', (e) => {
+                if (!this.modSelection.active) return;
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                const mx = (e.clientX - rect.left) * scaleX;
+                const my = (e.clientY - rect.top) * scaleY;
+
+                for (let i = 0; i < this.modSelection.choices.length; i++) {
+                    const btn = this._modBtns && this._modBtns[i];
+                    if (btn && mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+                        this.selectMod(i);
+                        return;
+                    }
+                }
+
+                // Skip button
+                if (this._modSkipBtn) {
+                    const btn = this._modSkipBtn;
+                    if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+                        this.modSelection.active = false;
+                        this.nextLevel();
+                    }
+                }
+            });
+
+            this.canvas.addEventListener('mousemove', (e) => {
+                if (!this.modSelection.active) return;
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                const mx = (e.clientX - rect.left) * scaleX;
+                const my = (e.clientY - rect.top) * scaleY;
+
+                this.modSelection.hoveredIndex = -1;
+                for (let i = 0; i < this.modSelection.choices.length; i++) {
+                    const btn = this._modBtns && this._modBtns[i];
+                    if (btn && mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+                        this.modSelection.hoveredIndex = i;
+                        break;
+                    }
+                }
+            });
+        }
+    }
+
+    selectMod(index) {
+        const choice = this.modSelection.choices[index];
+        if (!choice) return;
+
+        const weapon = this.player.weaponManager.weapons[choice.weaponName];
+        weapon.addMod(choice.mod.id);
+
+        // Play a confirmation sound
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playPickup('weapon');
+        }
+
+        // Show feed message
+        if (this.hud && this.hud.addKillFeedMessage) {
+            this.hud.addKillFeedMessage(
+                `${choice.mod.name} → ${choice.weaponLabel}`,
+                choice.mod.color
+            );
+        }
+
+        this.modSelection.active = false;
+        this.nextLevel();
+    }
+
+    renderModSelection() {
+        const ctx = this.canvas.getContext('2d');
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const choices = this.modSelection.choices;
+
+        // Dark overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(0, 0, w, h);
+
+        // Header
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 28px monospace';
+        ctx.fillText('CHOOSE A WEAPON MOD', w / 2, h * 0.12);
+
+        ctx.fillStyle = '#AAAAAA';
+        ctx.font = '14px monospace';
+        ctx.fillText('Select an upgrade for your arsenal', w / 2, h * 0.17);
+
+        // Mod cards
+        const cardW = 200;
+        const cardH = 160;
+        const gap = 24;
+        const totalW = choices.length * cardW + (choices.length - 1) * gap;
+        const startX = (w - totalW) / 2;
+        const cardY = h * 0.25;
+        this._modBtns = [];
+
+        const weaponColors = {
+            pistol: '#FFFF00', shotgun: '#FF8800', rifle: '#00CCFF',
+            rocket: '#FF4444', chaingun: '#AAAAFF'
+        };
+
+        for (let i = 0; i < choices.length; i++) {
+            const c = choices[i];
+            const cx = startX + i * (cardW + gap);
+            const isHovered = this.modSelection.hoveredIndex === i;
+
+            this._modBtns.push({ x: cx, y: cardY, w: cardW, h: cardH });
+
+            // Card background
+            ctx.fillStyle = isHovered ? 'rgba(40, 40, 60, 0.95)' : 'rgba(20, 20, 30, 0.9)';
+            ctx.fillRect(cx, cardY, cardW, cardH);
+
+            // Border
+            ctx.strokeStyle = isHovered ? c.mod.color : '#444444';
+            ctx.lineWidth = isHovered ? 2 : 1;
+            ctx.strokeRect(cx, cardY, cardW, cardH);
+
+            // Mod color indicator bar at top
+            ctx.fillStyle = c.mod.color;
+            ctx.fillRect(cx, cardY, cardW, 4);
+
+            // Weapon name
+            ctx.fillStyle = weaponColors[c.weaponName] || '#CCCCCC';
+            ctx.font = 'bold 16px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(c.weaponLabel, cx + cardW / 2, cardY + 32);
+
+            // Mod name
+            ctx.fillStyle = c.mod.color;
+            ctx.font = 'bold 14px monospace';
+            ctx.fillText(c.mod.name, cx + cardW / 2, cardY + 62);
+
+            // Mod description
+            ctx.fillStyle = '#AAAAAA';
+            ctx.font = '12px monospace';
+            ctx.fillText(c.mod.desc, cx + cardW / 2, cardY + 86);
+
+            // Current mods on weapon
+            const weapon = this.player.weaponManager.weapons[c.weaponName];
+            if (weapon.mods.length > 0) {
+                ctx.fillStyle = '#666666';
+                ctx.font = '10px monospace';
+                ctx.fillText(`Active: ${weapon.mods.length} mod${weapon.mods.length > 1 ? 's' : ''}`, cx + cardW / 2, cardY + 110);
+            }
+
+            // Hover hint
+            if (isHovered) {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 12px monospace';
+                ctx.fillText('CLICK TO SELECT', cx + cardW / 2, cardY + cardH - 12);
+            }
+        }
+
+        // Skip button
+        const skipW = 120;
+        const skipH = 30;
+        const skipX = (w - skipW) / 2;
+        const skipY = cardY + cardH + 30;
+        this._modSkipBtn = { x: skipX, y: skipY, w: skipW, h: skipH };
+
+        ctx.fillStyle = 'rgba(40, 40, 40, 0.8)';
+        ctx.fillRect(skipX, skipY, skipW, skipH);
+        ctx.strokeStyle = '#666666';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(skipX, skipY, skipW, skipH);
+        ctx.fillStyle = '#888888';
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('SKIP', skipX + skipW / 2, skipY + 20);
+
+        // Active mods summary at bottom
+        this.renderActiveModsSummary(ctx, w, h);
+    }
+
+    renderActiveModsSummary(ctx, w, h) {
+        const wm = this.player.weaponManager;
+        const moddedWeapons = [];
+
+        for (const [name, weapon] of Object.entries(wm.weapons)) {
+            if (weapon.mods.length > 0) {
+                moddedWeapons.push({ name, mods: weapon.mods.slice() });
+            }
+        }
+
+        if (moddedWeapons.length === 0) return;
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#666666';
+        ctx.font = '11px monospace';
+        ctx.fillText('ACTIVE MODS', w / 2, h * 0.78);
+
+        let y = h * 0.82;
+        ctx.font = '10px monospace';
+        for (const wp of moddedWeapons) {
+            const label = wp.name.charAt(0).toUpperCase() + wp.name.slice(1);
+            const modNames = wp.mods.map(m => {
+                const def = Weapon.MOD_POOL.find(p => p.id === m);
+                return def ? def.name : m;
+            }).join(', ');
+            ctx.fillStyle = '#888888';
+            ctx.fillText(`${label}: ${modNames}`, w / 2, y);
+            y += 14;
+        }
+    }
+
     render() {
         // Apply screen shake offset
         const shake = this.hud.getScreenShakeOffset();
@@ -1266,6 +1514,11 @@ class GameEngine {
         // Render intermission screen
         if (this.intermission.active) {
             this.renderIntermission();
+        }
+
+        // Render weapon mod selection screen
+        if (this.modSelection.active) {
+            this.renderModSelection();
         }
 
         // Render death stats screen
@@ -1648,7 +1901,7 @@ class GameEngine {
                 case 'Enter':
                     if (this.intermission.active) {
                         this.intermission.active = false;
-                        this.nextLevel();
+                        this.showModSelection();
                     }
                     break;
             }
@@ -1695,7 +1948,7 @@ class GameEngine {
     }
 
     isMenuOpen() {
-        return this.paused || this.levelComplete || this.showDeathScreen || this.intermission.active;
+        return this.paused || this.levelComplete || this.showDeathScreen || this.intermission.active || this.modSelection.active;
     }
     
     getCurrentState() {
@@ -1809,6 +2062,33 @@ class GameEngine {
             ctx.font = '18px monospace';
             ctx.textAlign = 'center';
             ctx.fillText(items[i].label, w / 2, itemY + itemH / 2 - 2);
+        }
+
+        // Active weapon mods section
+        const wm = this.player.weaponManager;
+        let modCount = 0;
+        for (const weapon of Object.values(wm.weapons)) {
+            modCount += weapon.mods.length;
+        }
+        if (modCount > 0) {
+            let modY = itemStartY + items.length * itemH + 8;
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('WEAPON MODS', w / 2, modY);
+            modY += 14;
+            ctx.font = '10px monospace';
+            for (const [name, weapon] of Object.entries(wm.weapons)) {
+                if (weapon.mods.length === 0) continue;
+                const label = name.charAt(0).toUpperCase() + name.slice(1);
+                const modNames = weapon.mods.map(m => {
+                    const def = Weapon.MOD_POOL.find(p => p.id === m);
+                    return def ? def.name : m;
+                }).join(', ');
+                ctx.fillStyle = '#888888';
+                ctx.fillText(`${label}: ${modNames}`, w / 2, modY);
+                modY += 12;
+            }
         }
 
         // Controls hint at bottom
