@@ -633,6 +633,7 @@ const TIER_2_TESTS = [
   { id: 'T2-43', name: 'Weapon reload animation', fn: T2_43_reloadAnimation }, // issue: #316
   { id: 'T2-44', name: 'Weapon modification system', fn: T2_44_weaponModSystem }, // issue: #321
   { id: 'T2-45', name: 'Level-up perk selection system', fn: T2_45_perkSelectionSystem }, // issue: #322
+  { id: 'T2-46', name: 'Lifetime stats and achievements', fn: T2_46_lifetimeStatsAchievements }, // issue: #323
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -3572,6 +3573,116 @@ async function T2_45_perkSelectionSystem(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Perk system: ${perkData.perkIds.length} perks, selection UI, stacking, stat bonuses`;
+  }
+}
+
+async function T2_46_lifetimeStatsAchievements(page, result) {
+  const data = await page.evaluate(() => {
+    if (!window.game || !window.game.player) {
+      return { exists: false, reason: 'No game/player' };
+    }
+
+    const game = window.game;
+
+    // Check storage keys
+    const hasLifetimeKey = typeof game.LIFETIME_STATS_KEY === 'string';
+    const hasAchievementsKey = typeof game.ACHIEVEMENTS_KEY === 'string';
+
+    // Check methods
+    const hasGetLifetimeStats = typeof game.getLifetimeStats === 'function';
+    const hasAccumulate = typeof game.accumulateLifetimeStats === 'function';
+    const hasGetAchievements = typeof game.getAchievements === 'function';
+    const hasCheckAchievements = typeof game.checkAchievements === 'function';
+
+    // Check player.stats has gloryKills
+    const hasGloryKills = 'gloryKills' in game.player.stats;
+
+    // Test accumulation: simulate a run's worth of stats
+    const origStats = Object.assign({}, game.player.stats);
+    game.player.stats.enemiesKilled = 5;
+    game.player.stats.headshots = 2;
+    game.player.stats.gloryKills = 1;
+
+    // Clear previous lifetime data for clean test
+    const prevLifetime = localStorage.getItem(game.LIFETIME_STATS_KEY);
+    const prevAchievements = localStorage.getItem(game.ACHIEVEMENTS_KEY);
+    localStorage.removeItem(game.LIFETIME_STATS_KEY);
+    localStorage.removeItem(game.ACHIEVEMENTS_KEY);
+
+    game.accumulateLifetimeStats(60);
+    const lifetime = game.getLifetimeStats();
+    const statsAccumulated = lifetime && lifetime.totalKills === 5 && lifetime.totalRuns === 1;
+    const headshotsTracked = lifetime && lifetime.totalHeadshots === 2;
+    const gloryKillsTracked = lifetime && lifetime.totalGloryKills === 1;
+
+    // Check achievements were awarded
+    const achievements = game.getAchievements();
+    const firstBloodUnlocked = achievements && achievements.first_blood > 0;
+
+    // Accumulate again to test additive behavior
+    game.accumulateLifetimeStats(30);
+    const lifetime2 = game.getLifetimeStats();
+    const additive = lifetime2 && lifetime2.totalKills === 10 && lifetime2.totalRuns === 2;
+
+    // Restore
+    game.player.stats = origStats;
+    if (prevLifetime) {
+      localStorage.setItem(game.LIFETIME_STATS_KEY, prevLifetime);
+    } else {
+      localStorage.removeItem(game.LIFETIME_STATS_KEY);
+    }
+    if (prevAchievements) {
+      localStorage.setItem(game.ACHIEVEMENTS_KEY, prevAchievements);
+    } else {
+      localStorage.removeItem(game.ACHIEVEMENTS_KEY);
+    }
+
+    return {
+      exists: true,
+      hasLifetimeKey,
+      hasAchievementsKey,
+      hasGetLifetimeStats,
+      hasAccumulate,
+      hasGetAchievements,
+      hasCheckAchievements,
+      hasGloryKills,
+      statsAccumulated,
+      headshotsTracked,
+      gloryKillsTracked,
+      firstBloodUnlocked,
+      additive
+    };
+  });
+
+  if (!data.exists) {
+    result.status = 'fail';
+    result.note = data.reason;
+    return;
+  }
+
+  const checks = [
+    ['LIFETIME_STATS_KEY defined', data.hasLifetimeKey],
+    ['ACHIEVEMENTS_KEY defined', data.hasAchievementsKey],
+    ['getLifetimeStats method', data.hasGetLifetimeStats],
+    ['accumulateLifetimeStats method', data.hasAccumulate],
+    ['getAchievements method', data.hasGetAchievements],
+    ['checkAchievements method', data.hasCheckAchievements],
+    ['gloryKills in player.stats', data.hasGloryKills],
+    ['stats accumulated correctly', data.statsAccumulated],
+    ['headshots tracked', data.headshotsTracked],
+    ['glory kills tracked', data.gloryKillsTracked],
+    ['First Blood achievement unlocked', data.firstBloodUnlocked],
+    ['stats additive across runs', data.additive]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = 'Lifetime stats: accumulation, headshots, glory kills, achievements';
   }
 }
 

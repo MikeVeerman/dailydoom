@@ -50,6 +50,7 @@ class Player {
             shotsHit: 0,
             headshots: 0,
             criticalHits: 0,
+            gloryKills: 0,
             damageTaken: 0,
             damageDealt: 0,
             itemsCollected: 0,
@@ -611,6 +612,7 @@ class Player {
 
             if (wasAlive && !closestEnemy.active) {
                 if (this.stats) this.stats.enemiesKilled++;
+                if (isGloryKill && this.stats) this.stats.gloryKills++;
                 const xpTable = { imp: 15, guard: 20, soldier: 30, demon: 40, berserker: 35, spitter: 25, shield_guard: 45, boss: 200 };
                 const eliteBonus = closestEnemy.isElite ? 1.5 : 1.0;
                 const xpMultiplier = isGloryKill ? 2.0 : 1.0;
