@@ -56,5 +56,8 @@ npm-debug.log*
 *.tmp
 *.temp
 
+# Automation tooling
+.autodev/
+
 # Playtester
 playtester/node_modules/
