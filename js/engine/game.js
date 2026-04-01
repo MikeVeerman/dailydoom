@@ -95,6 +95,9 @@ class GameEngine {
         // Weapon mod selection screen (shown after intermission)
         this.modSelection = { active: false, choices: [], hoveredIndex: -1 };
 
+        // Perk selection screen (shown on level-up)
+        this.perkSelection = { active: false, choices: [], hoveredIndex: -1 };
+
         // Initialize systems
         this.initialize();
     }
@@ -282,6 +285,7 @@ class GameEngine {
         this.momentum = 1.0;
         this.currentLevel = 1;
         this.modSelection = { active: false, choices: [], hoveredIndex: -1 };
+        this.perkSelection = { active: false, choices: [], hoveredIndex: -1 };
 
         // Reshuffle map rotation and pick first theme
         this.shuffleMapQueue();
@@ -391,7 +395,13 @@ class GameEngine {
     
     update(deltaTime) {
         // Skip updates while player is dead or level is complete
-        if (this.player.isDead || this.levelComplete || this.showDeathScreen || this.intermission.active || this.modSelection.active) return;
+        if (this.player.isDead || this.levelComplete || this.showDeathScreen || this.intermission.active || this.modSelection.active || this.perkSelection.active) return;
+
+        // Check for pending perk selection (triggered by level-up)
+        if (this.player.pendingPerkSelection) {
+            this.showPerkSelection();
+            return;
+        }
 
         // Update game systems
         this.player.update(deltaTime, this.map);
@@ -990,12 +1000,14 @@ class GameEngine {
         this.levelComplete = false;
         this.showDeathScreen = false;
 
-        // Keep player progress (health, armor, weapons, XP, level)
+        // Keep player progress (health, armor, weapons, XP, level, perks)
         const savedHealth = this.player.health;
         const savedArmor = this.player.armor;
         const savedLevel = this.player.level;
         const savedXP = this.player.xp;
         const savedWeaponManager = this.player.weaponManager;
+        const savedPerks = this.player.perks.slice();
+        const savedLevelBonuses = Object.assign({}, this.player.levelBonuses);
 
         // Advance to next map in rotation
         this.currentTheme = this.advanceMapQueue();
@@ -1015,6 +1027,10 @@ class GameEngine {
         this.player.level = savedLevel;
         this.player.xp = savedXP;
         this.player.weaponManager = savedWeaponManager;
+        this.player.perks = savedPerks;
+        this.player.levelBonuses = savedLevelBonuses;
+        this.player.maxHealth = 100 + savedLevelBonuses.maxHealthBonus + this.player.getPerkStacks('thick_skin') * 25;
+        this.player.maxArmor = 100 + this.player.getPerkStacks('iron_will') * 15;
 
         // Reset per-level stats but keep cumulative
         this.player.stats = {
@@ -1521,6 +1537,11 @@ class GameEngine {
             this.renderModSelection();
         }
 
+        // Render perk selection screen
+        if (this.perkSelection.active) {
+            this.renderPerkSelection();
+        }
+
         // Render death stats screen
         if (this.showDeathScreen) {
             this.renderDeathScreen();
@@ -1948,7 +1969,7 @@ class GameEngine {
     }
 
     isMenuOpen() {
-        return this.paused || this.levelComplete || this.showDeathScreen || this.intermission.active || this.modSelection.active;
+        return this.paused || this.levelComplete || this.showDeathScreen || this.intermission.active || this.modSelection.active || this.perkSelection.active;
     }
     
     getCurrentState() {
@@ -1982,6 +2003,189 @@ class GameEngine {
         this.inputManager.update();
     }
 
+    showPerkSelection() {
+        const pool = GameEngine.PERK_POOL;
+        // Pick 3 random unique perks
+        const choices = [];
+        const indices = [];
+        while (choices.length < 3 && indices.length < pool.length) {
+            const idx = Math.floor(Math.random() * pool.length);
+            if (!indices.includes(idx)) {
+                indices.push(idx);
+                choices.push(pool[idx]);
+            }
+        }
+
+        this.perkSelection = { active: true, choices, hoveredIndex: -1 };
+
+        // Release pointer lock for menu interaction
+        if (document.pointerLockElement) {
+            document.exitPointerLock();
+        }
+
+        // Attach click/hover handlers (once)
+        if (!this._perkClickBound) {
+            this._perkClickBound = true;
+            this.canvas.addEventListener('click', (e) => {
+                if (!this.perkSelection.active) return;
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                const mx = (e.clientX - rect.left) * scaleX;
+                const my = (e.clientY - rect.top) * scaleY;
+
+                for (let i = 0; i < this.perkSelection.choices.length; i++) {
+                    const btn = this._perkBtns && this._perkBtns[i];
+                    if (btn && mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+                        this.selectPerk(i);
+                        return;
+                    }
+                }
+            });
+
+            this.canvas.addEventListener('mousemove', (e) => {
+                if (!this.perkSelection.active) return;
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                const mx = (e.clientX - rect.left) * scaleX;
+                const my = (e.clientY - rect.top) * scaleY;
+
+                this.perkSelection.hoveredIndex = -1;
+                for (let i = 0; i < this.perkSelection.choices.length; i++) {
+                    const btn = this._perkBtns && this._perkBtns[i];
+                    if (btn && mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+                        this.perkSelection.hoveredIndex = i;
+                        break;
+                    }
+                }
+            });
+        }
+    }
+
+    selectPerk(index) {
+        const perk = this.perkSelection.choices[index];
+        if (!perk) return;
+
+        this.player.applyPerk(perk);
+
+        if (window.soundEngine && window.soundEngine.isInitialized) {
+            window.soundEngine.playPickup('health');
+        }
+
+        if (this.hud && this.hud.addKillFeedMessage) {
+            const stacks = this.player.getPerkStacks(perk.id);
+            const stackLabel = stacks > 1 ? ` x${stacks}` : '';
+            this.hud.addKillFeedMessage(`PERK: ${perk.name}${stackLabel}`, perk.color);
+        }
+
+        this.perkSelection.active = false;
+    }
+
+    renderPerkSelection() {
+        const ctx = this.canvas.getContext('2d');
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const choices = this.perkSelection.choices;
+
+        // Dark overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(0, 0, w, h);
+
+        // Header
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 28px monospace';
+        ctx.fillText('LEVEL UP!', w / 2, h * 0.10);
+
+        ctx.fillStyle = '#AAAAAA';
+        ctx.font = '14px monospace';
+        ctx.fillText(`Level ${this.player.level} — Choose a perk`, w / 2, h * 0.16);
+
+        // Perk cards
+        const cardW = 200;
+        const cardH = 180;
+        const gap = 24;
+        const totalW = choices.length * cardW + (choices.length - 1) * gap;
+        const startX = (w - totalW) / 2;
+        const cardY = h * 0.22;
+        this._perkBtns = [];
+
+        for (let i = 0; i < choices.length; i++) {
+            const perk = choices[i];
+            const cx = startX + i * (cardW + gap);
+            const isHovered = this.perkSelection.hoveredIndex === i;
+
+            this._perkBtns.push({ x: cx, y: cardY, w: cardW, h: cardH });
+
+            // Card background
+            ctx.fillStyle = isHovered ? 'rgba(40, 40, 60, 0.95)' : 'rgba(20, 20, 30, 0.9)';
+            ctx.fillRect(cx, cardY, cardW, cardH);
+
+            // Border
+            ctx.strokeStyle = isHovered ? perk.color : '#444444';
+            ctx.lineWidth = isHovered ? 2 : 1;
+            ctx.strokeRect(cx, cardY, cardW, cardH);
+
+            // Color bar at top
+            ctx.fillStyle = perk.color;
+            ctx.fillRect(cx, cardY, cardW, 4);
+
+            // Icon
+            ctx.fillStyle = perk.color;
+            ctx.font = 'bold 32px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(perk.icon, cx + cardW / 2, cardY + 48);
+
+            // Perk name
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText(perk.name, cx + cardW / 2, cardY + 80);
+
+            // Description
+            ctx.fillStyle = '#AAAAAA';
+            ctx.font = '12px monospace';
+            ctx.fillText(perk.desc, cx + cardW / 2, cardY + 104);
+
+            // Current stacks
+            const stacks = this.player.getPerkStacks(perk.id);
+            if (stacks > 0) {
+                ctx.fillStyle = perk.color;
+                ctx.font = '11px monospace';
+                ctx.fillText(`Currently: x${stacks}`, cx + cardW / 2, cardY + 128);
+            }
+
+            // Hover hint
+            if (isHovered) {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 12px monospace';
+                ctx.fillText('CLICK TO SELECT', cx + cardW / 2, cardY + cardH - 14);
+            }
+        }
+
+        // Active perks summary
+        this.renderActivePerksSummary(ctx, w, h);
+    }
+
+    renderActivePerksSummary(ctx, w, h) {
+        const perks = this.player.getActivePerks();
+        if (perks.length === 0) return;
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#666666';
+        ctx.font = '11px monospace';
+        ctx.fillText('ACTIVE PERKS', w / 2, h * 0.78);
+
+        let y = h * 0.82;
+        ctx.font = '10px monospace';
+        for (const perk of perks) {
+            const stackLabel = perk.stacks > 1 ? ` x${perk.stacks}` : '';
+            ctx.fillStyle = perk.color;
+            ctx.fillText(`${perk.name}${stackLabel}`, w / 2, y);
+            y += 14;
+        }
+    }
+
     renderPauseMenu() {
         const ctx = this.canvas.getContext('2d');
         const w = this.canvas.width;
@@ -1993,7 +2197,7 @@ class GameEngine {
 
         // Menu box
         const menuW = 300;
-        const menuH = 380;
+        const menuH = 420;
         const menuX = (w - menuW) / 2;
         const menuY = (h - menuH) / 2;
 
@@ -2091,6 +2295,28 @@ class GameEngine {
             }
         }
 
+        // Active perks section
+        const perks = this.player.getActivePerks();
+        if (perks.length > 0) {
+            let perkY = itemStartY + items.length * itemH + 8;
+            // Offset below mods if present
+            if (modCount > 0) {
+                perkY += 14 + Object.values(wm.weapons).filter(w => w.mods.length > 0).length * 12 + 8;
+            }
+            ctx.fillStyle = '#00FF88';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('PERKS', w / 2, perkY);
+            perkY += 14;
+            ctx.font = '10px monospace';
+            for (const perk of perks) {
+                const stackLabel = perk.stacks > 1 ? ` x${perk.stacks}` : '';
+                ctx.fillStyle = perk.color;
+                ctx.fillText(`${perk.name}${stackLabel}`, w / 2, perkY);
+                perkY += 12;
+            }
+        }
+
         // Controls hint at bottom
         ctx.fillStyle = '#666666';
         ctx.font = '11px monospace';
@@ -2123,6 +2349,18 @@ class GameEngine {
         console.log('Game engine destroyed');
     }
 }
+
+// Perk pool definitions
+GameEngine.PERK_POOL = [
+    { id: 'thick_skin', name: 'Thick Skin', desc: '+25 max HP', color: '#FF4444', icon: '♥' },
+    { id: 'quick_feet', name: 'Quick Feet', desc: '+10% movement speed', color: '#00CCFF', icon: '»' },
+    { id: 'scavenger', name: 'Scavenger', desc: '+50% ammo from pickups', color: '#FFAA00', icon: '⬡' },
+    { id: 'iron_will', name: 'Iron Will', desc: '+15 max armor', color: '#4488FF', icon: '⛨' },
+    { id: 'adrenaline', name: 'Adrenaline', desc: '+20% stamina regen', color: '#FF8800', icon: '↑' },
+    { id: 'steady_aim', name: 'Steady Aim', desc: '-25% weapon bloom', color: '#00FF88', icon: '◎' },
+    { id: 'vampiric', name: 'Vampiric', desc: '5% lifesteal on kills', color: '#CC00FF', icon: '☽' },
+    { id: 'second_wind', name: 'Second Wind', desc: '+1 HP/s regen below 25% HP', color: '#FF88CC', icon: '♺' }
+];
 
 // Export to global scope
 window.GameEngine = GameEngine;

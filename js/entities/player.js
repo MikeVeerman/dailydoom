@@ -64,6 +64,10 @@ class Player {
             speedBonus: 0
         };
 
+        // Perk system (reset on death/restart, persist across floors)
+        this.perks = []; // Array of { id, name, color, stacks }
+        this.pendingPerkSelection = false;
+
         // Weapon system
         this.weaponManager = new WeaponManager();
 
@@ -323,6 +327,9 @@ class Player {
 
         // Update power-up effects
         this.updatePowerupEffects();
+
+        // Update perk effects (Second Wind HP regen)
+        this.updatePerkEffects(deltaTime);
 
         // Update other systems
         this.updatePhysics(deltaTime);
@@ -610,6 +617,7 @@ class Player {
                 const xpReward = Math.round((xpTable[closestEnemy.type] || 20) * eliteBonus * xpMultiplier);
                 if (this.addXP) this.addXP(xpReward);
                 this.registerKill();
+                this.onKillForPerks(closestEnemy);
 
                 // Kill feed message for punch kills
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
@@ -1049,10 +1057,13 @@ class Player {
         this.levelBonuses.speedBonus += 5;
 
         // Apply bonuses
-        this.maxHealth = 100 + this.levelBonuses.maxHealthBonus;
+        this.maxHealth = 100 + this.levelBonuses.maxHealthBonus + this.getPerkStacks('thick_skin') * 25;
         this.health = Math.min(this.health + 20, this.maxHealth); // Heal 20 on level up
         this.baseSpeed = 200 + this.levelBonuses.speedBonus;
         this.speed = this.baseSpeed;
+
+        // Trigger perk selection
+        this.pendingPerkSelection = true;
 
         // Kill feed message for level up
         if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
@@ -1083,6 +1094,75 @@ class Player {
             corridor: 'stone'
         };
         return profileToSurface[profile] || 'stone';
+    }
+
+    // Perk system methods
+    getPerkStacks(perkId) {
+        const perk = this.perks.find(p => p.id === perkId);
+        return perk ? perk.stacks : 0;
+    }
+
+    applyPerk(perkDef) {
+        const existing = this.perks.find(p => p.id === perkDef.id);
+        if (existing) {
+            existing.stacks++;
+        } else {
+            this.perks.push({ id: perkDef.id, name: perkDef.name, color: perkDef.color, stacks: 1 });
+        }
+
+        // Apply immediate stat changes
+        switch (perkDef.id) {
+            case 'thick_skin':
+                this.maxHealth += 25;
+                this.health = Math.min(this.health + 25, this.maxHealth);
+                break;
+            case 'quick_feet':
+                this.baseSpeed = Math.round(this.baseSpeed * 1.10);
+                this.speed = this.baseSpeed;
+                break;
+            case 'iron_will':
+                this.maxArmor += 15;
+                this.armor = Math.min(this.armor + 15, this.maxArmor);
+                break;
+            case 'adrenaline':
+                this.staminaRegenRate = Math.round(this.staminaRegenRate * 1.20);
+                break;
+            case 'steady_aim':
+                // Applied in weapon.js bloom calculation via getPerkStacks
+                break;
+            case 'scavenger':
+                // Applied in pickup collection via getPerkStacks
+                break;
+            case 'vampiric':
+                // Applied on kill via getPerkStacks
+                break;
+            case 'second_wind':
+                // Applied in update loop via getPerkStacks
+                break;
+        }
+
+        this.pendingPerkSelection = false;
+    }
+
+    updatePerkEffects(deltaTime) {
+        // Second Wind: regen HP when below 25%
+        const secondWindStacks = this.getPerkStacks('second_wind');
+        if (secondWindStacks > 0 && this.health > 0 && this.health <= this.maxHealth * 0.25) {
+            this.health = Math.min(this.maxHealth, this.health + secondWindStacks * deltaTime);
+        }
+    }
+
+    onKillForPerks(enemy) {
+        // Vampiric: heal 5% of enemy max HP per stack
+        const vampStacks = this.getPerkStacks('vampiric');
+        if (vampStacks > 0) {
+            const healAmount = Math.max(1, Math.round(enemy.maxHealth * 0.05 * vampStacks));
+            this.health = Math.min(this.maxHealth, this.health + healAmount);
+        }
+    }
+
+    getActivePerks() {
+        return this.perks.slice();
     }
 
     // Debug methods

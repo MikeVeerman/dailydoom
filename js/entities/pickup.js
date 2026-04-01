@@ -222,10 +222,14 @@ class Pickup {
     
     collect(player) {
         if (this.collected) return;
-        
+
         let canCollect = false;
         const props = this.properties;
-        
+
+        // Scavenger perk: multiply ammo pickup values
+        const scavengerStacks = player.getPerkStacks ? player.getPerkStacks('scavenger') : 0;
+        const ammoMultiplier = 1 + scavengerStacks * 0.5;
+
         switch (this.type) {
             case 'health':
             case 'health_large':
@@ -237,35 +241,35 @@ class Pickup {
                 
             case 'ammo_pistol':
                 if (player.weaponManager.weapons.pistol.maxAmmo > 0) {
-                    player.weaponManager.weapons.pistol.maxAmmo += props.value;
+                    player.weaponManager.weapons.pistol.maxAmmo += Math.round(props.value * ammoMultiplier);
                     canCollect = true;
                 }
                 break;
-                
+
             case 'ammo_shotgun':
                 if (player.weaponManager.weapons.shotgun.maxAmmo > 0) {
-                    player.weaponManager.weapons.shotgun.maxAmmo += props.value;
+                    player.weaponManager.weapons.shotgun.maxAmmo += Math.round(props.value * ammoMultiplier);
                     canCollect = true;
                 }
                 break;
-                
+
             case 'ammo_rifle':
                 if (player.weaponManager.weapons.rifle.maxAmmo > 0) {
-                    player.weaponManager.weapons.rifle.maxAmmo += props.value;
+                    player.weaponManager.weapons.rifle.maxAmmo += Math.round(props.value * ammoMultiplier);
                     canCollect = true;
                 }
                 break;
 
             case 'ammo_rocket':
                 if (player.weaponManager.weapons.rocket) {
-                    player.weaponManager.weapons.rocket.maxAmmo += props.value;
+                    player.weaponManager.weapons.rocket.maxAmmo += Math.round(props.value * ammoMultiplier);
                     canCollect = true;
                 }
                 break;
 
             case 'ammo_chaingun':
                 if (player.weaponManager.weapons.chaingun) {
-                    player.weaponManager.weapons.chaingun.maxAmmo += props.value;
+                    player.weaponManager.weapons.chaingun.maxAmmo += Math.round(props.value * ammoMultiplier);
                     canCollect = true;
                 }
                 break;
