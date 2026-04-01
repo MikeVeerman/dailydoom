@@ -43,6 +43,8 @@ class GameEngine {
         // High score persistence
         this.STORAGE_KEY = 'dailydoom_highscores';
         this.BEST_RUN_KEY = 'dailydoom_bestrun';
+        this.LIFETIME_STATS_KEY = 'dailydoom_lifetime_stats';
+        this.ACHIEVEMENTS_KEY = 'dailydoom_achievements';
         this.currentScore = 0;
         this.showDeathScreen = false;
         this.deathScreenTime = 0;
@@ -773,6 +775,103 @@ class GameEngine {
         }
     }
 
+    // ========== LIFETIME STATS & ACHIEVEMENTS ==========
+
+    getLifetimeStats() {
+        try {
+            const data = localStorage.getItem(this.LIFETIME_STATS_KEY);
+            return data ? JSON.parse(data) : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    accumulateLifetimeStats(elapsed) {
+        try {
+            const prev = this.getLifetimeStats() || {
+                totalKills: 0, totalFloors: 0, totalRuns: 0,
+                bestFloor: 0, totalXP: 0, totalHeadshots: 0,
+                totalGloryKills: 0, highestCombo: 0, timePlayed: 0,
+                weaponsUsed: []
+            };
+            const stats = this.player.stats;
+            const comboInfo = this.player.getComboInfo ? this.player.getComboInfo() : null;
+
+            prev.totalKills += stats.enemiesKilled;
+            prev.totalFloors += Math.max(0, (this.currentLevel || 1) - 1);
+            prev.totalRuns++;
+            prev.bestFloor = Math.max(prev.bestFloor, this.currentLevel || 1);
+            prev.totalXP += this.player.xp || 0;
+            prev.totalHeadshots += stats.headshots || 0;
+            prev.totalGloryKills += stats.gloryKills || 0;
+            prev.highestCombo = Math.max(prev.highestCombo, comboInfo ? comboInfo.bestStreak : 0);
+            prev.timePlayed += Math.floor(elapsed);
+
+            // Track weapons used this run
+            const wm = this.player.weaponManager;
+            if (wm && wm.unlockedWeapons) {
+                const used = Array.from(wm.unlockedWeapons);
+                for (const w of used) {
+                    if (!prev.weaponsUsed.includes(w)) prev.weaponsUsed.push(w);
+                }
+            }
+
+            localStorage.setItem(this.LIFETIME_STATS_KEY, JSON.stringify(prev));
+
+            // Check achievements after accumulating
+            this.checkAchievements(prev);
+        } catch (e) {
+            console.error('Failed to save lifetime stats:', e);
+        }
+    }
+
+    getAchievements() {
+        try {
+            const data = localStorage.getItem(this.ACHIEVEMENTS_KEY);
+            return data ? JSON.parse(data) : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    checkAchievements(lifetime) {
+        const unlocked = this.getAchievements();
+        const newUnlocks = [];
+
+        const checks = [
+            { id: 'first_blood', name: 'First Blood', desc: 'Kill your first enemy', test: () => lifetime.totalKills >= 1 },
+            { id: 'floor_clearer', name: 'Floor Clearer', desc: 'Clear 10 floors total', test: () => lifetime.totalFloors >= 10 },
+            { id: 'marksman', name: 'Marksman', desc: 'Get 100 headshots', test: () => lifetime.totalHeadshots >= 100 },
+            { id: 'executioner', name: 'Executioner', desc: 'Perform 50 glory kills', test: () => lifetime.totalGloryKills >= 50 },
+            { id: 'unstoppable', name: 'Unstoppable', desc: 'Reach floor 5 in a single run', test: () => lifetime.bestFloor >= 5 },
+            { id: 'kill_streak', name: 'Kill Streak', desc: 'Get a 10x combo', test: () => lifetime.highestCombo >= 10 },
+            { id: 'arsenal', name: 'Arsenal', desc: 'Use all 6 weapons in a single run', test: () => {
+                const wm = this.player.weaponManager;
+                return wm && wm.unlockedWeapons && wm.unlockedWeapons.size >= 6;
+            }},
+            { id: 'veteran', name: 'Veteran', desc: 'Complete 10 runs', test: () => lifetime.totalRuns >= 10 },
+            { id: 'centurion', name: 'Centurion', desc: 'Kill 100 enemies total', test: () => lifetime.totalKills >= 100 },
+            { id: 'slayer', name: 'Slayer', desc: 'Kill 500 enemies total', test: () => lifetime.totalKills >= 500 }
+        ];
+
+        for (const ach of checks) {
+            if (!unlocked[ach.id] && ach.test()) {
+                unlocked[ach.id] = Date.now();
+                newUnlocks.push(ach);
+            }
+        }
+
+        if (newUnlocks.length > 0) {
+            localStorage.setItem(this.ACHIEVEMENTS_KEY, JSON.stringify(unlocked));
+            // Show achievement notifications
+            for (const ach of newUnlocks) {
+                if (this.hud && this.hud.addKillFeedMessage) {
+                    this.hud.addKillFeedMessage(`ACHIEVEMENT: ${ach.name}`, '#FFD700');
+                }
+            }
+        }
+    }
+
     // ========== DEATH SCREEN ==========
 
     onPlayerDeath() {
@@ -792,6 +891,9 @@ class GameEngine {
         const elapsed = (performance.now() - this.levelStartTime) / 1000;
         this._deathNewBests = this.saveBestRun(this.player.stats, elapsed);
         this._deathElapsed = elapsed;
+
+        // Accumulate lifetime stats
+        this.accumulateLifetimeStats(elapsed);
     }
 
     renderDeathScreen() {
@@ -872,6 +974,18 @@ class GameEngine {
                 ctx.font = '16px monospace';
             }
             y += lineH + (bestKey && newBests[bestKey] ? 10 : 0);
+        }
+
+        // Lifetime stats summary line
+        const lifetime = this.getLifetimeStats();
+        if (lifetime) {
+            ctx.fillStyle = '#666666';
+            ctx.font = '11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(
+                `LIFETIME: ${lifetime.totalKills} kills | ${lifetime.totalRuns} runs | ${lifetime.bestFloor} best floor`,
+                w / 2, panelY + panelH - 8
+            );
         }
 
         // Restart button
@@ -1035,6 +1149,7 @@ class GameEngine {
         // Reset per-level stats but keep cumulative
         this.player.stats = {
             enemiesKilled: 0, shotsFired: 0, shotsHit: 0, headshots: 0,
+            criticalHits: 0, gloryKills: 0,
             damageTaken: 0, damageDealt: 0, itemsCollected: 0,
             deaths: 0, timeSurvived: 0
         };
