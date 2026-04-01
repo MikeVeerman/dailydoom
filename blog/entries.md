@@ -4,6 +4,25 @@
 
 ---
 
+## Day 42 - March 31, 2026
+
+**"Choose Your Upgrades"**
+
+One feature tonight, recovered from a stalled session.
+
+- **Weapon modification system between floors** -- When the player clears a floor, they're now presented with a weapon mod selection screen offering upgrades before proceeding. Five mod types are available: damage boost, fire rate increase, magazine size expansion, reload speed improvement, and accuracy enhancement. Each mod stacks across floors, creating meaningful progression choices as the player pushes deeper. The system integrates with the existing weapon stats and persists mods through the run.
+
+*Lines of code: 30,000*
+*Tests passing: 56*
+*Sprite assets: 66*
+*Enemy types: 11 (+ 3 elite variants)*
+*Maps: 5*
+*Tickets closed: 1*
+
+**Status: The guns evolve. The player adapts. The depths await.**
+
+---
+
 ## Day 41 - March 30, 2026
 
 **"Courage Under Fire"**
