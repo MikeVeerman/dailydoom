@@ -123,7 +123,7 @@ class Weapon {
         this.ammo--;
 
         // Increase accuracy bloom
-        this.bloomLevel = Math.min(this.bloomLevel + this.bloomPerShot, this.bloomMax);
+        this.bloomLevel = Math.min(this.bloomLevel + this.bloomPerShot * this.getModdedBloom(), this.bloomMax);
         this.lastShotTime = now;
 
         // Muzzle flash effect
@@ -529,7 +529,7 @@ class Weapon {
         this.ammo -= altStats.ammoCost;
 
         // Increase accuracy bloom
-        this.bloomLevel = Math.min(this.bloomLevel + this.bloomPerShot * (altStats.ammoCost || 1), this.bloomMax);
+        this.bloomLevel = Math.min(this.bloomLevel + this.bloomPerShot * this.getModdedBloom() * (altStats.ammoCost || 1), this.bloomMax);
         this.lastShotTime = now;
 
         // Muzzle flash
@@ -804,7 +804,7 @@ class Weapon {
         
         // Update reload
         if (this.isReloading) {
-            if (now - this.reloadStartTime >= this.reloadTime) {
+            if (now - this.reloadStartTime >= this.getModdedReloadTime()) {
                 // Reload complete
                 const stats = this.getWeaponStats(this.type);
                 const bulletsToReload = Math.min(stats.ammo - this.ammo, this.maxAmmo);
@@ -838,6 +838,15 @@ class Weapon {
         return Math.round(baseXP * eliteBonus);
     }
 
+    // All available weapon mod definitions
+    static MOD_POOL = [
+        { id: 'extended_mag', name: 'Extended Magazine', desc: '+50% clip size', color: '#FFAA00' },
+        { id: 'armor_piercing', name: 'Armor Piercing', desc: '+25% damage', color: '#FF4444' },
+        { id: 'rapid_fire', name: 'Rapid Fire', desc: '+30% fire rate', color: '#00CCFF' },
+        { id: 'quick_reload', name: 'Quick Reload', desc: '-30% reload time', color: '#00FF88' },
+        { id: 'stabilizer', name: 'Stabilizer', desc: '-50% weapon bloom', color: '#AA88FF' }
+    ];
+
     addMod(modType) {
         if (this.mods.includes(modType)) return false;
         this.mods.push(modType);
@@ -868,6 +877,21 @@ class Weapon {
         return rate;
     }
 
+    getModdedReloadTime() {
+        let time = this.reloadTime;
+        if (this.mods.includes('quick_reload')) {
+            time = Math.round(time * 0.7);
+        }
+        return time;
+    }
+
+    getModdedBloom() {
+        if (this.mods.includes('stabilizer')) {
+            return 0.5; // multiplier applied to bloom per shot
+        }
+        return 1.0;
+    }
+
     getAmmoString() {
         return `${this.ammo}/${this.maxAmmo}`;
     }
@@ -876,7 +900,7 @@ class Weapon {
         if (!this.isReloading) return 1;
         
         const elapsed = Date.now() - this.reloadStartTime;
-        return Math.min(elapsed / this.reloadTime, 1);
+        return Math.min(elapsed / this.getModdedReloadTime(), 1);
     }
 }
 

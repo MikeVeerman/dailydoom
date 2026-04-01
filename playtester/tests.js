@@ -631,6 +631,7 @@ const TIER_2_TESTS = [
   { id: 'T2-41', name: 'CRT scanline and vignette effects', fn: T2_41_crtEffects }, // issue: #314
   { id: 'T2-42', name: 'Enemy morale and retreat behavior', fn: T2_42_enemyMorale }, // issue: #315
   { id: 'T2-43', name: 'Weapon reload animation', fn: T2_43_reloadAnimation }, // issue: #316
+  { id: 'T2-44', name: 'Weapon modification system', fn: T2_44_weaponModSystem }, // issue: #321
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -3347,6 +3348,118 @@ async function T2_43_reloadAnimation(page, result) {
   } else {
     result.status = 'pass';
     result.note = 'Reload animation: sine-curve dip during reload, progress-driven';
+  }
+}
+
+// T2-44: Weapon modification system between floors (issue #321)
+async function T2_44_weaponModSystem(page, result) {
+  const modData = await page.evaluate(() => {
+    if (!window.game || !window.game.player) {
+      return { exists: false, reason: 'No game/player' };
+    }
+
+    const wm = window.game.player.weaponManager;
+    const pistol = wm.weapons.pistol;
+
+    // Check Weapon.MOD_POOL exists with mod definitions
+    const hasModPool = Array.isArray(Weapon.MOD_POOL) && Weapon.MOD_POOL.length >= 5;
+    const modIds = hasModPool ? Weapon.MOD_POOL.map(m => m.id) : [];
+
+    // Check weapon has mods array
+    const hasModsArray = Array.isArray(pistol.mods);
+
+    // Test addMod functionality
+    const origMods = pistol.mods.slice();
+    const origMaxAmmo = pistol.maxAmmo;
+    const addResult = pistol.addMod('extended_mag');
+    const ammoIncreased = pistol.maxAmmo > origMaxAmmo;
+    const modAdded = pistol.mods.includes('extended_mag');
+
+    // Test duplicate prevention
+    const dupResult = pistol.addMod('extended_mag');
+    const noDuplicate = !dupResult;
+
+    // Test getModdedDamage
+    pistol.addMod('armor_piercing');
+    const moddedDmg = pistol.getModdedDamage();
+    const baseDmg = pistol.damage;
+    const damageModded = moddedDmg > baseDmg;
+
+    // Test getModdedFireRate
+    pistol.addMod('rapid_fire');
+    const moddedRate = pistol.getModdedFireRate();
+    const baseRate = pistol.fireRate;
+    const rateModded = moddedRate > baseRate;
+
+    // Test getModdedReloadTime
+    pistol.addMod('quick_reload');
+    const hasReloadMod = typeof pistol.getModdedReloadTime === 'function';
+    const reloadModded = hasReloadMod && pistol.getModdedReloadTime() < pistol.reloadTime;
+
+    // Test getModdedBloom
+    pistol.addMod('stabilizer');
+    const hasBloomMod = typeof pistol.getModdedBloom === 'function';
+    const bloomModded = hasBloomMod && pistol.getModdedBloom() < 1.0;
+
+    // Check showModSelection exists on game
+    const hasShowModSelection = typeof window.game.showModSelection === 'function';
+    const hasRenderModSelection = typeof window.game.renderModSelection === 'function';
+
+    // Check modSelection state on game
+    const hasModSelectionState = window.game.modSelection !== undefined;
+
+    // Restore pistol state
+    pistol.mods = origMods;
+    pistol.maxAmmo = origMaxAmmo;
+
+    return {
+      exists: true,
+      hasModPool,
+      modIds,
+      hasModsArray,
+      addResult,
+      ammoIncreased,
+      modAdded,
+      noDuplicate,
+      damageModded,
+      rateModded,
+      reloadModded,
+      bloomModded,
+      hasShowModSelection,
+      hasRenderModSelection,
+      hasModSelectionState
+    };
+  });
+
+  if (!modData.exists) {
+    result.status = 'fail';
+    result.note = modData.reason;
+    return;
+  }
+
+  const checks = [
+    ['MOD_POOL with 5+ mods', modData.hasModPool],
+    ['mods array on weapon', modData.hasModsArray],
+    ['addMod applies mod', modData.modAdded],
+    ['extended_mag increases ammo', modData.ammoIncreased],
+    ['duplicate mod prevention', modData.noDuplicate],
+    ['armor_piercing boosts damage', modData.damageModded],
+    ['rapid_fire boosts fire rate', modData.rateModded],
+    ['quick_reload reduces reload time', modData.reloadModded],
+    ['stabilizer reduces bloom', modData.bloomModded],
+    ['showModSelection method', modData.hasShowModSelection],
+    ['renderModSelection method', modData.hasRenderModSelection],
+    ['modSelection state object', modData.hasModSelectionState]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Weapon mod system: ${modData.modIds.length} mods, selection screen, all mod types functional`;
   }
 }
 
