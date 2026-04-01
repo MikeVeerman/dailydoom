@@ -218,6 +218,7 @@ class Weapon {
                 const xpReward = this.getKillXP(hit.enemy);
                 if (player.addXP) player.addXP(xpReward);
                 if (player.registerKill) player.registerKill();
+                if (player.onKillForPerks) player.onKillForPerks(hit.enemy);
 
                 // Kill feed message with weapon name
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
@@ -378,8 +379,11 @@ class Weapon {
         const rayX = player.x;
         const rayY = player.y;
         // Apply bloom spread: random angle offset within bloom cone
-        const bloomSpread = this.bloomLevel > 0
-            ? (Math.random() - 0.5) * 2 * this.bloomLevel
+        // Steady Aim perk reduces bloom by 25% per stack
+        const steadyAimReduction = player.getPerkStacks ? (1 - player.getPerkStacks('steady_aim') * 0.25) : 1;
+        const effectiveBloom = this.bloomLevel * Math.max(0, steadyAimReduction);
+        const bloomSpread = effectiveBloom > 0
+            ? (Math.random() - 0.5) * 2 * effectiveBloom
             : 0;
         const rayAngle = player.angle + bloomSpread;
         const rayDirX = Math.cos(rayAngle);
@@ -652,6 +656,7 @@ class Weapon {
                 const xpReward = this.getKillXP(hit.enemy);
                 if (player.addXP) player.addXP(xpReward);
                 if (player.registerKill) player.registerKill();
+                if (player.onKillForPerks) player.onKillForPerks(hit.enemy);
                 if (window.game && window.game.hud && window.game.hud.addKillFeedMessage) {
                     const typeName = (hit.enemy.type || 'enemy').charAt(0).toUpperCase() + (hit.enemy.type || 'enemy').slice(1);
                     const eliteTag = hit.enemy.isElite ? ' [ELITE]' : '';
@@ -753,6 +758,7 @@ class Weapon {
                 const xpReward = this.getKillXP(hit.enemy);
                 if (player.addXP) player.addXP(xpReward);
                 if (player.registerKill) player.registerKill();
+                if (player.onKillForPerks) player.onKillForPerks(hit.enemy);
             }
             hit.enemy.hitFlashTime = Date.now();
             if (isHeadshot && window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playHeadshot) {
