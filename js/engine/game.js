@@ -219,9 +219,9 @@ class GameEngine {
             }
         });
 
-        // Track mouse position on canvas for hover detection
+        // Track mouse position on canvas for hover detection (all menu states)
         this.canvas.addEventListener('mousemove', (e) => {
-            if (!this.paused) return;
+            if (!this.isMenuOpen()) return;
             const rect = this.canvas.getBoundingClientRect();
             const scaleX = this.canvas.width / rect.width;
             const scaleY = this.canvas.height / rect.height;
