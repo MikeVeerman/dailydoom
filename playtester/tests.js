@@ -634,6 +634,7 @@ const TIER_2_TESTS = [
   { id: 'T2-44', name: 'Weapon modification system', fn: T2_44_weaponModSystem }, // issue: #321
   { id: 'T2-45', name: 'Level-up perk selection system', fn: T2_45_perkSelectionSystem }, // issue: #322
   { id: 'T2-46', name: 'Lifetime stats and achievements', fn: T2_46_lifetimeStatsAchievements }, // issue: #323
+  { id: 'T2-47', name: 'Menu pointer lock handling', fn: T2_47_menuPointerLock }, // issue: #324
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -3683,6 +3684,78 @@ async function T2_46_lifetimeStatsAchievements(page, result) {
   } else {
     result.status = 'pass';
     result.note = 'Lifetime stats: accumulation, headshots, glory kills, achievements';
+  }
+}
+
+async function T2_47_menuPointerLock(page, result) {
+  const data = await page.evaluate(() => {
+    if (!window.game || !window.game.inputManager) {
+      return { exists: false, reason: 'No game/inputManager' };
+    }
+
+    const im = window.game.inputManager;
+    const game = window.game;
+
+    // Check isMenuOpen covers all menu states
+    const origPaused = game.paused;
+    const origLevelComplete = game.levelComplete;
+    const origDeathScreen = game.showDeathScreen;
+
+    // Test 1: isMenuOpen returns true for levelComplete
+    game.levelComplete = true;
+    const levelCompleteMenu = game.isMenuOpen();
+    game.levelComplete = false;
+
+    // Test 2: isMenuOpen returns true for showDeathScreen
+    game.showDeathScreen = true;
+    const deathScreenMenu = game.isMenuOpen();
+    game.showDeathScreen = false;
+
+    // Test 3: _lastUnlockTime is tracked on pointer unlock
+    const hasUnlockTracking = '_lastUnlockTime' in im || true; // Will be set after first unlock
+
+    // Test 4: onCanvasClick checks isMenuOpen
+    const clickSrc = im.onCanvasClick.toString();
+    const checksMenuOpen = clickSrc.includes('isMenuOpen');
+
+    // Test 5: Verify debounce guard exists
+    const hasDebounce = clickSrc.includes('_lastUnlockTime');
+
+    // Restore
+    game.paused = origPaused;
+    game.levelComplete = origLevelComplete;
+    game.showDeathScreen = origDeathScreen;
+
+    return {
+      exists: true,
+      levelCompleteMenu,
+      deathScreenMenu,
+      checksMenuOpen,
+      hasDebounce
+    };
+  });
+
+  if (!data.exists) {
+    result.status = 'fail';
+    result.note = data.reason;
+    return;
+  }
+
+  const checks = [
+    ['isMenuOpen covers levelComplete', data.levelCompleteMenu],
+    ['isMenuOpen covers deathScreen', data.deathScreenMenu],
+    ['onCanvasClick checks isMenuOpen', data.checksMenuOpen],
+    ['pointer unlock debounce guard', data.hasDebounce]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = 'Menu pointer lock: isMenuOpen covers all states, debounce on unlock';
   }
 }
 

@@ -140,8 +140,10 @@ class InputManager {
     
     // Mouse event handlers
     onCanvasClick(event) {
-        // Don't request pointer lock while any menu is open
+        // Don't request pointer lock while any menu is open or recently unlocked
         if (!this.mouse.locked && !(window.game && window.game.isMenuOpen())) {
+            // Guard against race: wait at least 100ms after pointer lock was released
+            if (this._lastUnlockTime && Date.now() - this._lastUnlockTime < 100) return;
             this.requestPointerLock();
         }
     }
@@ -197,10 +199,11 @@ class InputManager {
     
     onPointerLockChange() {
         this.mouse.locked = document.pointerLockElement === this.canvas;
-        
+
         if (this.mouse.locked) {
             console.log('Pointer locked');
         } else {
+            this._lastUnlockTime = Date.now();
             console.log('Pointer unlocked');
         }
     }
