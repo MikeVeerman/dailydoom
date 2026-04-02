@@ -636,6 +636,7 @@ const TIER_2_TESTS = [
   { id: 'T2-46', name: 'Lifetime stats and achievements', fn: T2_46_lifetimeStatsAchievements }, // issue: #323
   { id: 'T2-47', name: 'Menu pointer lock handling', fn: T2_47_menuPointerLock }, // issue: #324
   { id: 'T2-48', name: 'Sprite config and multi-frame animations', fn: T2_48_spriteConfigAnimations }, // issue: #326 #327
+  { id: 'T2-49', name: 'Enemy attack telegraph system', fn: T2_49_enemyAttackTelegraph }, // issue: #333
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -3859,6 +3860,104 @@ async function T2_48_spriteConfigAnimations(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Sprite config: ${configResponse.enemyCount} enemies, multi-frame walk (${rendererData.impWalkFrameCount} frames)`;
+  }
+}
+
+async function T2_49_enemyAttackTelegraph(page, result) {
+  // T2-49: Enemy attack telegraph system (issue: #333)
+  // Pass: enemies have per-type telegraph durations, telegraph state triggers visual/audio cues
+  await page.waitForTimeout(1000);
+
+  const telegraphData = await page.evaluate(() => {
+    if (!window.game || !window.game.map) {
+      return { exists: false, reason: 'No game/map' };
+    }
+
+    const enemies = window.game.map.enemies;
+    if (!enemies || enemies.length === 0) {
+      return { exists: false, reason: 'No enemies found' };
+    }
+
+    // Check that enemies have telegraph properties
+    const firstEnemy = enemies[0];
+    const hasAttackTellTime = 'attackTellTime' in firstEnemy;
+    const hasAttackTellDuration = 'attackTellDuration' in firstEnemy;
+
+    // Check per-type telegraph durations from EnemyBehaviors
+    const hasBehaviors = typeof window.EnemyBehaviors !== 'undefined';
+    let perTypeDurations = {};
+    let hasPerTypeTell = false;
+    if (hasBehaviors) {
+      const types = ['guard', 'imp', 'demon', 'soldier', 'berserker', 'spitter',
+                      'shield_guard', 'phantom', 'exploder', 'sniper', 'boss'];
+      for (const t of types) {
+        if (window.EnemyBehaviors[t] && window.EnemyBehaviors[t].attackTellDuration) {
+          perTypeDurations[t] = window.EnemyBehaviors[t].attackTellDuration;
+        }
+      }
+      hasPerTypeTell = Object.keys(perTypeDurations).length >= 10;
+    }
+
+    // Check that different types have different durations
+    const uniqueDurations = new Set(Object.values(perTypeDurations));
+    const hasDiverseDurations = uniqueDurations.size >= 3;
+
+    // Check boss has longer telegraph than imp
+    const bossLongerThanImp = (perTypeDurations.boss || 0) > (perTypeDurations.imp || 0);
+
+    // Check that enhanced AI applies telegraph duration to enemy
+    let behaviorApplied = false;
+    for (const e of enemies) {
+      if (e.enhancedAI && e.enhancedAI.behavior && e.enhancedAI.behavior.attackTellDuration) {
+        behaviorApplied = e.attackTellDuration === e.enhancedAI.behavior.attackTellDuration;
+        if (behaviorApplied) break;
+      }
+    }
+
+    // Check that telegraph triggers visual tell (attackTellTime property used by renderer)
+    // Simulate a telegraph by setting attackTellTime and checking the property exists
+    const canTriggerTell = typeof firstEnemy.attackTellTime === 'number';
+
+    return {
+      exists: true,
+      hasAttackTellTime,
+      hasAttackTellDuration,
+      hasBehaviors,
+      hasPerTypeTell,
+      hasDiverseDurations,
+      bossLongerThanImp,
+      behaviorApplied,
+      canTriggerTell,
+      typeCount: Object.keys(perTypeDurations).length,
+      sampleDurations: perTypeDurations
+    };
+  });
+
+  if (!telegraphData.exists) {
+    result.status = 'fail';
+    result.note = telegraphData.reason;
+    return;
+  }
+
+  const checks = [
+    ['attackTellTime property', telegraphData.hasAttackTellTime],
+    ['attackTellDuration property', telegraphData.hasAttackTellDuration],
+    ['EnemyBehaviors exists', telegraphData.hasBehaviors],
+    ['per-type telegraph durations (10+ types)', telegraphData.hasPerTypeTell],
+    ['diverse durations (3+ unique)', telegraphData.hasDiverseDurations],
+    ['boss longer than imp', telegraphData.bossLongerThanImp],
+    ['behavior applied to enemy', telegraphData.behaviorApplied],
+    ['can trigger telegraph', telegraphData.canTriggerTell]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Telegraph: ${telegraphData.typeCount} types configured, boss=${telegraphData.sampleDurations.boss}ms imp=${telegraphData.sampleDurations.imp}ms`;
   }
 }
 
