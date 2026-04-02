@@ -58,6 +58,11 @@ class Renderer {
         this._staticLightDirty = true;
         this.dynamicLights = []; // Transient lights (muzzle flash, explosions)
 
+        // Floor blood splatters
+        this.floorSplatters = [];
+        this.floorSplatterMax = 60;
+        this._splatLookup = new Map(); // tile key -> [splatter indices]
+
         // Precalculated values for performance
         this.cosTable = [];
         this.sinTable = [];
@@ -67,6 +72,87 @@ class Renderer {
         }
     }
     
+    addFloorSplatter(worldX, worldY, splatSize) {
+        const splatter = {
+            worldX, worldY,
+            radius: splatSize || 20, // world units
+            // Pre-generate random offsets for sub-splatters
+            blobs: []
+        };
+        // Create 3-6 sub-blobs for irregular shape
+        const blobCount = 3 + Math.floor(Math.random() * 4);
+        for (let i = 0; i < blobCount; i++) {
+            splatter.blobs.push({
+                ox: (Math.random() - 0.5) * splatSize * 0.8,
+                oy: (Math.random() - 0.5) * splatSize * 0.8,
+                r: splatSize * (0.3 + Math.random() * 0.5)
+            });
+        }
+
+        this.floorSplatters.push(splatter);
+
+        // Enforce max count
+        if (this.floorSplatters.length > this.floorSplatterMax) {
+            this.floorSplatters.shift();
+        }
+
+        // Rebuild spatial lookup
+        this._rebuildSplatLookup();
+    }
+
+    _rebuildSplatLookup() {
+        this._splatLookup.clear();
+        for (let i = 0; i < this.floorSplatters.length; i++) {
+            const s = this.floorSplatters[i];
+            const tileSize = this.wallHeight;
+            // Register splatter in all tiles it could touch
+            const minTX = Math.floor((s.worldX - s.radius) / tileSize);
+            const maxTX = Math.floor((s.worldX + s.radius) / tileSize);
+            const minTY = Math.floor((s.worldY - s.radius) / tileSize);
+            const maxTY = Math.floor((s.worldY + s.radius) / tileSize);
+            for (let ty = minTY; ty <= maxTY; ty++) {
+                for (let tx = minTX; tx <= maxTX; tx++) {
+                    const key = ty * 100 + tx; // fast numeric key
+                    let list = this._splatLookup.get(key);
+                    if (!list) {
+                        list = [];
+                        this._splatLookup.set(key, list);
+                    }
+                    list.push(i);
+                }
+            }
+        }
+    }
+
+    clearFloorSplatters() {
+        this.floorSplatters = [];
+        this._splatLookup.clear();
+    }
+
+    // Check if a world position is inside any blood splatter
+    _getSplatIntensity(worldX, worldY, mapX, mapY) {
+        const key = mapY * 100 + mapX;
+        const indices = this._splatLookup.get(key);
+        if (!indices) return 0;
+
+        let maxIntensity = 0;
+        for (const idx of indices) {
+            const s = this.floorSplatters[idx];
+            // Check sub-blobs for irregular shape
+            for (const blob of s.blobs) {
+                const dx = worldX - (s.worldX + blob.ox);
+                const dy = worldY - (s.worldY + blob.oy);
+                const distSq = dx * dx + dy * dy;
+                const rSq = blob.r * blob.r;
+                if (distSq < rSq) {
+                    const intensity = 1 - distSq / rSq;
+                    if (intensity > maxIntensity) maxIntensity = intensity;
+                }
+            }
+        }
+        return maxIntensity;
+    }
+
     buildAcidLookup() {
         // Hazard lookup: 0=none, 1=acid, 2=lava
         this._acidLookup = [];
@@ -486,6 +572,16 @@ class Renderer {
                     let r = Math.min(255, Math.floor(baseR * shade + light.r * 180 * shade));
                     let g = Math.min(255, Math.floor(baseG * shade + light.g * 180 * shade));
                     let b = Math.min(255, Math.floor(baseB * shade + light.b * 180 * shade));
+                    // Blood splatter tinting
+                    if (this._splatLookup.size > 0) {
+                        const si = this._getSplatIntensity(floorWorldX, floorWorldY, mapX, mapY);
+                        if (si > 0) {
+                            const t = si * 0.7;
+                            r = Math.min(255, Math.floor(r * (1 - t) + 140 * shade * t));
+                            g = Math.floor(g * (1 - t) + 10 * shade * t);
+                            b = Math.floor(b * (1 - t) + 5 * shade * t);
+                        }
+                    }
                     this.setPixel(x, y, 0xFF000000 | (b << 16) | (g << 8) | r);
                 }
             }
@@ -546,6 +642,16 @@ class Renderer {
                     let r = Math.min(255, Math.floor(baseR * shade + light.r * 180 * shade));
                     let g = Math.min(255, Math.floor(baseG * shade + light.g * 180 * shade));
                     let b = Math.min(255, Math.floor(baseB * shade + light.b * 180 * shade));
+                    // Blood splatter tinting
+                    if (this._splatLookup.size > 0) {
+                        const si = this._getSplatIntensity(floorWorldX, floorWorldY, mapX, mapY);
+                        if (si > 0) {
+                            const t = si * 0.7;
+                            r = Math.min(255, Math.floor(r * (1 - t) + 140 * shade * t));
+                            g = Math.floor(g * (1 - t) + 10 * shade * t);
+                            b = Math.floor(b * (1 - t) + 5 * shade * t);
+                        }
+                    }
                     this.setPixel(x, y, 0xFF000000 | (b << 16) | (g << 8) | r);
                 }
             }

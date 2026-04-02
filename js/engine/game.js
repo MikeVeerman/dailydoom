@@ -1188,8 +1188,11 @@ class GameEngine {
             this.hud.resetFog();
         }
 
-        // Update renderer with new map
+        // Update renderer with new map and clear floor splatters
         this.renderer.map = this.map;
+        if (this.renderer.clearFloorSplatters) {
+            this.renderer.clearFloorSplatters();
+        }
 
         this.totalEnemyCount = this.map.enemies.length;
         this.levelStartTime = performance.now();

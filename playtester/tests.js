@@ -638,6 +638,7 @@ const TIER_2_TESTS = [
   { id: 'T2-48', name: 'Sprite config and multi-frame animations', fn: T2_48_spriteConfigAnimations }, // issue: #326 #327
   { id: 'T2-49', name: 'Enemy attack telegraph system', fn: T2_49_enemyAttackTelegraph }, // issue: #333
   { id: 'T2-50', name: 'Minimap zone labels and legend', fn: T2_50_minimapZoneLabels }, // issue: #334
+  { id: 'T2-51', name: 'Floor blood splatters on kill', fn: T2_51_floorBloodSplatters }, // issue: #335
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -4047,6 +4048,114 @@ async function T2_50_minimapZoneLabels(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Minimap: ${minimapData.zonesWithNames} zones [${minimapData.zoneNames.join(', ')}], legend togglable`;
+  }
+}
+
+async function T2_51_floorBloodSplatters(page, result) {
+  // T2-51: Floor blood splatters on kill (issue: #335)
+  // Pass: renderer has splatter system, splatters created on enemy death, per-type sizes
+  await page.waitForTimeout(1000);
+
+  const splatData = await page.evaluate(() => {
+    if (!window.game || !window.game.renderer) {
+      return { exists: false, reason: 'No game/renderer' };
+    }
+
+    const r = window.game.renderer;
+
+    // Check renderer has splatter system
+    const hasFloorSplatters = Array.isArray(r.floorSplatters);
+    const hasAddMethod = typeof r.addFloorSplatter === 'function';
+    const hasClearMethod = typeof r.clearFloorSplatters === 'function';
+    const hasLookup = r._splatLookup instanceof Map;
+    const hasMax = typeof r.floorSplatterMax === 'number' && r.floorSplatterMax > 0;
+    const hasIntensity = typeof r._getSplatIntensity === 'function';
+
+    // Test adding a splatter
+    const initialCount = r.floorSplatters.length;
+    r.addFloorSplatter(200, 200, 20);
+    const afterAdd = r.floorSplatters.length;
+    const addWorks = afterAdd === initialCount + 1;
+
+    // Check splatter has blobs for irregular shape
+    const lastSplat = r.floorSplatters[r.floorSplatters.length - 1];
+    const hasBlobs = lastSplat && Array.isArray(lastSplat.blobs) && lastSplat.blobs.length >= 3;
+
+    // Check lookup was built
+    const lookupPopulated = r._splatLookup.size > 0;
+
+    // Test intensity function
+    const intensity = r._getSplatIntensity(200, 200, 3, 3);
+    const intensityWorks = intensity > 0;
+
+    // Test clear
+    r.clearFloorSplatters();
+    const clearWorks = r.floorSplatters.length === 0 && r._splatLookup.size === 0;
+
+    // Check enemy death code references addFloorSplatter
+    const enemies = window.game.map ? window.game.map.enemies : [];
+    let deathCodeHasSplatter = false;
+    if (enemies.length > 0) {
+      const src = enemies[0].takeDamage.toString();
+      deathCodeHasSplatter = src.includes('addFloorSplatter');
+    }
+
+    // Check per-type sizes
+    let perTypeSizes = false;
+    if (enemies.length > 0) {
+      const src = enemies[0].takeDamage.toString();
+      perTypeSizes = src.includes('splatSizes');
+    }
+
+    return {
+      exists: true,
+      hasFloorSplatters,
+      hasAddMethod,
+      hasClearMethod,
+      hasLookup,
+      hasMax,
+      hasIntensity,
+      addWorks,
+      hasBlobs,
+      lookupPopulated,
+      intensityWorks,
+      clearWorks,
+      deathCodeHasSplatter,
+      perTypeSizes,
+      maxCount: r.floorSplatterMax
+    };
+  });
+
+  if (!splatData.exists) {
+    result.status = 'fail';
+    result.note = splatData.reason;
+    return;
+  }
+
+  const checks = [
+    ['floorSplatters array', splatData.hasFloorSplatters],
+    ['addFloorSplatter method', splatData.hasAddMethod],
+    ['clearFloorSplatters method', splatData.hasClearMethod],
+    ['spatial lookup map', splatData.hasLookup],
+    ['max splatter limit', splatData.hasMax],
+    ['intensity function', splatData.hasIntensity],
+    ['add creates splatter', splatData.addWorks],
+    ['irregular blob shape', splatData.hasBlobs],
+    ['lookup populated after add', splatData.lookupPopulated],
+    ['intensity > 0 at center', splatData.intensityWorks],
+    ['clear removes all', splatData.clearWorks],
+    ['enemy death creates splatter', splatData.deathCodeHasSplatter],
+    ['per-type splatter sizes', splatData.perTypeSizes]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Floor splatters: max ${splatData.maxCount}, blob-based, per-type sizes, integrated in floor rendering`;
   }
 }
 
