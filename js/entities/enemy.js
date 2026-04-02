@@ -489,6 +489,13 @@ class Enemy {
                 window.game.hud.emitBloodParticles(this.x, this.y, 15);
             }
 
+            // Floor blood splatter
+            if (window.game && window.game.renderer && window.game.renderer.addFloorSplatter) {
+                const splatSizes = { imp: 14, guard: 18, soldier: 16, demon: 30, berserker: 22, spitter: 16, shield_guard: 20, phantom: 12, exploder: 28, sniper: 14, boss: 40 };
+                const splatSize = splatSizes[this.type] || 18;
+                window.game.renderer.addFloorSplatter(this.x, this.y, splatSize);
+            }
+
             // Morale impact: nearby enemies lose morale when ally dies
             if (window.game && window.game.map) {
                 const deathX = this.x;

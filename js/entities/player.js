@@ -643,8 +643,11 @@ class Player {
             closestEnemy.hitFlashTime = Date.now();
             if (window.game && window.game.hud) {
                 if (isGloryKill) {
-                    // Glory Kill: green flash, large screen shake, crosshair text
+                    // Glory Kill: green flash, large screen shake, crosshair text, extra blood splatter
                     window.game.hud.emitBloodParticles(closestEnemy.x, closestEnemy.y, 15);
+                    if (window.game.renderer && window.game.renderer.addFloorSplatter) {
+                        window.game.renderer.addFloorSplatter(closestEnemy.x, closestEnemy.y, 35);
+                    }
                     window.game.hud.addDamageNumber(closestEnemy.x, closestEnemy.y, damage, true);
                     window.game.hud.triggerScreenShake(10);
                     window.game.hud.showCrosshairText('GLORY KILL!', '#00FF88');
