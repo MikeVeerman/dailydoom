@@ -12,6 +12,7 @@ const EnemyBehaviors = {
         attackRange: 60,
         damage: 15,
         attackCooldown: 2000,
+        attackTellDuration: 350, // ms telegraph before attack
         patrolRadius: 80,
         aggressiveness: 0.5,
         intelligence: 0.6,
@@ -32,6 +33,7 @@ const EnemyBehaviors = {
         attackRange: 40,
         damage: 10,
         attackCooldown: 1200,
+        attackTellDuration: 250, // fast attacker, short telegraph
         patrolRadius: 120,
         aggressiveness: 0.8,
         intelligence: 0.3,
@@ -52,6 +54,7 @@ const EnemyBehaviors = {
         attackRange: 80,
         damage: 35,
         attackCooldown: 3000,
+        attackTellDuration: 500, // slow heavy hitter, long telegraph
         patrolRadius: 60,
         aggressiveness: 0.9,
         intelligence: 0.4,
@@ -72,6 +75,7 @@ const EnemyBehaviors = {
         attackRange: 200, // Long range
         damage: 20,
         attackCooldown: 1800,
+        attackTellDuration: 400, // ranged aim-up telegraph
         patrolRadius: 100,
         aggressiveness: 0.3,
         intelligence: 0.9,
@@ -93,6 +97,7 @@ const EnemyBehaviors = {
         attackRange: 50,
         damage: 25,
         attackCooldown: 1500,
+        attackTellDuration: 300, // aggressive, shorter telegraph
         patrolRadius: 100,
         aggressiveness: 0.9,
         intelligence: 0.3,
@@ -114,6 +119,7 @@ const EnemyBehaviors = {
         attackRange: 300,
         damage: 12,
         attackCooldown: 2000,
+        attackTellDuration: 350, // ranged aim-up telegraph
         patrolRadius: 60,
         aggressiveness: 0.4,
         intelligence: 0.7,
@@ -135,6 +141,7 @@ const EnemyBehaviors = {
         attackRange: 70,
         damage: 22,
         attackCooldown: 2200,
+        attackTellDuration: 400, // shield wind-up
         patrolRadius: 60,
         aggressiveness: 0.6,
         intelligence: 0.8,
@@ -155,6 +162,7 @@ const EnemyBehaviors = {
         attackRange: 50,
         damage: 18,
         attackCooldown: 1600,
+        attackTellDuration: 300, // decloaks quickly
         patrolRadius: 120,
         aggressiveness: 0.7,
         intelligence: 0.8,
@@ -175,6 +183,7 @@ const EnemyBehaviors = {
         attackRange: 40,
         damage: 60,
         attackCooldown: 500,
+        attackTellDuration: 200, // very short — suicide bomber
         patrolRadius: 80,
         aggressiveness: 1.0,
         intelligence: 0.2,
@@ -196,6 +205,7 @@ const EnemyBehaviors = {
         attackRange: 450,
         damage: 30,
         attackCooldown: 3000,
+        attackTellDuration: 500, // long aim-up telegraph
         patrolRadius: 100,
         aggressiveness: 0.2,
         intelligence: 0.9,
@@ -218,6 +228,7 @@ const EnemyBehaviors = {
         attackRange: 150,
         damage: 40,
         attackCooldown: 2500,
+        attackTellDuration: 600, // boss: longer, more dramatic telegraph
         patrolRadius: 40,
         aggressiveness: 1.0,
         intelligence: 0.9,
@@ -247,6 +258,7 @@ class EnhancedEnemyAI {
         this.enemy.detectionRange = this.behavior.detectionRange;
         this.enemy.attackRange = this.behavior.attackRange;
         this.enemy.patrolRadius = this.behavior.patrolRadius;
+        this.enemy.attackTellDuration = this.behavior.attackTellDuration || 300;
         
         // AI state tracking
         this.lastAttackTime = 0;
@@ -751,31 +763,44 @@ class EnhancedEnemyAI {
                 damage = Math.round(damage * 2);
             }
 
-            // Ranged enemies fire projectiles instead of hitscan (no telegraph needed)
+            // Ranged enemies telegraph before firing (aim-up wind-up)
             if (this.behavior.rangedAttack || this.behavior.strafeBehavior) {
-                this.enemy.tryBark('attack');
-                if (window.game && window.game.projectileManager) {
-                    const speed = this.behavior.rangedAttack ? 150 : 200;
-                    const color = this.behavior.rangedAttack ? '#44FF44' : '#FFAA00';
-                    window.game.projectileManager.spawn(
-                        this.enemy.x, this.enemy.y,
-                        player.x, player.y,
-                        damage, speed, color, this.enemy
-                    );
-                    // Play projectile fire sound
-                    if (window.soundEngine && window.soundEngine.isInitialized) {
-                        this.playAttackSound();
-                    }
+                const now = Date.now();
+                const tellDuration = this.enemy.attackTellDuration || 300;
+                this.enemy.attackTellTime = now;
 
-                    // Sniper: relocate after firing
-                    if (this.behavior.sniperRelocate) {
-                        const relocAngle = Math.random() * Math.PI * 2;
-                        const relocDist = 100 + Math.random() * 80;
-                        this.enemy.targetX = this.enemy.x + Math.cos(relocAngle) * relocDist;
-                        this.enemy.targetY = this.enemy.y + Math.sin(relocAngle) * relocDist;
-                        this.enemy.state = 'chase'; // Move to new position
-                    }
+                // Warning sound
+                if (window.soundEngine && window.soundEngine.isInitialized && window.soundEngine.playAttackWarning) {
+                    window.soundEngine.playAttackWarning();
                 }
+
+                // Delay projectile by telegraph duration
+                setTimeout(() => {
+                    if (!this.enemy.active || this.enemy.dying) return;
+                    if (!this.hasLineOfSight(player, window.game.map)) return;
+                    this.enemy.tryBark('attack');
+                    if (window.game && window.game.projectileManager) {
+                        const speed = this.behavior.rangedAttack ? 150 : 200;
+                        const color = this.behavior.rangedAttack ? '#44FF44' : '#FFAA00';
+                        window.game.projectileManager.spawn(
+                            this.enemy.x, this.enemy.y,
+                            player.x, player.y,
+                            damage, speed, color, this.enemy
+                        );
+                        if (window.soundEngine && window.soundEngine.isInitialized) {
+                            this.playAttackSound();
+                        }
+
+                        // Sniper: relocate after firing
+                        if (this.behavior.sniperRelocate) {
+                            const relocAngle = Math.random() * Math.PI * 2;
+                            const relocDist = 100 + Math.random() * 80;
+                            this.enemy.targetX = this.enemy.x + Math.cos(relocAngle) * relocDist;
+                            this.enemy.targetY = this.enemy.y + Math.sin(relocAngle) * relocDist;
+                            this.enemy.state = 'chase';
+                        }
+                    }
+                }, tellDuration);
                 return;
             }
 

@@ -1418,17 +1418,42 @@ class Renderer {
             this.ctx.globalAlpha = 1.0;
             this.ctx.imageSmoothingEnabled = prevSmoothing;
 
-            // Attack telegraph overlay (orange pulse before melee attack)
+            // Attack telegraph overlay (pulsing glow before attack)
             if (!entity.dying && entity.attackTellTime) {
                 const tellElapsed = Date.now() - entity.attackTellTime;
                 const tellDuration = entity.attackTellDuration || 300;
                 if (tellElapsed < tellDuration) {
-                    // Pulsing orange glow that intensifies as attack approaches
                     const progress = tellElapsed / tellDuration;
-                    const pulse = 0.2 + 0.3 * Math.sin(progress * Math.PI * 4) * progress;
-                    this.ctx.globalAlpha = pulse;
-                    this.ctx.fillStyle = '#FF6600';
-                    this.ctx.fillRect(spriteX, spriteY, spriteSize, adjustedHeight);
+
+                    // Per-type telegraph color
+                    let tellColor = '#FF6600'; // default orange
+                    const isBoss = enemyType === 'boss';
+                    if (enemyType === 'demon' || enemyType === 'berserker') {
+                        tellColor = '#FF2200'; // red for heavy melee
+                    } else if (enemyType === 'phantom') {
+                        tellColor = '#AA44FF'; // purple for phantom
+                    } else if (enemyType === 'spitter' || enemyType === 'sniper' || enemyType === 'soldier') {
+                        tellColor = '#FFDD00'; // yellow for ranged
+                    } else if (isBoss) {
+                        tellColor = '#FF0044'; // deep red for boss
+                    }
+
+                    // Boss: more dramatic effect with expanding border
+                    if (isBoss) {
+                        const pulse = 0.3 + 0.4 * Math.sin(progress * Math.PI * 6) * progress;
+                        this.ctx.globalAlpha = pulse;
+                        this.ctx.fillStyle = tellColor;
+                        this.ctx.fillRect(spriteX, spriteY, spriteSize, adjustedHeight);
+                        // Pulsing border ring
+                        this.ctx.strokeStyle = '#FFFFFF';
+                        this.ctx.lineWidth = 2 + progress * 3;
+                        this.ctx.strokeRect(spriteX - 2, spriteY - 2, spriteSize + 4, adjustedHeight + 4);
+                    } else {
+                        const pulse = 0.2 + 0.3 * Math.sin(progress * Math.PI * 4) * progress;
+                        this.ctx.globalAlpha = pulse;
+                        this.ctx.fillStyle = tellColor;
+                        this.ctx.fillRect(spriteX, spriteY, spriteSize, adjustedHeight);
+                    }
                     this.ctx.globalAlpha = 1.0;
                 }
             }
