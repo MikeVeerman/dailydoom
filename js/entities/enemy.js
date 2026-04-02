@@ -32,6 +32,11 @@ class Enemy {
         this.lastPlayerX = 0;
         this.lastPlayerY = 0;
 
+        // Sprite animation frame tracking
+        this.animTime = 0;
+        this.animFrame = 0;
+        this.prevSpriteState = 'idle';
+
         // Sound bark tracking
         this.lastBarkTime = 0;
         this.barkCooldown = 2000; // Minimum 2s between barks
@@ -82,6 +87,9 @@ class Enemy {
             }
             return; // No AI updates while dying
         }
+
+        // Advance sprite animation timer
+        this.animTime += deltaTime;
 
         // Elite regeneration
         if (this.regenRate > 0 && this.health < this.maxHealth) {

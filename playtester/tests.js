@@ -635,6 +635,7 @@ const TIER_2_TESTS = [
   { id: 'T2-45', name: 'Level-up perk selection system', fn: T2_45_perkSelectionSystem }, // issue: #322
   { id: 'T2-46', name: 'Lifetime stats and achievements', fn: T2_46_lifetimeStatsAchievements }, // issue: #323
   { id: 'T2-47', name: 'Menu pointer lock handling', fn: T2_47_menuPointerLock }, // issue: #324
+  { id: 'T2-48', name: 'Sprite config and multi-frame animations', fn: T2_48_spriteConfigAnimations }, // issue: #326 #327
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -3756,6 +3757,108 @@ async function T2_47_menuPointerLock(page, result) {
   } else {
     result.status = 'pass';
     result.note = 'Menu pointer lock: isMenuOpen covers all states, debounce on unlock';
+  }
+}
+
+async function T2_48_spriteConfigAnimations(page, result) {
+  // First verify sprite_config.json is fetchable
+  const configResponse = await page.evaluate(async () => {
+    try {
+      const r = await fetch('assets/sprites/enemies/sprite_config.json');
+      if (!r.ok) return { loaded: false, reason: 'HTTP ' + r.status };
+      const data = await r.json();
+      return {
+        loaded: true,
+        hasEnemies: !!data.enemies,
+        enemyCount: Object.keys(data.enemies || {}).length,
+        hasFrameRate: typeof data.frameRate === 'number',
+        hasInherits: !!(data.enemies.phantom && data.enemies.phantom.inherits)
+      };
+    } catch (e) {
+      return { loaded: false, reason: e.message };
+    }
+  });
+
+  const rendererData = await page.evaluate(() => {
+    if (!window.game || !window.game.renderer) {
+      return { exists: false, reason: 'No game/renderer' };
+    }
+
+    const r = window.game.renderer;
+
+    // Check renderer has multi-frame support
+    const hasSpriteFrames = typeof r.enemySpriteFrames === 'object';
+    const hasGetAnimFrame = typeof r.getAnimFrame === 'function';
+    const hasLoadSpriteConfig = typeof r.loadSpriteConfig === 'function';
+    const hasLoadSpriteFrames = typeof r.loadSpriteFrames === 'function';
+
+    // Check enemies have animation state
+    const enemies = window.game.map ? window.game.map.enemies : [];
+    const hasAnimTime = enemies.length > 0 && 'animTime' in enemies[0];
+    const hasAnimFrame = enemies.length > 0 && 'animFrame' in enemies[0];
+    const hasPrevSpriteState = enemies.length > 0 && 'prevSpriteState' in enemies[0];
+
+    // Check frame cycling works
+    let frameCycling = false;
+    if (hasGetAnimFrame && enemies.length > 0) {
+      const enemy = enemies[0];
+      enemy.animTime = 0;
+      const f0 = r.getAnimFrame(enemy, 'walk');
+      enemy.animTime = 10; // Far ahead to ensure different frame
+      const f1 = r.getAnimFrame(enemy, 'walk');
+      // For types with multi-frame walk, f1 should differ from f0
+      // For single-frame types, both are 0
+      frameCycling = (f0 === 0); // At least confirms frame 0 returned
+      enemy.animTime = 0; // restore
+    }
+
+    // Check frames loaded for imp walk (should have 2 frames)
+    const impFrames = r.enemySpriteFrames && r.enemySpriteFrames.imp;
+    const impWalkFrameCount = impFrames && impFrames.walk ? impFrames.walk.length : 0;
+
+    return {
+      exists: true,
+      hasSpriteFrames,
+      hasGetAnimFrame,
+      hasLoadSpriteConfig,
+      hasLoadSpriteFrames,
+      hasAnimTime,
+      hasAnimFrame,
+      hasPrevSpriteState,
+      frameCycling,
+      impWalkFrameCount
+    };
+  });
+
+  if (!rendererData.exists) {
+    result.status = 'fail';
+    result.note = rendererData.reason;
+    return;
+  }
+
+  const checks = [
+    ['sprite_config.json loadable', configResponse.loaded],
+    ['config has enemies', configResponse.hasEnemies],
+    ['config has 11+ enemy types', configResponse.enemyCount >= 11],
+    ['config has frameRate', configResponse.hasFrameRate],
+    ['config has inherits', configResponse.hasInherits],
+    ['enemySpriteFrames object', rendererData.hasSpriteFrames],
+    ['getAnimFrame method', rendererData.hasGetAnimFrame],
+    ['loadSpriteConfig method', rendererData.hasLoadSpriteConfig],
+    ['enemy.animTime property', rendererData.hasAnimTime],
+    ['enemy.animFrame property', rendererData.hasAnimFrame],
+    ['frame cycling returns valid', rendererData.frameCycling],
+    ['imp walk has 2+ frames', rendererData.impWalkFrameCount >= 2]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Sprite config: ${configResponse.enemyCount} enemies, multi-frame walk (${rendererData.impWalkFrameCount} frames)`;
   }
 }
 

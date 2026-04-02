@@ -719,37 +719,39 @@ class Renderer {
     loadSprites() {
         console.log('Loading sprites...');
 
-        // Enemy type scale factors
+        // Enemy type scale factors (defaults, overridden by sprite_config.json)
         this.enemyScales = {
             imp: 0.6, guard: 0.7, soldier: 0.65, demon: 1.0,
             berserker: 0.7, spitter: 0.55, shield_guard: 0.75, boss: 1.25,
             phantom: 0.6, exploder: 0.55, sniper: 0.6
         };
 
-        // Per-type enemy sprites (from Anarch oldschool FPS resources, CC0)
+        // Animation config loaded from sprite_config.json
+        this.spriteConfig = null;
+        this.spriteConfigFrameRate = 6;
+
+        // Per-type enemy sprites — supports multi-frame arrays
         this.enemySprites = {};
+        // enemySpriteFrames[type][state] = [img, img, ...] for multi-frame
+        this.enemySpriteFrames = {};
+
+        // Hardcoded fallback map (used if sprite_config.json fails to load)
         const enemySpriteMap = {
-            guard:        { idle: 'guard_idle.png', attack: 'guard_attack.png' },
-            imp:          { idle: 'imp_idle_new.png', attack: 'imp_attack.png', walk: 'imp_walk.png' },
-            demon:        { idle: 'demon_idle_new.png', attack: 'demon_attack.png', walk: 'demon_walk.png' },
-            soldier:      { idle: 'soldier_idle.png', attack: 'soldier_attack.png' },
-            berserker:    { idle: 'berserker_idle.png', attack: 'berserker_attack.png', walk: 'berserker_walk.png' },
-            spitter:      { idle: 'spitter_idle.png', attack: 'spitter_attack.png' },
-            shield_guard: { idle: 'shield_guard_idle.png' },
-            boss:         { idle: 'boss_idle.png', attack: 'boss_attack.png', walk: 'boss_walk.png' },
-            phantom:      { idle: 'imp_idle_new.png', attack: 'imp_attack.png', walk: 'imp_walk.png' },
-            exploder:     { idle: 'berserker_idle.png', attack: 'berserker_attack.png', walk: 'berserker_walk.png' },
-            sniper:       { idle: 'soldier_idle.png', attack: 'soldier_attack.png' }
+            guard:        { idle: ['guard_idle.png'], attack: ['guard_attack.png'], walk: ['guard_idle.png'] },
+            imp:          { idle: ['imp_idle_new.png'], attack: ['imp_attack.png'], walk: ['imp_walk.png', 'imp_idle_new.png'] },
+            demon:        { idle: ['demon_idle_new.png'], attack: ['demon_attack.png'], walk: ['demon_walk.png', 'demon_idle_new.png'] },
+            soldier:      { idle: ['soldier_idle.png'], attack: ['soldier_attack.png'], walk: ['soldier_idle.png'] },
+            berserker:    { idle: ['berserker_idle.png'], attack: ['berserker_attack.png'], walk: ['berserker_walk.png', 'berserker_idle.png'] },
+            spitter:      { idle: ['spitter_idle.png'], attack: ['spitter_attack.png'], walk: ['spitter_idle.png'] },
+            shield_guard: { idle: ['shield_guard_idle.png'], attack: ['shield_guard_idle.png'], walk: ['shield_guard_idle.png'] },
+            boss:         { idle: ['boss_idle.png'], attack: ['boss_attack.png'], walk: ['boss_walk.png', 'boss_idle.png'] },
+            phantom:      { idle: ['imp_idle_new.png'], attack: ['imp_attack.png'], walk: ['imp_walk.png', 'imp_idle_new.png'] },
+            exploder:     { idle: ['berserker_idle.png'], attack: ['berserker_attack.png'], walk: ['berserker_walk.png', 'berserker_idle.png'] },
+            sniper:       { idle: ['soldier_idle.png'], attack: ['soldier_attack.png'], walk: ['soldier_idle.png'] }
         };
 
-        for (const [type, files] of Object.entries(enemySpriteMap)) {
-            this.enemySprites[type] = {};
-            for (const [state, filename] of Object.entries(files)) {
-                const img = new Image();
-                img.src = `assets/sprites/enemies/${filename}`;
-                this.enemySprites[type][state] = img;
-            }
-        }
+        // Try loading sprite_config.json, fall back to hardcoded map
+        this.loadSpriteConfig(enemySpriteMap);
 
         // Upscaled sprite cache (pixel-art nearest-neighbor upscale)
         this.upscaledEnemySprites = {};
@@ -811,6 +813,81 @@ class Renderer {
         this.sprites.imp.src = 'assets/sprites/imp_fixed_transparent.png';
 
         console.log('Loading retro FPS sprites (Anarch CC0 assets)...');
+    }
+
+    loadSpriteConfig(fallbackMap) {
+        fetch('assets/sprites/enemies/sprite_config.json')
+            .then(r => r.ok ? r.json() : null)
+            .then(config => {
+                if (!config || !config.enemies) {
+                    console.log('sprite_config.json not found or invalid, using hardcoded map');
+                    this.loadSpriteFrames(fallbackMap);
+                    return;
+                }
+                this.spriteConfig = config;
+                this.spriteConfigFrameRate = config.frameRate || 6;
+
+                // Build frame map from config
+                const frameMap = {};
+                for (const [type, def] of Object.entries(config.enemies)) {
+                    // Handle inheritance (phantom→imp, exploder→berserker, sniper→soldier)
+                    let states;
+                    if (def.inherits && config.enemies[def.inherits]) {
+                        states = config.enemies[def.inherits].states;
+                    } else {
+                        states = def.states;
+                    }
+                    if (!states) continue;
+
+                    if (def.scale) this.enemyScales[type] = def.scale;
+
+                    frameMap[type] = {};
+                    for (const [state, stateData] of Object.entries(states)) {
+                        frameMap[type][state] = stateData.frames || [];
+                    }
+                }
+                console.log('Loaded sprite_config.json:', Object.keys(frameMap).length, 'enemy types');
+                this.loadSpriteFrames(frameMap);
+            })
+            .catch(() => {
+                console.log('Failed to fetch sprite_config.json, using hardcoded map');
+                this.loadSpriteFrames(fallbackMap);
+            });
+    }
+
+    loadSpriteFrames(frameMap) {
+        for (const [type, states] of Object.entries(frameMap)) {
+            this.enemySprites[type] = {};
+            this.enemySpriteFrames[type] = {};
+            for (const [state, filenames] of Object.entries(states)) {
+                const frames = [];
+                for (const filename of filenames) {
+                    const img = new Image();
+                    img.src = `assets/sprites/enemies/${filename}`;
+                    frames.push(img);
+                }
+                // First frame as primary sprite (backwards compatible)
+                this.enemySprites[type][state] = frames[0];
+                this.enemySpriteFrames[type][state] = frames;
+            }
+        }
+    }
+
+    getAnimFrame(entity, spriteState) {
+        const enemyType = entity.type || 'imp';
+        const frames = this.enemySpriteFrames[enemyType] &&
+                       this.enemySpriteFrames[enemyType][spriteState];
+        if (!frames || frames.length <= 1) return 0;
+
+        // Reset animation time on state change
+        if (entity.prevSpriteState !== spriteState) {
+            entity.prevSpriteState = spriteState;
+            entity.animTime = 0;
+            entity.animFrame = 0;
+        }
+
+        const frameRate = this.spriteConfigFrameRate || 6;
+        return Math.floor(entity.animTime * frameRate) % frames.length;
     }
 
     /**
@@ -1258,12 +1335,23 @@ class Renderer {
             if (entity.state === 'attack') spriteState = 'attack';
             else if (entity.state === 'chase' || entity.state === 'patrol') spriteState = 'walk';
 
+            // Multi-frame animation: select current frame
+            const frameIdx = this.getAnimFrame(entity, spriteState);
+
             // Try per-type retro sprite first, fall back to tinted sprite
             let sprite = null;
+            const typeFrames = this.enemySpriteFrames[enemyType];
             const typeSprites = this.enemySprites[enemyType];
-            if (typeSprites) {
-                const rawSprite = typeSprites[spriteState] || typeSprites.idle;
-                const upscaled = this.getUpscaledSprite(rawSprite, enemyType, spriteState);
+            if (typeFrames || typeSprites) {
+                let rawSprite;
+                if (typeFrames && typeFrames[spriteState] && typeFrames[spriteState].length > 1) {
+                    rawSprite = typeFrames[spriteState][frameIdx] || typeFrames[spriteState][0];
+                } else if (typeSprites) {
+                    rawSprite = typeSprites[spriteState] || typeSprites.idle;
+                }
+                if (!rawSprite && typeSprites) rawSprite = typeSprites.idle;
+                const upscaleKey = `${spriteState}_f${frameIdx}`;
+                const upscaled = rawSprite ? this.getUpscaledSprite(rawSprite, enemyType, upscaleKey) : null;
                 // Apply red tint for enemies sharing sprites with other types
                 if (upscaled && (enemyType === 'exploder' || enemyType === 'sniper')) {
                     sprite = this.getRedTintedSprite(upscaled, enemyType, spriteState);

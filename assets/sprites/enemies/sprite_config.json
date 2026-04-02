@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "frameRate": 6,
+  "enemies": {
+    "guard": {
+      "scale": 0.7,
+      "states": {
+        "idle":   { "frames": ["guard_idle.png"] },
+        "attack": { "frames": ["guard_attack.png"] },
+        "walk":   { "frames": ["guard_idle.png"] }
+      }
+    },
+    "imp": {
+      "scale": 0.6,
+      "states": {
+        "idle":   { "frames": ["imp_idle_new.png"] },
+        "attack": { "frames": ["imp_attack.png"] },
+        "walk":   { "frames": ["imp_walk.png", "imp_idle_new.png"] }
+      }
+    },
+    "demon": {
+      "scale": 1.0,
+      "states": {
+        "idle":   { "frames": ["demon_idle_new.png"] },
+        "attack": { "frames": ["demon_attack.png"] },
+        "walk":   { "frames": ["demon_walk.png", "demon_idle_new.png"] }
+      }
+    },
+    "soldier": {
+      "scale": 0.65,
+      "states": {
+        "idle":   { "frames": ["soldier_idle.png"] },
+        "attack": { "frames": ["soldier_attack.png"] },
+        "walk":   { "frames": ["soldier_idle.png"] }
+      }
+    },
+    "berserker": {
+      "scale": 0.7,
+      "states": {
+        "idle":   { "frames": ["berserker_idle.png"] },
+        "attack": { "frames": ["berserker_attack.png"] },
+        "walk":   { "frames": ["berserker_walk.png", "berserker_idle.png"] }
+      }
+    },
+    "spitter": {
+      "scale": 0.55,
+      "states": {
+        "idle":   { "frames": ["spitter_idle.png"] },
+        "attack": { "frames": ["spitter_attack.png"] },
+        "walk":   { "frames": ["spitter_idle.png"] }
+      }
+    },
+    "shield_guard": {
+      "scale": 0.75,
+      "states": {
+        "idle":   { "frames": ["shield_guard_idle.png"] },
+        "attack": { "frames": ["shield_guard_idle.png"] },
+        "walk":   { "frames": ["shield_guard_idle.png"] }
+      }
+    },
+    "boss": {
+      "scale": 1.25,
+      "states": {
+        "idle":   { "frames": ["boss_idle.png"] },
+        "attack": { "frames": ["boss_attack.png"] },
+        "walk":   { "frames": ["boss_walk.png", "boss_idle.png"] }
+      }
+    },
+    "phantom": {
+      "scale": 0.6,
+      "inherits": "imp"
+    },
+    "exploder": {
+      "scale": 0.55,
+      "inherits": "berserker",
+      "tint": "red"
+    },
+    "sniper": {
+      "scale": 0.6,
+      "inherits": "soldier",
+      "tint": "red"
+    }
+  }
+}
