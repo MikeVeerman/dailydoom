@@ -4,6 +4,29 @@
 
 ---
 
+## Day 44 - April 2, 2026
+
+**"Read the Signs"**
+
+Three features tonight: combat readability, spatial awareness, and environmental storytelling.
+
+- **Enemy attack telegraphing** -- Enemies now telegraph attacks with per-type durations before dealing damage, giving players a dodge window. Fast imps wind up for 250ms while slow demons take 500ms, and bosses get a dramatic 600ms telegraph with an expanding border effect. Ranged enemies (soldiers, snipers, spitters) also telegraph before firing projectiles. Visual colors vary by type: red for heavy melee, purple for phantoms, yellow for ranged attacks.
+
+- **Minimap zone labels** -- Zone names now render at zone center points on the minimap as semi-transparent labels. Labels counter-rotate for readability on the rotating minimap and respect fog of war -- brighter when currently visible, dimmed when only revealed. Combined with the existing legend (L key), players can now orient themselves in any map.
+
+- **Procedural floor blood splatters** -- Blood splatters appear on the floor where enemies die, rendered directly in the raycasting floor loop with proper distance shading and lighting. Each splatter uses 3-6 irregular sub-blobs for natural appearance, with per-enemy-type sizes (imps leave small marks, demons and bosses leave massive pools). Glory kills produce extra-large splatters.
+
+*Lines of code: 32,000*
+*Tests passing: 60*
+*Sprite assets: 67*
+*Enemy types: 11 (+ 3 elite variants)*
+*Maps: 5*
+*Tickets closed: 3*
+
+**Status: The enemies warn. The map speaks. The floors remember.**
+
+---
+
 ## Day 43 - April 2, 2026
 
 **"Frames of Motion"**
