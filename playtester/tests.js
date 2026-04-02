@@ -637,6 +637,7 @@ const TIER_2_TESTS = [
   { id: 'T2-47', name: 'Menu pointer lock handling', fn: T2_47_menuPointerLock }, // issue: #324
   { id: 'T2-48', name: 'Sprite config and multi-frame animations', fn: T2_48_spriteConfigAnimations }, // issue: #326 #327
   { id: 'T2-49', name: 'Enemy attack telegraph system', fn: T2_49_enemyAttackTelegraph }, // issue: #333
+  { id: 'T2-50', name: 'Minimap zone labels and legend', fn: T2_50_minimapZoneLabels }, // issue: #334
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -3958,6 +3959,94 @@ async function T2_49_enemyAttackTelegraph(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Telegraph: ${telegraphData.typeCount} types configured, boss=${telegraphData.sampleDurations.boss}ms imp=${telegraphData.sampleDurations.imp}ms`;
+  }
+}
+
+async function T2_50_minimapZoneLabels(page, result) {
+  // T2-50: Minimap zone labels and legend (issue: #334)
+  // Pass: zones have names/bounds, HUD renders zone labels, legend is togglable
+  await page.waitForTimeout(1000);
+
+  const minimapData = await page.evaluate(() => {
+    if (!window.game || !window.game.map || !window.game.hud) {
+      return { exists: false, reason: 'No game/map/hud' };
+    }
+
+    const map = window.game.map;
+    const hud = window.game.hud;
+
+    // Check zones exist with names and bounds
+    const hasZones = Array.isArray(map.zones) && map.zones.length > 0;
+    let zonesWithBounds = 0;
+    let zonesWithNames = 0;
+    let zoneNames = [];
+    if (hasZones) {
+      for (const zone of map.zones) {
+        if (zone.bounds) zonesWithBounds++;
+        if (zone.name) {
+          zonesWithNames++;
+          zoneNames.push(zone.name);
+        }
+      }
+    }
+
+    // Check minimap legend system
+    const hasLegendToggle = typeof hud.toggleMinimapLegend === 'function';
+    const hasShowLegend = 'showMinimapLegend' in hud;
+    const hasRenderLegend = typeof hud.renderMinimapLegend === 'function';
+
+    // Check minimap rendering method exists
+    const hasRenderMinimap = typeof hud.renderMinimap === 'function';
+    const renderSrc = hud.renderMinimap.toString();
+    const hasZoneLabelRendering = renderSrc.includes('zone.name') || renderSrc.includes('zone labels');
+
+    // Check legend toggle works
+    const initialLegend = hud.showMinimapLegend;
+    hud.toggleMinimapLegend();
+    const afterToggle = hud.showMinimapLegend;
+    hud.toggleMinimapLegend(); // restore
+    const legendToggleWorks = initialLegend !== afterToggle;
+
+    return {
+      exists: true,
+      hasZones,
+      zonesWithBounds,
+      zonesWithNames,
+      zoneNames,
+      hasLegendToggle,
+      hasShowLegend,
+      hasRenderLegend,
+      hasRenderMinimap,
+      hasZoneLabelRendering,
+      legendToggleWorks
+    };
+  });
+
+  if (!minimapData.exists) {
+    result.status = 'fail';
+    result.note = minimapData.reason;
+    return;
+  }
+
+  const checks = [
+    ['zones exist', minimapData.hasZones],
+    ['zones have bounds (5+)', minimapData.zonesWithBounds >= 5],
+    ['zones have names (5+)', minimapData.zonesWithNames >= 5],
+    ['renderMinimap method', minimapData.hasRenderMinimap],
+    ['zone label rendering code', minimapData.hasZoneLabelRendering],
+    ['legend toggle method', minimapData.hasLegendToggle],
+    ['legend render method', minimapData.hasRenderLegend],
+    ['legend toggle works', minimapData.legendToggleWorks]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Minimap: ${minimapData.zonesWithNames} zones [${minimapData.zoneNames.join(', ')}], legend togglable`;
   }
 }
 

@@ -2582,6 +2582,36 @@ class HUD {
             }
         }
 
+        // Draw zone labels at zone centers (only for revealed areas)
+        if (map.zones) {
+            this.ctx.font = 'bold 7px monospace';
+            this.ctx.textAlign = 'center';
+            const rotAngle = player.angle + Math.PI / 2; // counter-rotate for readability
+            for (const zone of map.zones) {
+                if (!zone.bounds) continue;
+                const cx = (zone.bounds.x1 + zone.bounds.x2) / 2;
+                const cy = (zone.bounds.y1 + zone.bounds.y2) / 2;
+                const cxi = Math.floor(cx);
+                const cyi = Math.floor(cy);
+                if (!this.isTileRevealed(cxi, cyi)) continue;
+
+                const rx = (cx * map.tileSize - player.x) * scale;
+                const ry = (cy * map.tileSize - player.y) * scale;
+
+                // Counter-rotate text so it stays readable
+                this.ctx.save();
+                this.ctx.translate(rx, ry);
+                this.ctx.rotate(rotAngle);
+
+                // Format zone name: replace underscores, capitalize
+                const label = zone.name.replace(/_/g, ' ').toUpperCase();
+                const visible = this.isTileVisible(cxi, cyi);
+                this.ctx.fillStyle = visible ? 'rgba(200, 220, 255, 0.6)' : 'rgba(200, 220, 255, 0.3)';
+                this.ctx.fillText(label, 0, 0);
+                this.ctx.restore();
+            }
+        }
+
         this.ctx.restore();
 
         // Draw FOV cone (fixed pointing up, matching arrow behavior)
