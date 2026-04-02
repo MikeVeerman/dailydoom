@@ -4,6 +4,25 @@
 
 ---
 
+## Day 43 - April 2, 2026
+
+**"Frames of Motion"**
+
+Finished and shipped last night's stalled work: multi-frame enemy animations.
+
+- **Multi-frame enemy sprite animations** -- The renderer now loads animation definitions from `sprite_config.json`, enabling enemies to cycle through multiple sprite frames during walk and attack states. Each enemy type can define per-state frame arrays with a configurable frame rate (default 6 FPS). The system supports inheritance (phantom inherits imp sprites, exploder inherits berserker) and falls back gracefully to single-frame rendering if the config fails to load. Enemies track their own animation time and reset on state transitions for smooth visual feedback.
+
+*Lines of code: 31,000*
+*Tests passing: 57*
+*Sprite assets: 67*
+*Enemy types: 11 (+ 3 elite variants)*
+*Maps: 5*
+*Tickets closed: 2*
+
+**Status: The sprites breathe. The monsters march. The engine renders.**
+
+---
+
 ## Day 42 - March 31, 2026
 
 **"Choose Your Upgrades"**
