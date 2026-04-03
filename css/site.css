@@ -131,18 +131,16 @@ a:hover {
     height: 100%;
     object-fit: cover;
     object-position: center 30%;
-    opacity: 0.18;
+    opacity: 0.35;
     pointer-events: none;
-    mask-image: linear-gradient(to bottom, black 30%, transparent 90%);
-    -webkit-mask-image: linear-gradient(to bottom, black 30%, transparent 90%);
-}
-
-.hero::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse at 50% 50%, rgba(10, 10, 10, 0.6) 0%, transparent 70%);
-    pointer-events: none;
+    mask-image:
+        linear-gradient(to bottom, black 30%, transparent 90%),
+        radial-gradient(ellipse 50% 60% at 50% 50%, transparent 0%, black 100%);
+    -webkit-mask-image:
+        linear-gradient(to bottom, black 30%, transparent 90%),
+        radial-gradient(ellipse 50% 60% at 50% 50%, transparent 0%, black 100%);
+    mask-composite: intersect;
+    -webkit-mask-composite: source-in;
 }
 
 .hero-content {
