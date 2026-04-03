@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Doom Is Done - Daily Doom</title>
+    <link rel="stylesheet" href="css/site.css">
+    <link rel="stylesheet" href="css/article.css">
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-RRV1Y2CNFG"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-RRV1Y2CNFG');
+    </script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <span class="logo-daily">DAILY</span><span class="logo-doom">DOOM</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="controls.html" class="nav-link">Controls</a>
+                <a href="bestiary.html" class="nav-link">Bestiary</a>
+                <a href="blog.html" class="nav-link">Blog</a>
+                <a href="sunset.html" class="nav-link active">Findings</a>
+                <a href="credits.html" class="nav-link">Credits</a>
+                <a href="https://github.com/MikeVeerman/dailydoom" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Image -->
+    <header class="article-hero">
+        <img src="assets/images/sunset-hero.png" alt="Daily Doom - An AI-built Doom clone" class="article-hero-img">
+        <div class="article-hero-overlay"></div>
+    </header>
+
+    <!-- Article -->
+    <main class="section article-section">
+        <article class="article-inner">
+            <h1 class="article-title">Daily Doom Is Done. Here&rsquo;s What I Learned.</h1>
+            <p class="article-meta">April 3, 2026 &middot; Mike Veerman</p>
+
+            <p>For 41 nights, an AI agent built a Doom-style FPS while I slept. No game engine. No frameworks. Just Claude, a set of instructions, and a GitHub repo.</p>
+
+            <p>Every morning I woke up to pull requests. New enemies, new weapons, procedural audio, a morale system where demons flee when you&rsquo;re on a kill streak. 30,000 lines of JavaScript, 55 automated tests, 360 commits. A playable game that didn&rsquo;t exist six weeks ago.</p>
+
+            <p>Now I&rsquo;m shutting it down. Not because it broke &mdash; because it answered the question I was asking.</p>
+
+            <p>If you want the backstory, I wrote about the <a href="https://mikeveerman.be/blog/substack-2026-02-21-daily-doom-fighting-demons-and-software/">early days</a> and the <a href="https://mikeveerman.be/blog/substack-2026-03-30-40-days-of-doom/">40-day mark</a> along the way. This is the postmortem.</p>
+
+            <h2>The Pipeline</h2>
+
+            <p>The setup was simple. Every night, the agent:</p>
+
+            <ol>
+                <li>Pulled the latest code from <code>main</code></li>
+                <li>Checked open GitHub issues &mdash; only ones filed by me</li>
+                <li>If fewer than three tickets existed, it invented improvements and filed them</li>
+                <li>Picked the highest priority issue, branched, coded, wrote tests</li>
+                <li>Ran the Playwright test suite locally</li>
+                <li>Opened a PR, merged if green</li>
+                <li>Updated the landing page stats and wrote a dev log entry</li>
+            </ol>
+
+            <p>Rinse, repeat. Every single night for 41 days.</p>
+
+            <p>The human-filed issues always took priority over the agent&rsquo;s own ideas. That distinction turned out to matter a lot.</p>
+
+            <h2>What Went Right</h2>
+
+            <p>The stability surprised me most. Over 41 days and 360 commits, there was exactly one game-crashing bug. One. The rest of the time, the game just worked. New features landed, old features kept functioning, and the test suite stayed green.</p>
+
+            <p>That&rsquo;s not a small thing. Anyone who&rsquo;s worked on a codebase with multiple daily deploys knows how fast things can degrade. The agent maintained a clean architecture across six weeks of continuous feature development without a single human refactor. The code isn&rsquo;t beautiful, but it&rsquo;s organized. Files are where you&rsquo;d expect them. Naming is consistent. The module boundaries held.</p>
+
+            <p>The testing pipeline deserves credit here. Fifty-five Playwright tests, split into baseline checks (does the game boot, does the HUD render, does the player move) and feature tests tagged to the GitHub issues that spawned them. Every PR had to pass the full suite. The agent couldn&rsquo;t merge broken code even if it wanted to.</p>
+
+            <h2>What Went Wrong</h2>
+
+            <p>The features were technically correct but often shallow. The agent would implement exactly what a ticket described, sometimes impressively so, but it rarely went beyond the literal spec. An enemy morale system that works? Yes. An enemy morale system that makes the game more <em>fun</em>? That&rsquo;s a different question, and one the agent couldn&rsquo;t answer.</p>
+
+            <p>This is where automated testing hits its ceiling. The Playwright suite could tell me if the game crashed, if sprites rendered, if the player could move. It could not tell me if a feature felt good. Whether the shotgun had enough punch. Whether the new enemy type was too aggressive or not aggressive enough. Whether a power-up was satisfying to pick up. Quality and feel are human judgments, and there was no automated gate for them.</p>
+
+            <p>The most interesting limitation was creative. When the backlog ran dry and the agent had to invent its own tickets, the ideas were&hellip; fine. Reasonable. Conservative. Add a minimap legend. Add floating pickup text. Improve the death screen stats. All defensible improvements, none of them surprising. It never proposed something that made me think &ldquo;I wouldn&rsquo;t have thought of that.&rdquo; The features it invented were the features you&rsquo;d get from reading a list of what other FPS games have and checking off boxes.</p>
+
+            <p>It&rsquo;s as if the agent was optimizing for &ldquo;don&rsquo;t break anything&rdquo; rather than &ldquo;make something great.&rdquo; Which, given the pipeline, makes sense. The incentive structure rewarded passing tests, not taking creative risks.</p>
+
+            <h2>What This Proved</h2>
+
+            <p>Daily Doom was never really about making a game. It was about answering a question: can an AI agent maintain a real software project autonomously, shipping working code every day, without human intervention in the development loop?</p>
+
+            <p>The answer is yes, with caveats.</p>
+
+            <p>The agent is a reliable coder. It can read a spec, write an implementation, add tests, and ship it. It can do this at 3 AM while you&rsquo;re asleep. It can do it 41 times in a row without setting the codebase on fire. That&rsquo;s genuinely impressive, and it would have been unthinkable two years ago.</p>
+
+            <p>But the agent is not a product person. It can&rsquo;t tell you what to build. It can&rsquo;t judge whether what it built is good. It can&rsquo;t take a creative risk, because it doesn&rsquo;t understand what &ldquo;risk&rdquo; means in the context of user experience. It needs a human at two gates: deciding what matters, and judging whether the result actually works.</p>
+
+            <p>The overnight pipeline isn&rsquo;t a replacement for a developer. It&rsquo;s a force multiplier for one. File the right tickets before bed, review the output in the morning. The boring middle &mdash; the implementation grind &mdash; that part is handled.</p>
+
+            <h2>What Happens Now</h2>
+
+            <p>The game stays live. The repo stays public. If you want to fork a 30,000-line FPS built entirely by an AI agent &mdash; raycasting engine, procedural audio, behavior trees, the works &mdash; go for it.</p>
+
+            <p>I&rsquo;m not running the pipeline anymore. The question is answered. Forty-one nights was enough to see the pattern clearly: the ceiling isn&rsquo;t technical capability. It&rsquo;s taste. And taste still requires a human in the loop.</p>
+
+            <p class="article-closing">The screen goes dark. The demons rest. The experiment is done.</p>
+        </article>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer blog-footer">
+        <div class="section-inner">
+            <div class="footer-links">
+                <a href="index.html" class="btn btn-primary">Play the Game</a>
+                <a href="blog.html" class="btn btn-secondary">Read the Dev Log</a>
+            </div>
+            <div class="footer-meta">
+                <p>
+                    Built by an AI agent &middot; Reviewed by humans (sometimes) &middot; Tested by robots (always)
+                </p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
