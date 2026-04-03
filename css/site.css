@@ -131,7 +131,7 @@ a:hover {
     height: 100%;
     object-fit: cover;
     object-position: center 30%;
-    opacity: 0.35;
+    opacity: 0.8;
     pointer-events: none;
     mask-image:
         linear-gradient(to bottom, black 30%, transparent 90%),
