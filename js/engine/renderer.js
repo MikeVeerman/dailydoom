@@ -831,6 +831,9 @@ class Renderer {
             berserker: 0.7, spitter: 0.55, shield_guard: 0.75, boss: 1.25,
             phantom: 0.6, exploder: 0.55, sniper: 0.6
         };
+        this.enemyVerticalOffsetFactors = {
+            demon: 0.08
+        };
 
         // Animation config loaded from sprite_config.json
         this.spriteConfig = null;
@@ -1504,9 +1507,13 @@ class Renderer {
             }
             const adjustedHeight = spriteSize * deathScaleY;
 
+            // Demons read too high against the reticle with the shared floor anchor.
+            // Keep the fix isolated to enemy rendering so pickups/projectiles stay untouched.
+            const verticalOffset = this.getEnemyVerticalOffset(enemyType, adjustedHeight);
+
             // Draw the sprite with bottom aligned to floor, pixel-art crisp
             const spriteX = screenX - spriteSize / 2;
-            const spriteY = floorY - adjustedHeight;
+            const spriteY = floorY - adjustedHeight + verticalOffset;
             const prevSmoothing = this.ctx.imageSmoothingEnabled;
             this.ctx.imageSmoothingEnabled = false;
             this.ctx.globalAlpha = deathAlpha;
@@ -1834,6 +1841,10 @@ class Renderer {
             this.ctx.lineWidth = 1;
             this.ctx.stroke();
         }
+    }
+
+    getEnemyVerticalOffset(enemyType, spriteHeight) {
+        return spriteHeight * (this.enemyVerticalOffsetFactors[enemyType] || 0);
     }
 }
 

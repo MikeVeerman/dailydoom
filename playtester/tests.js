@@ -639,6 +639,7 @@ const TIER_2_TESTS = [
   { id: 'T2-49', name: 'Enemy attack telegraph system', fn: T2_49_enemyAttackTelegraph }, // issue: #333
   { id: 'T2-50', name: 'Minimap zone labels and legend', fn: T2_50_minimapZoneLabels }, // issue: #334
   { id: 'T2-51', name: 'Floor blood splatters on kill', fn: T2_51_floorBloodSplatters }, // issue: #335
+  { id: 'T2-52', name: 'Demon sprites keep a dedicated vertical alignment offset', fn: T2_52_demonSpriteAlignment }, // issue: #341
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -4157,6 +4158,57 @@ async function T2_51_floorBloodSplatters(page, result) {
     result.status = 'pass';
     result.note = `Floor splatters: max ${splatData.maxCount}, blob-based, per-type sizes, integrated in floor rendering`;
   }
+}
+
+async function T2_52_demonSpriteAlignment(page, result) {
+  // T2-52: Demon sprites keep a dedicated vertical alignment offset (issue: #341)
+  // Pass: renderer exposes a demon-only downward offset so the reticle lines up with demon sprites
+  await page.waitForTimeout(1000);
+
+  const alignment = await page.evaluate(() => {
+    if (!window.game || !window.game.renderer) {
+      return { exists: false, reason: 'Renderer not found' };
+    }
+
+    const renderer = window.game.renderer;
+    if (typeof renderer.getEnemyVerticalOffset !== 'function') {
+      return { exists: false, reason: 'getEnemyVerticalOffset not found' };
+    }
+
+    const sampleHeight = 120;
+    const demonOffset = renderer.getEnemyVerticalOffset('demon', sampleHeight);
+    const impOffset = renderer.getEnemyVerticalOffset('imp', sampleHeight);
+    const pickupOffset = renderer.getEnemyVerticalOffset('health', sampleHeight);
+
+    return {
+      exists: true,
+      demonOffset,
+      impOffset,
+      pickupOffset,
+      demonFactor: renderer.enemyVerticalOffsetFactors ? renderer.enemyVerticalOffsetFactors.demon : null
+    };
+  });
+
+  if (!alignment.exists) {
+    result.status = 'fail';
+    result.note = alignment.reason;
+    return;
+  }
+
+  if (!(alignment.demonOffset > 0)) {
+    result.status = 'fail';
+    result.note = `Expected demon offset > 0, got ${alignment.demonOffset}`;
+    return;
+  }
+
+  if (alignment.impOffset !== 0 || alignment.pickupOffset !== 0) {
+    result.status = 'fail';
+    result.note = `Expected non-demon offsets to stay zero, got imp=${alignment.impOffset}, pickup=${alignment.pickupOffset}`;
+    return;
+  }
+
+  result.status = 'pass';
+  result.note = `Demon offset ${alignment.demonOffset.toFixed(2)}px at 120px sample height (factor ${alignment.demonFactor})`;
 }
 
 const TIER_3_TESTS = [
