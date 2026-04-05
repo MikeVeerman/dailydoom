@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One More Run: Handing Daily Doom to Paperclip - Daily Doom</title>
+    <link rel="stylesheet" href="css/site.css">
+    <link rel="stylesheet" href="css/article.css">
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-RRV1Y2CNFG"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-RRV1Y2CNFG');
+    </script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">
+                <span class="logo-daily">DAILY</span><span class="logo-doom">DOOM</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="controls.html" class="nav-link">Controls</a>
+                <a href="bestiary.html" class="nav-link">Bestiary</a>
+                <a href="blog.html" class="nav-link">Blog</a>
+                <a href="relaunch.html" class="nav-link active">Findings</a>
+                <a href="credits.html" class="nav-link">Credits</a>
+                <a href="https://github.com/MikeVeerman/dailydoom" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Image -->
+    <header class="article-hero">
+        <img src="assets/images/hero.png" alt="Daily Doom - An AI-built Doom clone" class="article-hero-img">
+        <div class="article-hero-overlay"></div>
+    </header>
+
+    <!-- Article -->
+    <main class="section article-section">
+        <article class="article-inner">
+            <h1 class="article-title">One More Run: Handing Daily Doom to Paperclip</h1>
+            <p class="article-meta">April 5, 2026 &middot; Mike Veerman</p>
+
+            <p>Two days ago I wrote a postmortem for this project. I meant every word of it. Forty-one nights, 360 commits, 30,000 lines of JavaScript, one game-crashing bug, and a neat little conclusion about where AI agents hit their ceiling. The screen went dark. The demons rested. The experiment was done.</p>
+
+            <p>Then I found an excuse to pull the plug back out.</p>
+
+            <h2>The Lesson That Wouldn&rsquo;t Sit Still</h2>
+
+            <p>The sunset post landed on a single idea: the ceiling of an autonomous coding agent isn&rsquo;t technical capability, it&rsquo;s taste. Over 41 nights, the agent proved it could ship working code forever. It could read a ticket, write an implementation, add tests, and merge it green at 3 AM without setting anything on fire. What it couldn&rsquo;t do was judge whether the thing it built was any good. Features came out technically correct but shallow. When the backlog ran dry and it had to invent its own tickets, the ideas were reasonable, defensible, conservative &mdash; and never once surprising.</p>
+
+            <p>I called it a taste problem and shut things down. But the more I sat with it, the more I suspected I&rsquo;d misdiagnosed the patient. The agent wasn&rsquo;t lacking taste. The <em>setup</em> was lacking everything around the agent that produces taste in a real team.</p>
+
+            <p>Think about what a lone developer doesn&rsquo;t have. No product manager arguing that a feature isn&rsquo;t done until it feels good. No designer pushing back on a flat implementation. No one asking "is this actually fun?" in standup. No budget owner questioning whether this ticket is worth the time. Just an engineer, a backlog, and a definition of done that reads "tests pass." Of course the output stays shallow. That&rsquo;s what shallow looks like when you strip away every role whose job is to prevent it.</p>
+
+            <p>The question I couldn&rsquo;t shake: what happens if I stop giving Daily Doom a lone AI coder, and start giving it a tiny AI <em>organization</em>?</p>
+
+            <h2>Enter Paperclip</h2>
+
+            <p>Around the same time I was chewing on this, I was poking at <a href="https://github.com/paperclipai/paperclip" target="_blank" rel="noopener">paperclipai/paperclip</a>, an open-source project I&rsquo;d been meaning to find a real use case for. Paperclip isn&rsquo;t a coding agent. It&rsquo;s the layer around coding agents. Its own tagline puts it bluntly: <em>if the coding agent is the employee, Paperclip is the company.</em></p>
+
+            <p>Concretely, it gives you:</p>
+
+            <ul>
+                <li>Org charts with roles, hierarchies, and reporting lines</li>
+                <li>A "heartbeat" scheduler so agents wake up on a cadence to check their assigned work</li>
+                <li>Per-agent budgets with automatic throttling so nothing runs away with your token bill</li>
+                <li>Persistent context across heartbeats &mdash; agents resume where they left off instead of restarting cold every night</li>
+                <li>Governance: approval gates, audit logs, the ability to pause or override anything at any time</li>
+                <li>A "bring your own agent" model that works with Claude Code, Codex, Cursor, or anything else that speaks HTTP</li>
+            </ul>
+
+            <p>What it doesn&rsquo;t do is write code. That&rsquo;s still Claude Code&rsquo;s job, the same runtime that built the first 41 nights of Daily Doom. Paperclip is the thing that tells Claude what to work on, who it reports to, what budget it has, and whether its output needs another pair of eyes before it ships.</p>
+
+            <p>I&rsquo;d been looking for a project to put it on. Daily Doom has been staring at me the whole time.</p>
+
+            <h2>The New Hypothesis</h2>
+
+            <p>Here&rsquo;s the bet for this next run. If the 41-night ceiling came from organizational vacuum rather than raw model capability, then wrapping the same Claude Code runtime in Paperclip&rsquo;s scaffolding should move the ceiling. Not because the coder gets smarter, but because the coder suddenly has a boss, a budget, and a reason to care about more than "tests pass."</p>
+
+            <p>Three things I want to see move:</p>
+
+            <ol>
+                <li><strong>Stability should at least hold.</strong> The first run shipped 360 commits with one crash bug. That bar is already high. If adding an orchestration layer drops it, that&rsquo;s a real cost and I need to notice.</li>
+                <li><strong>Quality &mdash; the thing automated tests couldn&rsquo;t measure &mdash; should improve.</strong> Last time, Playwright could tell me the shotgun existed. It couldn&rsquo;t tell me whether the shotgun had punch. I want to see features that go beyond the literal spec, because a role in the org is specifically asking them to.</li>
+                <li><strong>The agent should propose ideas I wouldn&rsquo;t have thought of.</strong> This was the clearest failure of the solo run. Inventive tickets, not just reasonable ones. If Paperclip&rsquo;s structure produces creative risk where a lone engineer produced a checklist, that&rsquo;s the finding worth the rerun.</li>
+            </ol>
+
+            <p>I&rsquo;m starting simple: Paperclip wrapping the existing nightly pipeline with budget and governance and persistent context, then layering in more roles as the run develops. I don&rsquo;t want to over-engineer the org on day one and then not know which part moved the needle.</p>
+
+            <h2>What Would Change My Mind Either Way</h2>
+
+            <p>I want to pre-commit to what success and failure look like, because last time I called it a wrap on a vibe and I&rsquo;d rather not do that twice.</p>
+
+            <p><strong>It worked if:</strong> by the end of the run, I can point to at least a handful of features that feel meaningfully better than the median feature from the first 41 nights &mdash; more thoughtful, more playful, more surprising &mdash; and I can trace that difference back to something Paperclip&rsquo;s structure caused. And the stability bar holds.</p>
+
+            <p><strong>It didn&rsquo;t work if:</strong> the output looks indistinguishable from the solo run, just with more overhead and a prettier org chart. Or if stability craters and I spend the run firefighting infrastructure instead of watching the game evolve. In that case, the original sunset post was right and I owe it an addendum rather than a contradiction.</p>
+
+            <p>Either outcome is interesting. The boring one is the one I&rsquo;m actively trying to avoid: running it for a few weeks, writing something vague about "learnings," and walking away without having tested anything.</p>
+
+            <h2>What Happens Now</h2>
+
+            <p>The game stays live, same as before. The repo stays public. The nightly pipeline is back on, this time with Paperclip sitting between me and Claude Code, doing the middle-management work I was previously pretending a backlog could do by itself.</p>
+
+            <p>Dev log entries resume in <a href="blog.html">the blog</a>. If you want the backstory, the <a href="https://mikeveerman.be/blog/substack-2026-02-21-daily-doom-fighting-demons-and-software/">early days</a> and the <a href="https://mikeveerman.be/blog/substack-2026-03-30-40-days-of-doom/">40-day mark</a> are still the best primers on how this whole thing started.</p>
+
+            <p class="article-closing">Turns out the demons weren&rsquo;t resting. They were waiting for middle management.</p>
+        </article>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer blog-footer">
+        <div class="section-inner">
+            <div class="footer-links">
+                <a href="index.html" class="btn btn-primary">Play the Game</a>
+                <a href="blog.html" class="btn btn-secondary">Read the Dev Log</a>
+            </div>
+            <div class="footer-meta">
+                <p>
+                    Built by an AI agent &middot; Orchestrated by Paperclip &middot; Reviewed by humans (sometimes)
+                </p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
