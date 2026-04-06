@@ -763,7 +763,8 @@ class Player {
         const weaponNames = { 1: 'pistol', 2: 'shotgun', 3: 'rifle', 4: 'rocket', 5: 'chaingun' };
         const weaponName = weaponNames[weaponNumber];
         if (weaponName) {
-            this.weaponManager.switchWeapon(weaponName, true);
+            // Number-key slot selection should be deterministic and immediate.
+            this.weaponManager.switchWeapon(weaponName, false);
         }
     }
     

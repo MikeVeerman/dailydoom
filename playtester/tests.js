@@ -277,7 +277,7 @@ async function T2_02_enemyAI(page, result) {
 
 async function T2_03_weaponSwitching(page, result) {
   // T2-03: Weapon switching works (issue: #6)
-  // Pass condition: Player can switch weapons using number keys
+  // Pass condition: Player can switch weapons using number keys deterministically
   await page.waitForTimeout(1000);
 
   // Get initial weapon
@@ -295,26 +295,86 @@ async function T2_03_weaponSwitching(page, result) {
   // Unlock shotgun so we can test switching
   await page.evaluate(() => {
     window.game.player.weaponManager.unlockWeapon('shotgun');
+    window.game.paused = false;
+    window.game.showDeathScreen = false;
+    window.game.levelComplete = false;
+    window.game.intermission.active = false;
+    window.game.modSelection.active = false;
+    window.game.perkSelection.active = false;
+    window.game.player.health = Math.max(window.game.player.health, 100);
   });
 
-  // Try switching weapon
-  await page.keyboard.press('2');
-  await page.waitForTimeout(500);
-
-  const newWeapon = await page.evaluate(() => {
-    return window.game.player.weaponManager.currentWeapon;
+  // Freeze combat noise so weapon-switch assertions are not affected by enemy AI/damage side effects.
+  await page.evaluate(() => {
+    const enemies = window.game.map && window.game.map.enemies ? window.game.map.enemies : [];
+    window.__t2_03_enemy_active_snapshot = enemies.map((enemy) => enemy.active);
+    enemies.forEach((enemy) => { enemy.active = false; });
   });
 
-  // Restore back to pistol
-  await page.keyboard.press('1');
-  await page.waitForTimeout(200);
+  // Repeat the same input replay several times to catch dropped keypresses
+  const attempts = 5;
+  let failures = 0;
+  let maxSwitchMs = 0;
+  for (let i = 0; i < attempts; i++) {
+    await page.evaluate(() => {
+      const im = window.game.inputManager;
+      im.onKeyDown({ code: 'Digit1', repeat: false, preventDefault() {} });
+      im.onKeyUp({ code: 'Digit1', preventDefault() {} });
+      window.game.player.handleWeaponSwitching(im);
+    });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => {
+      const im = window.game.inputManager;
+      im.onKeyDown({ code: 'Digit2', repeat: false, preventDefault() {} });
+      im.onKeyUp({ code: 'Digit2', preventDefault() {} });
+      window.game.player.handleWeaponSwitching(im);
+    });
+    const settled = await page.evaluate(async () => {
+      const wm = window.game.player.weaponManager;
+      const start = performance.now();
+      while ((performance.now() - start) < 1500) {
+        wm.update();
+        if (wm.currentWeapon === 'shotgun' && wm.switchState === 'ready') {
+          return { ok: true, ms: Math.round(performance.now() - start) };
+        }
+        await new Promise(resolve => setTimeout(resolve, 16));
+      }
+      return {
+        ok: false,
+        ms: Math.round(performance.now() - start),
+        weapon: wm.currentWeapon,
+        state: wm.switchState
+      };
+    });
+    maxSwitchMs = Math.max(maxSwitchMs, settled.ms || 0);
+    if (!settled.ok) {
+      failures++;
+    }
+  }
 
-  if (initialWeapon === newWeapon) {
+  // Restore back to pistol for later tests
+  await page.evaluate(() => {
+    const im = window.game.inputManager;
+    im.onKeyDown({ code: 'Digit1', repeat: false, preventDefault() {} });
+    im.onKeyUp({ code: 'Digit1', preventDefault() {} });
+    window.game.player.handleWeaponSwitching(im);
+  });
+  await page.waitForTimeout(350);
+
+  // Restore enemy active state after test isolation.
+  await page.evaluate(() => {
+    const enemies = window.game.map && window.game.map.enemies ? window.game.map.enemies : [];
+    const snapshot = window.__t2_03_enemy_active_snapshot || [];
+    enemies.forEach((enemy, idx) => { enemy.active = snapshot[idx] !== undefined ? snapshot[idx] : enemy.active; });
+    delete window.__t2_03_enemy_active_snapshot;
+  });
+
+  if (failures > 0) {
     result.status = 'fail';
-    result.note = `Weapon did not switch from ${initialWeapon}`;
+    result.note = `Weapon switching nondeterministic: ${failures}/${attempts} replay attempts failed`;
   } else {
     result.status = 'pass';
-    result.note = `Switched from ${initialWeapon} to ${newWeapon}`;
+    result.note = `Deterministic switching confirmed across ${attempts} replay attempts (${initialWeapon} -> shotgun), max settle ${maxSwitchMs}ms`;
   }
 }
 

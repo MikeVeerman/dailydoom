@@ -102,8 +102,6 @@ class InputManager {
     
     update() {
         // Reset frame-specific input states
-        this.keysPressed = {};
-        this.keysReleased = {};
         this.mouse.deltaX = 0;
         this.mouse.deltaY = 0;
     }
@@ -114,8 +112,8 @@ class InputManager {
         if (actions) {
             const list = Array.isArray(actions) ? actions : [actions];
             for (const action of list) {
-                if (!this.keys[action]) {
-                    this.keysPressed[action] = true;
+                if (!event.repeat) {
+                    this.keysPressed[action] = (this.keysPressed[action] || 0) + 1;
                 }
                 this.keys[action] = true;
             }
@@ -127,8 +125,10 @@ class InputManager {
         if (actions) {
             const list = Array.isArray(actions) ? actions : [actions];
             for (const action of list) {
+                if (this.keys[action]) {
+                    this.keysReleased[action] = (this.keysReleased[action] || 0) + 1;
+                }
                 this.keys[action] = false;
-                this.keysReleased[action] = true;
             }
         }
         
@@ -216,6 +216,8 @@ class InputManager {
     onWindowBlur() {
         // Clear all input states when window loses focus
         this.keys = {};
+        this.keysPressed = {};
+        this.keysReleased = {};
         this.mouse.leftButton = false;
         this.mouse.rightButton = false;
         this.mouse.middleButton = false;
@@ -233,11 +235,25 @@ class InputManager {
     }
     
     isKeyPressed(action) {
-        return !!this.keysPressed[action];
+        if (!this.keysPressed[action]) {
+            return false;
+        }
+        this.keysPressed[action]--;
+        if (this.keysPressed[action] <= 0) {
+            delete this.keysPressed[action];
+        }
+        return true;
     }
     
     isKeyReleased(action) {
-        return !!this.keysReleased[action];
+        if (!this.keysReleased[action]) {
+            return false;
+        }
+        this.keysReleased[action]--;
+        if (this.keysReleased[action] <= 0) {
+            delete this.keysReleased[action];
+        }
+        return true;
     }
     
     getMouseDelta() {
