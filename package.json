@@ -6,7 +6,10 @@
   "scripts": {
     "start": "python3 -m http.server 8080",
     "serve": "npx serve .",
-    "dev": "npx live-server ."
+    "dev": "npx live-server .",
+    "build:versioned-index": "node scripts/render-versioned-index.mjs",
+    "test:asset-versioning": "node scripts/test-asset-versioning.mjs",
+    "test:qa-gate": "node scripts/run-qa-gate.mjs"
   },
   "keywords": [
     "game-engine",

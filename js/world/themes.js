@@ -630,7 +630,7 @@ const MapThemes = {
             { x: 8, y: 15 }
         ],
         weaponPickups: [
-            { type: 'weapon_shotgun', x: 4.5, y: 5.5 },
+            { type: 'weapon_shotgun', x: 6.5, y: 5.5 },
             { type: 'weapon_rifle', x: 1.5, y: 12.5 },
             { type: 'weapon_rocket', x: 12.5, y: 12.5 },
             { type: 'weapon_chaingun', x: 20.5, y: 11.5 }

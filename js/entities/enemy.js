@@ -75,18 +75,93 @@ class Enemy {
         if (window.EnhancedEnemyAI) {
             this.enhancedAI = new EnhancedEnemyAI(this, type);
         }
+
+        // Deterministic AI timing and RNG state (decoupled from wall-clock load variance)
+        this.aiTimeMs = 0;
+        this._rngState = this.createDeterministicSeed(x, y, type);
+        this.pendingActions = new Map();
+        this.nextPendingActionId = 1;
+    }
+
+    createDeterministicSeed(x, y, type) {
+        const xPart = Math.floor(x * 10) >>> 0;
+        const yPart = Math.floor(y * 10) >>> 0;
+        let hash = (xPart ^ ((yPart << 1) >>> 0) ^ 0x9e3779b9) >>> 0;
+        for (let i = 0; i < type.length; i++) {
+            hash = (((hash * 31) >>> 0) + type.charCodeAt(i)) >>> 0;
+        }
+        return hash || 0x6d2b79f5;
+    }
+
+    nextRandom() {
+        // LCG: deterministic and fast for AI movement decisions.
+        this._rngState = (Math.imul(1664525, this._rngState) + 1013904223) >>> 0;
+        return this._rngState / 0x100000000;
+    }
+
+    scheduleDeferredAction(callback, delayMs) {
+        const actionId = this.nextPendingActionId++;
+        this.pendingActions.set(actionId, {
+            executeAtMs: this.aiTimeMs + Math.max(0, delayMs),
+            callback
+        });
+        return actionId;
+    }
+
+    cancelPendingActions() {
+        this.pendingActions.clear();
+    }
+
+    flushPendingActions() {
+        if (this.pendingActions.size === 0) return;
+
+        const due = [];
+        for (const [actionId, action] of this.pendingActions) {
+            if (action.executeAtMs <= this.aiTimeMs) {
+                due.push([actionId, action]);
+            }
+        }
+
+        if (due.length === 0) return;
+
+        due.sort((a, b) => {
+            if (a[1].executeAtMs !== b[1].executeAtMs) {
+                return a[1].executeAtMs - b[1].executeAtMs;
+            }
+            return a[0] - b[0];
+        });
+
+        for (const [actionId, action] of due) {
+            this.pendingActions.delete(actionId);
+            action.callback();
+        }
+    }
+
+    isInActiveMap() {
+        return !!(
+            window.game &&
+            window.game.map &&
+            Array.isArray(window.game.map.enemies) &&
+            window.game.map.enemies.includes(this)
+        );
     }
     
     update(deltaTime, player, map, allEnemies) {
         if (!this.active) return;
 
+        this.aiTimeMs += deltaTime * 1000;
+        const nowMs = this.aiTimeMs;
+
         // Handle death animation timer
         if (this.dying) {
-            if (Date.now() - this.deathTime >= this.deathDuration) {
+            if (nowMs - this.deathTime >= this.deathDuration) {
                 this.active = false;
+                this.cancelPendingActions();
             }
             return; // No AI updates while dying
         }
+
+        this.flushPendingActions();
 
         // Advance sprite animation timer
         this.animTime += deltaTime;
@@ -99,10 +174,10 @@ class Enemy {
         // Use enhanced AI if available
         if (this.enhancedAI) {
             // Enhanced AI handles its own movement via enhancedMovement()
-            this.enhancedAI.update(deltaTime, player, map, allEnemies || []);
+            this.enhancedAI.update(deltaTime, player, map, allEnemies || [], nowMs);
         } else {
             // Fallback to original AI (sets targets + state transitions)
-            this.originalUpdate(deltaTime, player, map);
+            this.originalUpdate(deltaTime, player, map, nowMs);
             // Move toward the target set by original AI
             this.moveTowardsTarget(deltaTime, map);
         }
@@ -126,8 +201,8 @@ class Enemy {
         this.updateFacing(player);
     }
     
-    originalUpdate(deltaTime, player, map) {
-        const now = Date.now();
+    originalUpdate(deltaTime, player, map, nowMs) {
+        const now = nowMs;
 
         // Clear dead infight targets
         if (this.infightTarget && (!this.infightTarget.active || this.infightTarget.dying)) {
@@ -172,7 +247,7 @@ class Enemy {
                 break;
 
             case 'patrol':
-                this.patrol(deltaTime, map);
+                this.patrol(deltaTime, map, now);
                 if (playerDistance < this.detectionRange) {
                     this.state = 'chase';
                     if (!this.hasPlayedAlert) {
@@ -192,7 +267,7 @@ class Enemy {
                 } else if (playerDistance < this.attackRange) {
                     this.state = 'attack';
                 } else {
-                    this.chase(player, deltaTime, map);
+                    this.chase(player, deltaTime, map, now);
                 }
                 break;
                 
@@ -200,19 +275,18 @@ class Enemy {
                 if (playerDistance > this.attackRange * 1.2) {
                     this.state = 'chase';
                 } else {
-                    this.attack(player);
+                    this.attack(player, now);
                 }
                 break;
         }
     }
     
-    patrol(deltaTime, map) {
-        const now = Date.now();
+    patrol(deltaTime, map, now) {
         
         if (now - this.lastMoveTime > this.moveInterval) {
-            // Pick a new random patrol point near home
-            const angle = Math.random() * Math.PI * 2;
-            const distance = Math.random() * this.patrolRadius;
+            // Pick a deterministic patrol point near home (stable across equivalent replay).
+            const angle = this.nextRandom() * Math.PI * 2;
+            const distance = this.nextRandom() * this.patrolRadius;
             
             this.targetX = this.homeX + Math.cos(angle) * distance;
             this.targetY = this.homeY + Math.sin(angle) * distance;
@@ -227,7 +301,7 @@ class Enemy {
         }
     }
     
-    chase(player, deltaTime, map) {
+    chase(player, deltaTime, map, now) {
         // Store last known player position
         this.lastPlayerX = player.x;
         this.lastPlayerY = player.y;
@@ -238,7 +312,6 @@ class Enemy {
             this.targetY = player.y;
             this.currentPath = null;
         } else {
-            const now = Date.now();
             if (!this.currentPath || !this.lastPathTime || now - this.lastPathTime > 500) {
                 this.currentPath = map.findPath(this.x, this.y, player.x, player.y);
                 this.pathIndex = 0;
@@ -265,14 +338,15 @@ class Enemy {
         }
     }
     
-    attack(player) {
+    attack(player, now) {
         // Basic attack with cooldown and telegraph
-        const now = Date.now();
         if (!this.lastAttackTime) this.lastAttackTime = 0;
+        if (!this._attackTellAiTime) this._attackTellAiTime = 0;
 
         if (now - this.lastAttackTime > 2000) { // 2 second cooldown
             // Start telegraph if not already telegraphing
-            if (!this.attackTellTime || now - this.attackTellTime > this.attackTellDuration) {
+            if (now - this._attackTellAiTime > this.attackTellDuration) {
+                this._attackTellAiTime = now;
                 this.attackTellTime = now;
 
                 // Warning sound
@@ -281,8 +355,8 @@ class Enemy {
                 }
 
                 // Delay the actual attack by telegraph duration
-                setTimeout(() => {
-                    if (!this.active || this.dying) return;
+                this.scheduleDeferredAction(() => {
+                    if (!this.active || this.dying || !this.isInActiveMap()) return;
                     const dist = this.getDistanceToPlayer(player);
                     if (dist > this.attackRange * 1.5) return; // Player escaped
 
@@ -447,8 +521,9 @@ class Enemy {
 
         if (this.health <= 0 && !this.dying) {
             this.dying = true;
-            this.deathTime = Date.now();
+            this.deathTime = this.aiTimeMs;
             this.state = 'dying';
+            this.cancelPendingActions();
 
             // Track infighting kill for player credit
             const killedByEnemy = attacker && attacker.active;
@@ -558,7 +633,7 @@ class Enemy {
 
     // Try to play a bark sound, respecting cooldown
     tryBark(barkType) {
-        const now = Date.now();
+        const now = this.aiTimeMs;
         if (now - this.lastBarkTime < this.barkCooldown) return;
         if (!window.soundEngine || !window.soundEngine.isInitialized) return;
 
@@ -578,7 +653,7 @@ class Enemy {
 
     // Alert nearby enemies when this enemy detects the player (fallback AI path)
     alertNearby(player) {
-        const now = Date.now();
+        const now = this.aiTimeMs;
         if (now - this.lastAlertPropagation < 3000) return;
         this.lastAlertPropagation = now;
 

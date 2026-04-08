@@ -266,7 +266,7 @@ class EnhancedEnemyAI {
         this.lastKnownPlayerPos = { x: 0, y: 0 };
         this.helpCalled = false;
         this.coverPosition = null;
-        this.strafeDirection = Math.random() > 0.5 ? 1 : -1;
+        this.strafeDirection = this.random() > 0.5 ? 1 : -1;
         this.fleeTarget = null;
 
         // Morale system
@@ -281,7 +281,7 @@ class EnhancedEnemyAI {
         console.log(`Enhanced AI initialized for ${behaviorType} enemy`);
     }
     
-    update(deltaTime, player, map, allEnemies) {
+    update(deltaTime, player, map, allEnemies, nowMs = this.enemy.aiTimeMs) {
         // Update alert level
         this.updateAlertLevel(player);
 
@@ -303,16 +303,16 @@ class EnhancedEnemyAI {
         // Behavior selection based on current state and behavior type
         switch (this.enemy.state) {
             case 'idle':
-                this.idleBehavior(player, map);
+                this.idleBehavior(deltaTime, player, map);
                 break;
             case 'patrol':
                 this.patrolBehavior(deltaTime, player, map);
                 break;
             case 'chase':
-                this.chaseBehavior(player, deltaTime, map, allEnemies);
+                this.chaseBehavior(player, deltaTime, map, allEnemies, nowMs);
                 break;
             case 'attack':
-                this.attackBehavior(player, deltaTime, map);
+                this.attackBehavior(player, deltaTime, map, nowMs);
                 break;
             case 'flee':
                 this.fleeBehavior(player, deltaTime, map);
@@ -324,6 +324,15 @@ class EnhancedEnemyAI {
 
         // Apply movement with enhanced pathfinding
         this.enhancedMovement(deltaTime, map, allEnemies);
+    }
+
+    random() {
+        return this.enemy.nextRandom ? this.enemy.nextRandom() : Math.random();
+    }
+
+    timeScaledChance(basePerFrameChance, deltaTime, baselineFps = 60) {
+        const perSecondRate = basePerFrameChance * baselineFps;
+        return 1 - Math.exp(-perSecondRate * deltaTime);
     }
     
     updateAlertLevel(player) {
@@ -337,7 +346,7 @@ class EnhancedEnemyAI {
         }
     }
     
-    idleBehavior(player, map) {
+    idleBehavior(deltaTime, player, map) {
         const distance = this.getDistanceToPlayer(player);
 
         if (distance < this.enemy.detectionRange * (1 + this.alertLevel)) {
@@ -351,7 +360,7 @@ class EnhancedEnemyAI {
             } else {
                 this.enemy.state = 'investigate';
             }
-        } else if (Math.random() < 0.001) { // Random patrol chance
+        } else if (this.random() < this.timeScaledChance(0.001, deltaTime)) {
             this.enemy.state = 'patrol';
         }
     }
@@ -379,7 +388,7 @@ class EnhancedEnemyAI {
         this.followPatrolRoute();
     }
     
-    chaseBehavior(player, deltaTime, map, allEnemies) {
+    chaseBehavior(player, deltaTime, map, allEnemies, nowMs) {
         const distance = this.getDistanceToPlayer(player);
 
         // Check if should flee (health OR morale)
@@ -420,7 +429,7 @@ class EnhancedEnemyAI {
         if (this.behavior.swarmBehavior) {
             this.swarmMovement(player, allEnemies);
         } else if (this.behavior.strafeBehavior) {
-            this.strafeMovement(player);
+            this.strafeMovement(player, deltaTime);
         } else if (this.hasLineOfSight(player, map)) {
             // Direct line of sight - move straight toward player
             this.enemy.targetX = player.x;
@@ -428,13 +437,13 @@ class EnhancedEnemyAI {
             this.enemy.currentPath = null;
         } else {
             // No line of sight - use A* pathfinding
-            this.followPath(player, map);
+            this.followPath(player, map, nowMs);
         }
     }
     
-    attackBehavior(player, deltaTime, map) {
+    attackBehavior(player, deltaTime, map, nowMs) {
         const distance = this.getDistanceToPlayer(player);
-        const now = Date.now();
+        const now = nowMs;
 
         // Check morale - flee if broken
         if (this.morale < this.moraleFleeThreshold) {
@@ -458,7 +467,7 @@ class EnhancedEnemyAI {
 
         // Boss special attacks (checked before normal attack)
         if (this.behavior.bossSpecialAttacks) {
-            if (this.updateBossSpecialAttack(player, deltaTime, map)) {
+            if (this.updateBossSpecialAttack(player, deltaTime, map, nowMs)) {
                 return; // Special attack in progress, skip normal attack
             }
         }
@@ -592,8 +601,8 @@ class EnhancedEnemyAI {
         }
     }
     
-    followPath(player, map) {
-        const now = Date.now();
+    followPath(player, map, nowMs) {
+        const now = nowMs;
         // Recalculate path every 500ms to avoid expensive recomputation each frame
         if (!this.enemy.currentPath || !this.lastPathTime || now - this.lastPathTime > 500) {
             this.enemy.currentPath = map.findPath(this.enemy.x, this.enemy.y, player.x, player.y);
@@ -639,15 +648,15 @@ class EnhancedEnemyAI {
         this.enemy.targetY = player.y + Math.sin(angle + swarmOffset) * 60;
     }
     
-    strafeMovement(player) {
+    strafeMovement(player, deltaTime) {
         const angle = Math.atan2(player.y - this.enemy.y, player.x - this.enemy.x);
         const strafeAngle = angle + (Math.PI / 2) * this.strafeDirection;
         
         this.enemy.targetX = this.enemy.x + Math.cos(strafeAngle) * 30;
         this.enemy.targetY = this.enemy.y + Math.sin(strafeAngle) * 30;
         
-        // Randomly change strafe direction
-        if (Math.random() < 0.02) {
+        // Time-scaled random turn to avoid frame-rate-dependent behavior.
+        if (this.random() < this.timeScaledChance(0.02, deltaTime)) {
             this.strafeDirection *= -1;
         }
     }
@@ -658,7 +667,7 @@ class EnhancedEnemyAI {
         let separationY = 0;
         
         allEnemies.forEach(other => {
-            if (other.active && other !== this.enemy) {
+            if (other.active && !other.dying && other !== this.enemy) {
                 const dx = this.enemy.x - other.x;
                 const dy = this.enemy.y - other.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
@@ -674,7 +683,7 @@ class EnhancedEnemyAI {
         return { x: separationX, y: separationY };
     }
     
-    infightBehavior(deltaTime, map) {
+    infightBehavior(deltaTime, map, nowMs = this.enemy.aiTimeMs) {
         const target = this.enemy.infightTarget;
         const dx = target.x - this.enemy.x;
         const dy = target.y - this.enemy.y;
@@ -682,7 +691,7 @@ class EnhancedEnemyAI {
 
         if (distance < this.enemy.attackRange) {
             // Attack the infight target
-            const now = Date.now();
+            const now = nowMs;
             if (now - this.lastAttackTime > this.behavior.attackCooldown) {
                 this.lastAttackTime = now;
                 let damage = this.behavior.damage;
@@ -749,7 +758,7 @@ class EnhancedEnemyAI {
                 // Kill self
                 this.enemy.health = 0;
                 this.enemy.dying = true;
-                this.enemy.deathTime = Date.now();
+                this.enemy.deathTime = this.enemy.aiTimeMs;
                 this.enemy.state = 'dying';
             }
             return;
@@ -765,7 +774,7 @@ class EnhancedEnemyAI {
 
             // Ranged enemies telegraph before firing (aim-up wind-up)
             if (this.behavior.rangedAttack || this.behavior.strafeBehavior) {
-                const now = Date.now();
+                const now = this.enemy.aiTimeMs;
                 const tellDuration = this.enemy.attackTellDuration || 300;
                 this.enemy.attackTellTime = now;
 
@@ -775,8 +784,8 @@ class EnhancedEnemyAI {
                 }
 
                 // Delay projectile by telegraph duration
-                setTimeout(() => {
-                    if (!this.enemy.active || this.enemy.dying) return;
+                this.enemy.scheduleDeferredAction(() => {
+                    if (!this.enemy.active || this.enemy.dying || !this.enemy.isInActiveMap()) return;
                     if (!this.hasLineOfSight(player, window.game.map)) return;
                     this.enemy.tryBark('attack');
                     if (window.game && window.game.projectileManager) {
@@ -793,8 +802,8 @@ class EnhancedEnemyAI {
 
                         // Sniper: relocate after firing
                         if (this.behavior.sniperRelocate) {
-                            const relocAngle = Math.random() * Math.PI * 2;
-                            const relocDist = 100 + Math.random() * 80;
+                            const relocAngle = this.random() * Math.PI * 2;
+                            const relocDist = 100 + this.random() * 80;
                             this.enemy.targetX = this.enemy.x + Math.cos(relocAngle) * relocDist;
                             this.enemy.targetY = this.enemy.y + Math.sin(relocAngle) * relocDist;
                             this.enemy.state = 'chase';
@@ -805,7 +814,7 @@ class EnhancedEnemyAI {
             }
 
             // Melee attack with telegraph
-            const now = Date.now();
+            const now = this.enemy.aiTimeMs;
             this.enemy.attackTellTime = now;
 
             // Warning sound
@@ -816,8 +825,8 @@ class EnhancedEnemyAI {
             // Delay melee attack by telegraph duration
             const tellDuration = this.enemy.attackTellDuration || 300;
             const finalDamage = damage;
-            setTimeout(() => {
-                if (!this.enemy.active || this.enemy.dying) return;
+            this.enemy.scheduleDeferredAction(() => {
+                if (!this.enemy.active || this.enemy.dying || !this.enemy.isInActiveMap()) return;
                 const dist = this.getDistanceToPlayer(player);
                 if (dist > this.enemy.attackRange * 1.5) return;
 
@@ -871,7 +880,7 @@ class EnhancedEnemyAI {
     }
 
     alertNearbyEnemies(player) {
-        const now = Date.now();
+        const now = this.enemy.aiTimeMs;
         // Cooldown: don't spam alerts (3 seconds)
         if (now - this.enemy.lastAlertPropagation < 3000) return;
         this.enemy.lastAlertPropagation = now;
@@ -950,12 +959,12 @@ class EnhancedEnemyAI {
     
     generatePatrolWaypoints(map) {
         // Generate 3-5 patrol points near starting position
-        const waypointCount = 3 + Math.floor(Math.random() * 3);
+        const waypointCount = 3 + Math.floor(this.random() * 3);
         this.enemy.patrolWaypoints = [];
         
         for (let i = 0; i < waypointCount; i++) {
             const angle = (i / waypointCount) * Math.PI * 2;
-            const radius = this.enemy.patrolRadius * (0.5 + Math.random() * 0.5);
+            const radius = this.enemy.patrolRadius * (0.5 + this.random() * 0.5);
             
             const x = this.enemy.homeX + Math.cos(angle) * radius;
             const y = this.enemy.homeY + Math.sin(angle) * radius;
@@ -999,7 +1008,7 @@ class EnhancedEnemyAI {
 
         // Phase transition effects
         if (this.bossPhase !== prevPhase) {
-            this.enemy.hitFlashTime = Date.now(); // Visual indicator
+            this.enemy.hitFlashTime = this.enemy.aiTimeMs; // Visual indicator
 
             if (this.bossPhase === 2) {
                 // Phase 2: faster attacks
@@ -1022,7 +1031,7 @@ class EnhancedEnemyAI {
     summonMinions(map) {
         // Spawn 2 imps near the boss
         for (let i = 0; i < 2; i++) {
-            const angle = (i / 2) * Math.PI * 2 + Math.random();
+            const angle = (i / 2) * Math.PI * 2 + this.random();
             const spawnX = this.enemy.x + Math.cos(angle) * 80;
             const spawnY = this.enemy.y + Math.sin(angle) * 80;
 
@@ -1036,24 +1045,24 @@ class EnhancedEnemyAI {
     }
 
     // Boss special attack system
-    updateBossSpecialAttack(player, deltaTime, map) {
-        const now = Date.now();
+    updateBossSpecialAttack(player, deltaTime, map, nowMs = this.enemy.aiTimeMs) {
+        const now = nowMs;
         if (!this.bossSpecialCooldown) this.bossSpecialCooldown = 0;
         if (!this.bossSpecialState) this.bossSpecialState = 'idle'; // idle, telegraph, executing
 
         // Handle active special attack execution
         if (this.bossSpecialState === 'executing') {
-            return this.executeBossSpecial(player, deltaTime, map);
+            return this.executeBossSpecial(player, deltaTime, map, now);
         }
 
         // Telegraph phase: boss is winding up
         if (this.bossSpecialState === 'telegraph') {
             if (now - this.bossSpecialTelegraphStart >= 800) {
-                this.bossSpecialState = 'executing';
-                this.bossSpecialExecStart = now;
+                    this.bossSpecialState = 'executing';
+                    this.bossSpecialExecStart = now;
+                }
+                return true; // Block normal attacks during telegraph
             }
-            return true; // Block normal attacks during telegraph
-        }
 
         // Check cooldown for next special
         const specialInterval = this.bossPhase === 3 ? 6000 : this.bossPhase === 2 ? 8000 : 10000;
@@ -1077,7 +1086,7 @@ class EnhancedEnemyAI {
         if (specials.length === 0) return false;
 
         // Start telegraph
-        this.bossCurrentSpecial = specials[Math.floor(Math.random() * specials.length)];
+        this.bossCurrentSpecial = specials[Math.floor(this.random() * specials.length)];
         this.bossSpecialState = 'telegraph';
         this.bossSpecialTelegraphStart = now;
         this.bossSpecialCooldown = now;
@@ -1091,8 +1100,8 @@ class EnhancedEnemyAI {
         return true;
     }
 
-    executeBossSpecial(player, deltaTime, map) {
-        const now = Date.now();
+    executeBossSpecial(player, deltaTime, map, nowMs = this.enemy.aiTimeMs) {
+        const now = nowMs;
         const elapsed = now - this.bossSpecialExecStart;
         const special = this.bossCurrentSpecial;
 
@@ -1196,11 +1205,11 @@ class EnhancedEnemyAI {
         if (elapsed >= 300) {
             const count = (this.bossPhase || 1) >= 3 ? 3 : 2;
             for (let i = 0; i < count; i++) {
-                const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+                const angle = (i / count) * Math.PI * 2 + this.random() * 0.5;
                 const spawnX = this.enemy.x + Math.cos(angle) * 90;
                 const spawnY = this.enemy.y + Math.sin(angle) * 90;
                 if (map && !map.isWallAtPosition(spawnX, spawnY)) {
-                    const type = Math.random() < 0.5 ? 'imp' : 'guard';
+                    const type = this.random() < 0.5 ? 'imp' : 'guard';
                     const minion = new Enemy(spawnX, spawnY, type);
                     minion.state = 'chase';
                     map.enemies.push(minion);

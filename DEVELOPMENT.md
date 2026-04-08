@@ -1,5 +1,57 @@
 # Development Guide
 
+## Asset Versioning
+
+The playable page keeps `index.html` checked in with plain local asset paths for normal development. Release automation should generate a versioned copy from a deterministic release input instead of editing tracked HTML by hand.
+
+Use:
+
+```bash
+node scripts/render-versioned-index.mjs --version "$RELEASE_VERSION" --output build/index.html
+```
+
+Rules:
+- `RELEASE_VERSION` should be a deterministic release key such as a git SHA or release tag.
+- The renderer appends `?v=<release>` to first-party `css/` and `js/` references in `index.html`.
+- Third-party asset URLs are left untouched.
+- Local development stays unchanged because `index.html` itself is not rewritten.
+
+Verification:
+- Run `npm run test:asset-versioning` to confirm all first-party CSS and game JS references receive the same version key.
+- Run `./test-local.sh` to verify the page still boots locally after the renderer changes.
+
+## Browserless QA Gate
+
+Use the browserless gameplay QA gate from the repo root:
+
+```bash
+npm run test:qa-gate
+```
+
+Command contract:
+- Exit `0`: all assertions passed and report artifact written.
+- Exit `1`: one or more assertions failed.
+- Exit `2`: infrastructure/runtime failure (missing fixture, parse failure, report write failure, uncaught exception).
+
+Report artifact:
+- Default output path: `artifacts/qa-gate/latest.json`
+- Override with `QA_GATE_REPORT_PATH=<path>`
+- Console output always includes:
+  - `QA_GATE <PASS|FAIL|ERROR> passed=<n> failed=<n> warnings=<n>`
+  - `reportPath=<path>`
+
+Optional inputs:
+- `QA_GATE_BASELINE_REF=<git-ref>` enables baseline reference verification.
+- `QA_GATE_STRICT=1` converts baseline-ref unavailability to infra error (exit `2`).
+
+Induced failure run for verification:
+
+```bash
+QA_GATE_FORCE_FAIL_ASSERTION=VA-02-mid-imp npm run test:qa-gate
+```
+
+This forces a deterministic assertion failure so QA/Release can validate non-zero failure behavior and report output.
+
 ## Adding New Features
 
 ### Adding Enemies

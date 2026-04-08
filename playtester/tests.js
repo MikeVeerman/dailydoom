@@ -1469,20 +1469,151 @@ async function T2_17_enemyMovement(page, result) {
     speeds.add(after.speed);
   }
 
+  // Deterministic replay check: rebuild the same map + spawn state twice and compare movement signatures.
+  async function captureMovementSignature() {
+    return page.evaluate(() => {
+      if (!window.game || !window.GameMap || !window.MapThemes) {
+        return { ok: false, reason: 'Replay harness unavailable' };
+      }
+
+      const game = window.game;
+      if (game.map && Array.isArray(game.map.enemies)) {
+        for (const enemy of game.map.enemies) {
+          if (enemy && enemy.cancelPendingActions) {
+            enemy.cancelPendingActions();
+          }
+        }
+      }
+      const fallbackThemeKey = (window.MapThemes.allThemes && window.MapThemes.allThemes[0]) || 'reactor';
+      const theme = game.currentTheme || window.MapThemes.reactor || window.MapThemes[fallbackThemeKey];
+      if (!theme) {
+        return { ok: false, reason: 'No map theme available for replay reset' };
+      }
+
+      game.currentTheme = theme;
+      game.map = new GameMap(theme);
+      if (theme.waveSpawnPoints) {
+        game.waveSystem.spawnPoints = theme.waveSpawnPoints.slice();
+      }
+      if (game.renderer) {
+        game.renderer.map = game.map;
+      }
+      if (game.projectileManager && game.projectileManager.clear) {
+        game.projectileManager.clear();
+      }
+      if (game.player) {
+        game.player.velocityX = 0;
+        game.player.velocityY = 0;
+        game.player.knockbackVX = 0;
+        game.player.knockbackVY = 0;
+        game.player.currentTurnVelocity = 0;
+        game.player.lastTurnAmount = 0;
+        game.player.lastDamageTime = 0;
+        game.player.lastPunchTime = 0;
+        game.player.lastPunchHitTime = 0;
+        game.player.lastDashTime = 0;
+        game.player.isDashing = false;
+        game.player.dashStartTime = 0;
+        game.player.dashDirX = 0;
+        game.player.dashDirY = 0;
+        game.player.lastSprintTime = 0;
+        game.player.isSprinting = false;
+        game.player.speedBoostEndTime = 0;
+        game.player.damageBoostEndTime = 0;
+        game.player.rapidFireEndTime = 0;
+        game.player.quadDamageEndTime = 0;
+        game.player.invulnerabilityEndTime = 0;
+        game.player.healthRegenEndTime = 0;
+        if (typeof game.player.baseSpeed === 'number') {
+          game.player.speed = game.player.baseSpeed;
+        }
+        game.player.x = game.map.spawnX;
+        game.player.y = game.map.spawnY;
+        game.player.angle = game.map.spawnAngle;
+        game.player.health = game.player.maxHealth;
+        game.player.isDead = false;
+      }
+      game.levelComplete = false;
+      game.showDeathScreen = false;
+      if (game.resetEnemyUpdateClock) {
+        game.resetEnemyUpdateClock();
+      } else if (typeof game.enemyUpdateAccumulator === 'number') {
+        game.enemyUpdateAccumulator = 0;
+      }
+
+      if (!game.map || !Array.isArray(game.map.enemies)) {
+        return { ok: false, reason: 'Enemy map unavailable after replay reset' };
+      }
+
+      const fixedStep = game.enemyFixedStep || (1 / 60);
+      const totalSteps = Math.round(2.2 / fixedStep);
+
+      // Deterministic replay: run a fixed number of simulation ticks instead of
+      // waiting on wall-clock time, which is sensitive to runtime frame jitter.
+      for (let i = 0; i < totalSteps; i++) {
+        if (game.player && game.player.update) {
+          game.player.update(fixedStep, game.map);
+        }
+        const enemySnapshot = game.map.enemies.slice();
+        for (const enemy of enemySnapshot) {
+          enemy.update(fixedStep, game.player, game.map, enemySnapshot);
+        }
+      }
+
+      const normalized = game.map.enemies
+        .filter(e => e.active)
+        .map(e => ({
+          type: e.type,
+          x: Math.round(e.x / 4) * 4,
+          y: Math.round(e.y / 4) * 4,
+          speed: Math.round((e.speed || 0) * 100) / 100,
+          state: e.state || 'unknown',
+          homeX: Math.round((e.homeX || 0) * 10) / 10,
+          homeY: Math.round((e.homeY || 0) * 10) / 10
+        }))
+        .sort((a, b) =>
+          a.type.localeCompare(b.type) ||
+          a.homeX - b.homeX ||
+          a.homeY - b.homeY ||
+          a.x - b.x ||
+          a.y - b.y
+        );
+
+      return {
+        ok: true,
+        count: normalized.length,
+        signature: JSON.stringify(normalized)
+      };
+    });
+  }
+
+  const replayA = await captureMovementSignature();
+  const replayB = await captureMovementSignature();
+
+  const replayStable =
+    replayA.ok &&
+    replayB.ok &&
+    replayA.count === replayB.count &&
+    replayA.signature === replayB.signature;
+
   const checks = [
     ['enemies exist', movementData.enemyCount > 0],
     ['some enemies moved', movedCount > 0],
-    ['varied speeds', speeds.size > 1]
+    ['varied speeds', speeds.size > 1],
+    ['deterministic replay signature', replayStable]
   ];
 
   const failed = checks.filter(([, ok]) => !ok);
 
   if (failed.length > 0) {
     result.status = 'fail';
-    result.note = `Movement issues: ${failed.map(([name]) => name).join(', ')} (${movedCount}/${movementData.enemyCount} moved)`;
+    const replayNote = (!replayA.ok || !replayB.ok)
+      ? ` replay-error=${replayA.reason || replayB.reason}`
+      : ` replay-match=${replayStable} replay-counts=${replayA.count}/${replayB.count}`;
+    result.note = `Movement issues: ${failed.map(([name]) => name).join(', ')} (${movedCount}/${movementData.enemyCount} moved;${replayNote})`;
   } else {
     result.status = 'pass';
-    result.note = `${movedCount}/${movementData.enemyCount} enemies moved, ${speeds.size} distinct speeds`;
+    result.note = `${movedCount}/${movementData.enemyCount} enemies moved, ${speeds.size} distinct speeds, replay stable (${replayA.count} enemies)`;
   }
 }
 

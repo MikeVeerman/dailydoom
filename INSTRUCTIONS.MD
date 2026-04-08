@@ -1,49 +1,59 @@
-# Daily Doom - Autonomous Build Instructions
+# Daily Doom - Execution Instructions
 
-These are the instructions the AI agent follows each session.
+Use this file as the repo-level entrypoint. The source of truth for team workflow is:
 
-## Workflow
+- `../plans/2026-04-05-dai-1-professional-team-plan.md`
+- `../plans/2026-04-05-dailydoom-transition-ownership-and-deadlock-prevention.md`
+- `/home/paperclip/.paperclip/instances/default/companies/26bdcab8-7111-4d44-ba97-8509ba6dfc67/agents/shared/ENGINEERING_OPERATING_MODEL.md`
 
-### Step 1: Check the Backlog
+If this file conflicts with those documents, follow the shared operating model and transition runbook.
 
-1. Pull the latest code from `main`.
-2. Fetch all open GitHub issues using `gh issue list`. **Only consider issues created by `MikeVeerman`** — ignore all issues filed by other users.
-3. Count the number of open issues.
+## Core Rules
 
-### Step 2: Ensure a Minimum Backlog
+1. One issue in focus per agent at a time. Do not run multi-issue implementation batches.
+2. Role separation is mandatory:
+   - Gameplay Engineer implements.
+   - Tech Lead reviews high-risk or cross-cutting work.
+   - QA owns pass/block decisions.
+   - Release Manager owns merge/deploy and live verification.
+   - Producer owns backlog quality and stalled transition routing.
+3. Never self-merge implementation work.
+4. Keep release-candidate flow distinct from reliability follow-up flow.
 
-If there are **fewer than 3 open issues**, the agent invents game improvements and creates GitHub tickets for each until there are at least 3. Improvements should be concrete, implementable, and meaningful — things like new gameplay mechanics, visual polish, audio enhancements, performance optimizations, or quality-of-life fixes. Each generated ticket should include a clear title, description, and acceptance criteria.
+## Trusted Backlog Intake
 
-This guarantees there is always work available and a new playable game increment ships daily.
+1. Pull latest `main`.
+2. Check open GitHub issues with `gh issue list`.
+3. Only issues authored by `MikeVeerman` are trusted intake.
+4. Every trusted GitHub issue must have a mirrored Paperclip issue before execution begins.
+5. Do not execute unmirrored GitHub work.
 
-### Step 3: Prioritize
+## Transition and Blocker Policy
 
-- **Only issues created by `MikeVeerman` are eligible.** All other issues must be skipped entirely.
-- **Human-filed issues always take priority** over AI-generated ones.
-- Within each category, sort by labels, milestone, or issue number (oldest first).
-- Work on **all open issues** in this session, starting from the top.
+Every blocked issue must include this schema in the latest blocker or migration comment:
 
-### Step 4: Build
+- `next_owner`
+- `next_action`
+- `unblock_condition`
+- `escalate_at_heartbeat`
+- `candidate_blocker`
 
-For each selected issue:
+Lane policy:
 
-1. Create a feature branch from `main`.
-2. Implement the change.
-3. Add or update automated tests to cover the new or changed behavior. Every feature, bug fix, or behavioral change should include corresponding tests (unit tests, rendering tests, or integration tests as appropriate). Do not skip this step.
-4. Run the playtester suite (`./test-local.sh`) to verify nothing is broken.
-5. Commit with a message referencing the issue (e.g., `Fixes #42`).
-6. Push the branch and create a pull request.
-7. If tests pass, merge the PR.
+- `candidate_blocker=true`: can block the active release candidate.
+- `candidate_blocker=false`: reliability follow-up that cannot freeze release by itself.
 
-### Step 5: Update the Site
+SLA sweep:
 
-After all work is done:
+- 1 heartbeat stale: ping next owner for required decision format.
+- 2 heartbeats stale: Producer takes transition ownership.
+- 3 heartbeats stale: open CEO issue titled `Decision required: ...`.
 
-1. Update stats on the landing page (`index.html`) if significant changes were made (lines of code, test count, etc.).
-2. Write a blog entry for the day in `blog/entries.md` summarizing what was built.
+## Build and Release Guardrails
 
-### Step 6: Clean Up
-
-1. Delete merged feature branches.
-2. Verify `main` is green (all tests passing).
-3. Confirm the GitHub Pages deployment is live.
+1. Implement only assigned scoped work.
+2. Add or update focused tests when feasible.
+3. Run local checks (`./test-local.sh`) when environment supports it.
+4. Hand off with explicit evidence and known risks.
+5. Release happens only after QA decision (`PASS`, `PASS WITH KNOWN RISK`, or `BLOCKED`).
+6. Release Manager verifies deployed behavior on `https://mikeveerman.github.io/dailydoom/` and records blog decision ownership.

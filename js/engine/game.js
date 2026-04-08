@@ -10,6 +10,7 @@ class GameEngine {
         // Timing
         this.lastTime = 0;
         this.deltaTime = 0;
+        this.rawDeltaTime = 0;
         this.frameCount = 0;
         this.fps = 0;
         this.fpsUpdateTime = 0;
@@ -19,6 +20,9 @@ class GameEngine {
         this.gameLoopBound = this.gameLoop.bind(this);
         this.isAutomationRun = this.detectAutomationRun();
         this.perkAutoSelectDelayMs = 250;
+        this.enemyFixedStep = 1 / 60;
+        this.enemyUpdateAccumulator = 0;
+        this.enemyMaxCatchUpSteps = 6;
         
         // Game state
         this.currentState = 'playing'; // playing, paused, menu, loading
@@ -258,9 +262,14 @@ class GameEngine {
 
         // Initialize dynamic difficulty scaling
         this.initDifficultyScaler();
+        this.resetEnemyUpdateClock();
 
         // Start the game loop
         requestAnimationFrame(this.gameLoopBound);
+    }
+
+    resetEnemyUpdateClock() {
+        this.enemyUpdateAccumulator = 0;
     }
     
     stop() {
@@ -328,6 +337,7 @@ class GameEngine {
 
         // Reset dynamic difficulty
         this.initDifficultyScaler();
+        this.resetEnemyUpdateClock();
 
         console.log('Game restarted');
     }
@@ -336,8 +346,9 @@ class GameEngine {
         if (!this.running) return;
         
         // Calculate delta time
-        const frameTimeMs = currentTime - this.lastTime;
-        this.deltaTime = Math.min(frameTimeMs / 1000, 0.1); // Cap at 100ms
+        const frameTimeMs = Math.max(0, currentTime - this.lastTime);
+        this.rawDeltaTime = frameTimeMs / 1000;
+        this.deltaTime = Math.min(this.rawDeltaTime, 0.1); // Cap for non-enemy systems
         this.lastTime = currentTime;
         
         // Update FPS counter
@@ -421,10 +432,16 @@ class GameEngine {
         // Update game systems
         this.player.update(deltaTime, this.map);
 
-        // Update enemies (with coordination)
-        this.map.enemies.forEach(enemy => {
-            enemy.update(deltaTime, this.player, this.map, this.map.enemies);
-        });
+        // Update enemies on a fixed simulation step and consume full uncapped frame debt.
+        // This avoids silently dropping enemy simulation time during transient load spikes.
+        this.enemyUpdateAccumulator += this.rawDeltaTime;
+        while (this.enemyUpdateAccumulator >= this.enemyFixedStep) {
+            const enemySnapshot = this.map.enemies.slice();
+            for (const enemy of enemySnapshot) {
+                enemy.update(this.enemyFixedStep, this.player, this.map, enemySnapshot);
+            }
+            this.enemyUpdateAccumulator -= this.enemyFixedStep;
+        }
 
         // Update pickups
         this.pickupManager.update(deltaTime, this.player);
@@ -1217,6 +1234,7 @@ class GameEngine {
 
         // Reset dynamic difficulty
         this.initDifficultyScaler();
+        this.resetEnemyUpdateClock();
     }
 
     // Fisher-Yates shuffle of all map themes

@@ -4,6 +4,9 @@
 
 echo "🚀 Starting Daily Doom local testing..."
 
+echo "🏷️ Validating asset versioning renderer..."
+node scripts/test-asset-versioning.mjs || exit 1
+
 # Start local server in background
 echo "📡 Starting local server on port 8080..."
 python3 -m http.server 8080 &
