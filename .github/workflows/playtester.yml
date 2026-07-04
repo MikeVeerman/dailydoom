@@ -3,6 +3,8 @@ name: Playtester CI
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -63,15 +65,23 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Wait for Pages deployment
+        if: github.event_name != 'pull_request'
         run: |
           # Give GitHub Pages time to deploy the latest push
           echo "Waiting 60s for GitHub Pages deployment..."
           sleep 60
 
+      - name: Serve PR checkout locally
+        if: github.event_name == 'pull_request'
+        run: |
+          # PRs are not deployed to Pages; test the checked-out code directly
+          python3 -m http.server 8080 &
+          sleep 2
+
       - name: Run playtester
         working-directory: playtester
         env:
-          DAILYDOOM_URL: https://mikeveerman.github.io/dailydoom/
+          DAILYDOOM_URL: ${{ github.event_name == 'pull_request' && 'http://localhost:8080' || 'https://mikeveerman.github.io/dailydoom/' }}
         run: node run-tests.js
 
       - name: Upload report
@@ -84,7 +94,7 @@ jobs:
             playtester/screenshots/latest.png
 
       - name: Post commit status
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

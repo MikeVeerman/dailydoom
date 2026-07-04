@@ -2,14 +2,16 @@
 # Daily Doom Local Testing Helper
 # Starts local server and runs playtester suite
 
+PORT="${DAILYDOOM_TEST_PORT:-8080}"
+
 echo "🚀 Starting Daily Doom local testing..."
 
 echo "🏷️ Validating asset versioning renderer..."
 node scripts/test-asset-versioning.mjs || exit 1
 
 # Start local server in background
-echo "📡 Starting local server on port 8080..."
-python3 -m http.server 8080 &
+echo "📡 Starting local server on port $PORT..."
+python3 -m http.server "$PORT" &
 SERVER_PID=$!
 
 # Give server time to start
@@ -17,7 +19,7 @@ sleep 2
 
 # Run tests
 echo "🧪 Running playtester suite..."
-cd playtester && DAILYDOOM_URL=http://localhost:8080 node run-tests.js
+cd playtester && DAILYDOOM_URL="http://localhost:$PORT" node run-tests.js
 
 TEST_EXIT_CODE=$?
 
