@@ -9,6 +9,15 @@
     padding: 0;
 }
 
+html {
+    scroll-behavior: smooth;
+}
+
+::selection {
+    background: #ff6b6b;
+    color: #000;
+}
+
 body {
     background: #0a0a0a;
     color: #ccc;
@@ -31,6 +40,8 @@ a:hover {
 /* --- Layout --- */
 .section {
     padding: 80px 20px;
+    /* keep anchor targets clear of the fixed nav */
+    scroll-margin-top: 56px;
 }
 
 .section-inner {
@@ -43,6 +54,12 @@ a:hover {
     color: #fff;
     margin-bottom: 12px;
     letter-spacing: -0.5px;
+}
+
+.section-title::before {
+    content: "// ";
+    color: #ff6b6b;
+    font-weight: normal;
 }
 
 .section-title .accent {
@@ -101,17 +118,37 @@ a:hover {
 }
 
 .nav-link {
+    position: relative;
     color: #777;
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 1px;
     transition: color 0.2s;
     text-decoration: none;
+    padding: 4px 0;
+}
+
+.nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 2px;
+    background: #ff6b6b;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.2s ease;
 }
 
 .nav-link:hover,
 .nav-link.active {
     color: #fff;
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+    transform: scaleX(1);
 }
 
 /* --- Hero --- */
@@ -169,7 +206,7 @@ a:hover {
 .hero-line2 {
     display: block;
     color: #ff6b6b;
-    font-size: 3.5rem;
+    font-size: clamp(2rem, 8vw, 3.5rem);
     font-weight: bold;
     letter-spacing: -1px;
     text-shadow: 0 0 40px rgba(255, 107, 107, 0.3);
@@ -222,6 +259,11 @@ a:hover {
     border: none;
 }
 
+.btn:focus-visible {
+    outline: 2px solid #ff6b6b;
+    outline-offset: 3px;
+}
+
 .btn-primary {
     background: #ff6b6b;
     color: #000;
@@ -230,6 +272,8 @@ a:hover {
 .btn-primary:hover {
     background: #ff9b9b;
     color: #000;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(255, 107, 107, 0.35);
 }
 
 .btn-secondary {
@@ -241,6 +285,8 @@ a:hover {
 .btn-secondary:hover {
     border-color: #ff6b6b;
     color: #ff9b9b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(255, 107, 107, 0.15);
 }
 
 /* --- Difficulty Selection Overlay --- */
@@ -422,18 +468,20 @@ a:hover {
     border: 1px solid #1a1a1a;
     border-radius: 6px;
     padding: 32px;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .process-card:hover {
     border-color: #333;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
 
 .process-icon {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: #1a1a1a;
+    background: rgba(255, 107, 107, 0.08);
     color: #ff6b6b;
     display: flex;
     align-items: center;
@@ -441,7 +489,7 @@ a:hover {
     font-weight: bold;
     font-size: 0.9rem;
     margin-bottom: 16px;
-    border: 1px solid #333;
+    border: 1px solid rgba(255, 107, 107, 0.3);
 }
 
 .process-card h3 {
@@ -490,6 +538,13 @@ a:hover {
     border: 1px solid #1a1a1a;
     border-radius: 6px;
     padding: 28px;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.testing-card:hover {
+    border-color: #333;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
 
 .testing-label {
@@ -523,11 +578,18 @@ a:hover {
     font-size: 0.8rem;
     color: #aaa;
     letter-spacing: 0.5px;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.flow-step:hover {
+    border-color: #444;
+    color: #ddd;
 }
 
 .flow-step.highlight {
     border-color: #ff6b6b;
     color: #ff6b6b;
+    box-shadow: 0 0 20px rgba(255, 107, 107, 0.12);
 }
 
 .flow-arrow {
@@ -558,6 +620,8 @@ a:hover {
     color: #ff6b6b;
     line-height: 1;
     margin-bottom: 8px;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 30px rgba(255, 107, 107, 0.25);
 }
 
 .stat-label {
@@ -1010,6 +1074,39 @@ a:hover {
 }
 
 /* ==========================================================================
+   Scrollbar & Motion Preferences
+   ========================================================================== */
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #2a2a2a;
+    border-radius: 5px;
+    border: 2px solid #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #ff6b6b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *, *::before, *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
+
+/* ==========================================================================
    Responsive
    ========================================================================== */
 
@@ -1105,9 +1202,12 @@ a:hover {
 
     .nav-links {
         gap: 16px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .nav-link {
         font-size: 0.75rem;
+        white-space: nowrap;
     }
 }
