@@ -567,6 +567,27 @@ a:hover {
     letter-spacing: 1px;
 }
 
+.stats-run {
+    margin-bottom: 48px;
+}
+
+.stats-run:last-child {
+    margin-bottom: 0;
+}
+
+.stats-run-title {
+    font-size: 1.3rem;
+    color: #fff;
+    margin-bottom: 24px;
+    letter-spacing: -0.3px;
+}
+
+.stats-run-subtitle {
+    color: #666;
+    font-size: 0.9rem;
+    font-weight: normal;
+}
+
 /* --- Footer --- */
 .footer {
     padding: 60px 20px;
