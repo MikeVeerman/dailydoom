@@ -1,0 +1,46 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-07-04T16:05:54.009Z",
+  "assertions": [
+    {
+      "id": "HTML-SCRIPT-01",
+      "status": "pass",
+      "message": "index.html script references exist.",
+      "details": [
+        "checked=15"
+      ]
+    },
+    {
+      "id": "HTML-ASSET-01",
+      "status": "pass",
+      "message": "index.html asset references exist.",
+      "details": [
+        "checked=2"
+      ]
+    },
+    {
+      "id": "RUNTIME-ASSET-01",
+      "status": "pass",
+      "message": "runtime asset references exist.",
+      "details": [
+        "checked=17"
+      ]
+    },
+    {
+      "id": "SPRITE-CONFIG-01",
+      "status": "pass",
+      "message": "sprite_config.json frame references exist.",
+      "details": [
+        "checked=19"
+      ]
+    },
+    {
+      "id": "ASSET-VERSIONING-01",
+      "status": "pass",
+      "message": "Asset versioning renderer test passed.",
+      "details": [
+        "checks=35"
+      ]
+    }
+  ]
+}

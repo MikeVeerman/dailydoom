@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-03-25T08:27:26.437Z",
-  "passed": 42,
-  "failed": 1,
+  "timestamp": "2026-07-04T16:07:11.909Z",
+  "passed": 60,
+  "failed": 0,
   "skipped": 3,
   "results": [
     {
@@ -22,22 +22,22 @@
     {
       "id": "T1-04",
       "status": "pass",
-      "note": "Player at (299, 321)"
+      "note": "Player at (160, 96)"
     },
     {
       "id": "T1-05",
       "status": "pass",
-      "note": "FPS: 42"
+      "note": "FPS: 60"
     },
     {
       "id": "T1-06",
       "status": "pass",
-      "note": "Moved from (315, 368) to (320, 373)"
+      "note": "Moved from (160, 96) to (160, 176)"
     },
     {
       "id": "T1-07",
       "status": "pass",
-      "note": "Rotated from 0° to 179°"
+      "note": "Rotated from 90° to 267°"
     },
     {
       "id": "T1-08",
@@ -47,7 +47,7 @@
     {
       "id": "T1-09",
       "status": "pass",
-      "note": "FPS: 55 (threshold: 20)"
+      "note": "FPS: 60 (threshold: 20)"
     },
     {
       "id": "T2-01",
@@ -61,8 +61,8 @@
     },
     {
       "id": "T2-03",
-      "status": "fail",
-      "note": "Weapon did not switch from shotgun"
+      "status": "pass",
+      "note": "Deterministic switching confirmed across 5 replay attempts (pistol -> shotgun), max settle 0ms"
     },
     {
       "id": "T2-04",
@@ -72,7 +72,7 @@
     {
       "id": "T2-05",
       "status": "pass",
-      "note": "Pickup system active with 11 items"
+      "note": "Pickup system active with 15 items"
     },
     {
       "id": "T2-06",
@@ -82,7 +82,7 @@
     {
       "id": "T2-07",
       "status": "pass",
-      "note": "Weapon sprite system functional (SHOTGUN), F4 toggle works, HUD rendering confirmed"
+      "note": "Weapon sprite system functional (PISTOL), F4 toggle works, HUD rendering confirmed"
     },
     {
       "id": "T2-08",
@@ -92,7 +92,7 @@
     {
       "id": "T2-09",
       "status": "pass",
-      "note": "A* pathfinding works (10 waypoints), 17 enemies with varied speeds"
+      "note": "A* pathfinding works (7 waypoints), 17 enemies with varied speeds"
     },
     {
       "id": "T2-10",
@@ -107,12 +107,12 @@
     {
       "id": "T2-12",
       "status": "pass",
-      "note": "11 enemy types (guard, soldier, phantom, imp, spitter, demon, sniper, berserker, exploder, shield_guard, boss), boss with high HP, 17 total enemies"
+      "note": "11 enemy types (imp, guard, exploder, demon, berserker, spitter, phantom, sniper, soldier, shield_guard, boss), boss with high HP, 17 total enemies"
     },
     {
       "id": "T2-13",
       "status": "pass",
-      "note": "Progression system: XP, levels, 10 stat fields, damage multiplier, HUD display"
+      "note": "Progression system: XP, levels, 11 stat fields, damage multiplier, HUD display"
     },
     {
       "id": "T2-14",
@@ -132,7 +132,7 @@
     {
       "id": "T2-17",
       "status": "pass",
-      "note": "12/17 enemies moved, 10 distinct speeds"
+      "note": "13/16 enemies moved, 10 distinct speeds, replay stable (17 enemies)"
     },
     {
       "id": "T2-18",
@@ -147,7 +147,7 @@
     {
       "id": "T2-20",
       "status": "pass",
-      "note": "24x24 map, 6 wall types [1,10,2,3,5,9], 17 enemies in 4 quadrants, 8 pickups"
+      "note": "24x24 map, 7 wall types [1,10,2,3,4,5,9], 17 enemies in 4 quadrants, 8 pickups"
     },
     {
       "id": "T2-21",
@@ -187,7 +187,7 @@
     {
       "id": "T2-28",
       "status": "pass",
-      "note": "Kill feed: max 4 msgs, 3s fade, color-coded"
+      "note": "Kill feed: max 5 msgs, 4s fade, color-coded"
     },
     {
       "id": "T2-29",
@@ -218,6 +218,91 @@
       "id": "T2-34",
       "status": "pass",
       "note": "Bark system: alert/pain/attack barks, 2s cooldown, 11 enemy types"
+    },
+    {
+      "id": "T2-35",
+      "status": "pass",
+      "note": "Wall decals: impact + blood types, max capped, timed expiry"
+    },
+    {
+      "id": "T2-36",
+      "status": "pass",
+      "note": "Death screen: floor reached, critical hits, map name, best run tracking"
+    },
+    {
+      "id": "T2-37",
+      "status": "pass",
+      "note": "Zone particles: acid, lava, reactor sparks, cooling mist (max capped)"
+    },
+    {
+      "id": "T2-38",
+      "status": "pass",
+      "note": "Enemy alert propagation: properties, alertNearby(), playAlertBark(), propagation verified"
+    },
+    {
+      "id": "T2-39",
+      "status": "pass",
+      "note": "Quick-switch: Q key mapped, previousWeapon tracked, switch behavior verified"
+    },
+    {
+      "id": "T2-40",
+      "status": "pass",
+      "note": "Environmental sounds: 5 zone profiles, timer-based triggers, game loop integration"
+    },
+    {
+      "id": "T2-41",
+      "status": "pass",
+      "note": "CRT effects: scanlines + vignette, toggleable on/off"
+    },
+    {
+      "id": "T2-42",
+      "status": "pass",
+      "note": "Morale system: ally death impact, boss immunity, flee integration"
+    },
+    {
+      "id": "T2-43",
+      "status": "pass",
+      "note": "Reload animation: sine-curve dip during reload, progress-driven"
+    },
+    {
+      "id": "T2-44",
+      "status": "pass",
+      "note": "Weapon mod system: 5 mods, selection screen, all mod types functional"
+    },
+    {
+      "id": "T2-45",
+      "status": "pass",
+      "note": "Perk system: 8 perks, selection UI, stacking, stat bonuses"
+    },
+    {
+      "id": "T2-46",
+      "status": "pass",
+      "note": "Lifetime stats: accumulation, headshots, glory kills, achievements"
+    },
+    {
+      "id": "T2-47",
+      "status": "pass",
+      "note": "Menu pointer lock: isMenuOpen covers all states, debounce on unlock"
+    },
+    {
+      "id": "T2-48",
+      "status": "pass",
+      "note": "Sprite config: 11 enemies, multi-frame walk (2 frames)"
+    },
+    {
+      "id": "T2-49",
+      "status": "pass",
+      "note": "Telegraph: 11 types configured, boss=600ms imp=250ms"
+    },
+    {
+      "id": "T2-50",
+      "status": "pass",
+      "note": "Minimap: 5 zones [barracks, armory, command, motor_pool, bunker], legend togglable"
+    },
+    {
+      "id": "T2-51",
+      "status": "pass",
+      "note": "Floor splatters: max 60, blob-based, per-type sizes, integrated in floor rendering"
     },
     {
       "id": "T3-01",
