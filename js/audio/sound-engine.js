@@ -1994,6 +1994,18 @@ class SoundEngine {
         }
     }
     
+    setSFXVolume(volume) {
+        this.sfxVolume = Math.max(0, Math.min(1, volume));
+        // SFX volume is applied per sound in play methods, no global gain node needed
+    }
+    
+    setMusicVolume(volume) {
+        this.musicVolume = Math.max(0, Math.min(1, volume));
+        if (this.musicBus) {
+            this.musicBus.gain.setValueAtTime(this.musicVolume, this.audioContext.currentTime);
+        }
+    }
+    
     // Mute/unmute
     setMuted(muted) {
         if (this.masterGain) {
