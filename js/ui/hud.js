@@ -111,6 +111,11 @@ class HUD {
         this.gloryKillFlashTime = 0;
         this.gloryKillFlashDuration = 400; // ms
 
+        // Dynamic difficulty toast system
+        this.difficultyToasts = [];
+        this.difficultyToastDuration = 2000; // 2 seconds
+        this.difficultyToastMax = 3; // Max concurrent toasts
+
         // Wall decals (bullet impacts, blood splatters)
         this.wallDecals = [];
         this.wallDecalMax = 80;
@@ -139,6 +144,90 @@ class HUD {
         this.loadWeaponImages();
 
         console.log('HUD system initialized');
+    }
+
+    // Show a difficulty change toast
+    showDifficultyToast(change, currentModifier) {
+        if (!this.difficultyToasts) this.difficultyToasts = [];
+        
+        const direction = change > 0 ? 'harder' : 'easier';
+        const sign = change > 0 ? '+' : '';
+        const toast = {
+            text: `THREAT LEVEL ${sign}${change}%`,
+            subtext: direction === 'harder' ? 'MORE ENEMIES' : 'LESS ENEMIES',
+            change: change,
+            currentModifier: currentModifier,
+            startTime: Date.now(),
+            duration: this.difficultyToastDuration
+        };
+
+        // Add to beginning of array so newest toasts render on top
+        this.difficultyToasts.unshift(toast);
+
+        // Limit number of concurrent toasts
+        if (this.difficultyToasts.length > this.difficultyToastMax) {
+            this.difficultyToasts = this.difficultyToasts.slice(0, this.difficultyToastMax);
+        }
+    }
+
+    // Update and render difficulty toasts
+    updateAndRenderDifficultyToasts() {
+        if (!this.difficultyToasts || this.difficultyToasts.length === 0) return;
+
+        const now = Date.now();
+        
+        // Remove expired toasts
+        this.difficultyToasts = this.difficultyToasts.filter(toast => {
+            return now - toast.startTime < toast.duration;
+        });
+
+        // Render toasts from top to bottom (newest on top)
+        const toastWidth = 250;
+        const toastHeight = 60;
+        const toastSpacing = 10;
+        const startX = this.canvas.width - toastWidth - 20;
+        let startY = 20;
+
+        this.difficultyToasts.forEach((toast, index) => {
+            const elapsed = now - toast.startTime;
+            const progress = elapsed / toast.duration;
+            
+            // Fade in/out animation
+            let alpha = 1;
+            if (progress < 0.1) {
+                alpha = progress / 0.1; // Fade in
+            } else if (progress > 0.8) {
+                alpha = (1 - progress) / 0.2; // Fade out
+            }
+
+            // Background with gradient
+            const gradient = this.ctx.createLinearGradient(startX, startY, startX, startY + toastHeight);
+            gradient.addColorStop(0, `rgba(0, 0, 0, ${alpha * 0.9})`);
+            gradient.addColorStop(1, `rgba(0, 0, 0, ${alpha * 0.7})`);
+            
+            this.ctx.fillStyle = gradient;
+            this.ctx.fillRect(startX, startY, toastWidth, toastHeight);
+
+            // Border with color based on direction
+            const borderColor = toast.change > 0 ? '#FF4444' : '#44FF44';
+            this.ctx.strokeStyle = borderColor;
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(startX, startY, toastWidth, toastHeight);
+
+            // Main text
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            this.ctx.font = 'bold 16px monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(toast.text, startX + toastWidth / 2, startY + 25);
+
+            // Subtext
+            this.ctx.fillStyle = `rgba(200, 200, 200, ${alpha * 0.8})`;
+            this.ctx.font = '12px monospace';
+            this.ctx.fillText(toast.subtext, startX + toastWidth / 2, startY + 42);
+
+            // Position next toast below
+            startY += toastHeight + toastSpacing;
+        });
     }
     
     render(player, gameEngine) {
@@ -248,6 +337,9 @@ class HUD {
 
             // Render CRT post-processing effects (scanlines + vignette)
             this.renderCRTEffects();
+
+            // Render difficulty toasts
+            this.updateAndRenderDifficultyToasts();
 
             // Render damage flash effect
             this.renderDamageFlash(player);
@@ -1068,6 +1160,26 @@ class HUD {
         
         // Performance
         this.ctx.fillText(`Frame Time: ${gameEngine.getAverageFrameTime().toFixed(2)}ms`, x, y);
+        y += lineHeight;
+        
+        // Dynamic difficulty (only if enabled and non-zero)
+        if (gameEngine.difficultyScaler && gameEngine.difficultyScaler.enabled) {
+            const scaler = gameEngine.difficultyScaler;
+            const modifier = scaler.currentModifier;
+            if (modifier !== 0) {
+                const sign = modifier > 0 ? '+' : '';
+                const color = modifier > 0 ? '#FF6666' : '#66FF66';
+                this.ctx.fillStyle = color;
+                this.ctx.fillText(`THREAT: ${sign}${modifier}%`, x, y);
+                y += lineHeight;
+                
+                // Show max/min reached this run
+                if (scaler.maxModifierReached !== undefined && scaler.minModifierReached !== undefined) {
+                    this.ctx.fillStyle = '#AAAAAA';
+                    this.ctx.fillText(`Max: +${scaler.maxModifierReached}% | Min: ${scaler.minModifierReached}%`, x, y);
+                }
+            }
+        }
     }
     
     renderLowAmmoWarning(player) {

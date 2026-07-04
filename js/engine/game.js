@@ -973,6 +973,23 @@ class GameEngine {
         const mapName = this.map && this.map.themeName ? this.map.themeName : 'Unknown';
         const critHits = stats.criticalHits || 0;
 
+        // Dynamic difficulty stats (only if enabled)
+        let difficultyStats = [];
+        if (this.difficultyScaler && this.difficultyScaler.enabled) {
+            const scaler = this.difficultyScaler;
+            const currentMod = scaler.currentModifier;
+            const maxMod = scaler.maxModifierReached || 0;
+            const minMod = scaler.minModifierReached || 0;
+            
+            if (currentMod !== 0 || maxMod !== 0 || minMod !== 0) {
+                difficultyStats = [
+                    ['Current Threat', `${currentMod > 0 ? '+' : ''}${currentMod}%`, null],
+                    ['Max Threat', `+${maxMod}%`, null],
+                    ['Min Threat', `${minMod}%`, null]
+                ];
+            }
+        }
+
         const statLines = [
             ['Survival Time', timeStr, 'survivalTime'],
             ['Floor Reached', `${floorReached} — ${mapName}`, 'floor'],
@@ -986,6 +1003,11 @@ class GameEngine {
             ['Player Level', `${this.player.level}`, 'level'],
             ['Secrets Found', `${this.map.secretsFound}/${this.map.totalSecrets}`, null]
         ];
+
+        // Add difficulty stats if any exist
+        if (difficultyStats.length > 0) {
+            statLines.push(...difficultyStats);
+        }
 
         for (const [label, value, bestKey] of statLines) {
             ctx.fillStyle = '#AAAAAA';
@@ -1096,8 +1118,21 @@ class GameEngine {
 
         if (newModifier === scaler.currentModifier) return;
 
+        // Track max/min modifiers reached
+        if (newModifier > scaler.maxModifierReached) {
+            scaler.maxModifierReached = newModifier;
+        }
+        if (newModifier < scaler.minModifierReached) {
+            scaler.minModifierReached = newModifier;
+        }
+
         scaler.currentModifier = newModifier;
         this.applyDifficultyModifier(newModifier);
+
+        // Show difficulty toast if HUD is available
+        if (this.hud && this.hud.showDifficultyToast) {
+            this.hud.showDifficultyToast(adjustment, newModifier);
+        }
 
         const direction = adjustment > 0 ? 'harder' : 'easier';
         console.log(`Difficulty adjustment: enemies ${Math.abs(adjustment)}% ${direction} (total: ${newModifier > 0 ? '+' : ''}${newModifier}%)`);
@@ -1132,6 +1167,8 @@ class GameEngine {
         this.difficultyScaler.currentModifier = 0;
         this.difficultyScaler.killsAtLastCheck = 0;
         this.difficultyScaler.damageAtLastCheck = 0;
+        this.difficultyScaler.maxModifierReached = 0;
+        this.difficultyScaler.minModifierReached = 0;
 
         if (this.difficultyScaler.enabled) {
             console.log('Dynamic difficulty scaling enabled');
