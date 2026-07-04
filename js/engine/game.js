@@ -200,7 +200,7 @@ class GameEngine {
                             if (window.saveSettings) window.saveSettings({ mouseSensitivity: window.CONFIG.input.mouseSensitivity });
                             break;
                         }
-                        case 'volume': {
+                        case 'masterVolume': {
                             const volStep = 0.1;
                             if (window.soundEngine) {
                                 const vol = window.soundEngine.masterVolume;
@@ -209,6 +209,30 @@ class GameEngine {
                                     : Math.min(1, vol + volStep);
                                 window.soundEngine.setMasterVolume(newVol);
                                 if (window.saveSettings) window.saveSettings({ masterVolume: newVol });
+                            }
+                            break;
+                        }
+                        case 'musicVolume': {
+                            const volStep = 0.1;
+                            if (window.soundEngine) {
+                                const vol = window.soundEngine.musicVolume;
+                                const newVol = isLeftHalf
+                                    ? Math.max(0, vol - volStep)
+                                    : Math.min(1, vol + volStep);
+                                window.soundEngine.setMusicVolume(newVol);
+                                if (window.saveSettings) window.saveSettings({ musicVolume: newVol });
+                            }
+                            break;
+                        }
+                        case 'sfxVolume': {
+                            const volStep = 0.1;
+                            if (window.soundEngine) {
+                                const vol = window.soundEngine.sfxVolume;
+                                const newVol = isLeftHalf
+                                    ? Math.max(0, vol - volStep)
+                                    : Math.min(1, vol + volStep);
+                                window.soundEngine.setSFXVolume(newVol);
+                                if (window.saveSettings) window.saveSettings({ sfxVolume: newVol });
                             }
                             break;
                         }
@@ -2434,16 +2458,21 @@ class GameEngine {
         // Current settings values
         const sensitivity = window.CONFIG ? window.CONFIG.input.mouseSensitivity : 0.003;
         const sensLabel = (sensitivity * 1000).toFixed(1);
-        const volume = window.soundEngine ? Math.round(window.soundEngine.masterVolume * 100) : 50;
+        const masterVolume = window.soundEngine ? Math.round(window.soundEngine.masterVolume * 100) : 50;
+        const musicVolume = window.soundEngine ? Math.round(window.soundEngine.musicVolume * 100) : 30;
+        const sfxVolume = window.soundEngine ? Math.round(window.soundEngine.sfxVolume * 100) : 70;
 
         // Menu items
         const crtLabel = this.hud && this.hud.crtEnabled ? 'ON' : 'OFF';
+        const musicLabel = window.soundEngine && window.soundEngine.musicMuted ? 'OFF' : 'ON';
         const items = [
             { label: 'RESUME', action: 'resume' },
             { label: 'RESTART LEVEL', action: 'restart' },
-            { label: 'MUSIC: ' + (window.soundEngine && window.soundEngine.musicMuted ? 'OFF' : 'ON'), action: 'toggleMusic' },
+            { label: `MUSIC: ${musicLabel}`, action: 'toggleMusic' },
+            { label: `MASTER: ${masterVolume}%`, action: 'masterVolume' },
+            { label: `MUSIC: ${musicVolume}%`, action: 'musicVolume' },
+            { label: `SFX: ${sfxVolume}%`, action: 'sfxVolume' },
             { label: `SENSITIVITY: ${sensLabel}`, action: 'sensitivity' },
-            { label: `VOLUME: ${volume}%`, action: 'volume' },
             { label: `CRT EFFECTS: ${crtLabel}`, action: 'toggleCRT' }
         ];
 

@@ -91,6 +91,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (saved) {
         if (saved.mouseSensitivity != null) CONFIG.input.mouseSensitivity = saved.mouseSensitivity;
         if (saved.masterVolume != null) CONFIG.savedVolume = saved.masterVolume;
+        // Load individual volume settings for backward compatibility
+        if (saved.musicVolume != null) CONFIG.musicVolume = saved.musicVolume;
+        if (saved.sfxVolume != null) CONFIG.sfxVolume = saved.sfxVolume;
     }
 
     // Setup canvas
@@ -143,9 +146,17 @@ function startGame(canvas, difficulty) {
         // Setup event listeners
         setupEventListeners();
 
-        // Apply saved volume
-        if (CONFIG.savedVolume != null && window.soundEngine) {
-            window.soundEngine.setMasterVolume(CONFIG.savedVolume);
+        // Apply saved volumes
+        if (window.soundEngine) {
+            if (CONFIG.savedVolume != null) {
+                window.soundEngine.setMasterVolume(CONFIG.savedVolume);
+            }
+            if (CONFIG.musicVolume != null) {
+                window.soundEngine.setMusicVolume(CONFIG.musicVolume);
+            }
+            if (CONFIG.sfxVolume != null) {
+                window.soundEngine.setSFXVolume(CONFIG.sfxVolume);
+            }
         }
 
         // Start the game

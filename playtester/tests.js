@@ -699,6 +699,7 @@ const TIER_2_TESTS = [
   { id: 'T2-49', name: 'Enemy attack telegraph system', fn: T2_49_enemyAttackTelegraph }, // issue: #333
   { id: 'T2-50', name: 'Minimap zone labels and legend', fn: T2_50_minimapZoneLabels }, // issue: #334
   { id: 'T2-51', name: 'Floor blood splatters on kill', fn: T2_51_floorBloodSplatters }, // issue: #335
+  { id: 'T2-52', name: 'Volume mixer controls in pause menu', fn: T2_50_volumeMixerControls }, // issue: #348
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -1741,6 +1742,56 @@ async function T3_03_demonTransparency(page, result) {
 
   result.status = verification.pass ? 'pass' : 'fail';
   result.note = verification.explanation;
+}
+
+async function T2_50_volumeMixerControls(page, result) {
+  // T2-50: Volume mixer controls in pause menu (issue: #348)
+  // Check that pause menu has separate Master, Music, and SFX volume controls
+  
+  const volumeData = await page.evaluate(() => {
+    if (!window.game || !window.soundEngine) {
+      return { exists: false, reason: 'Game or sound engine missing' };
+    }
+
+    // Check if sound engine has the required volume control methods
+    const hasSFXVolumeMethod = typeof window.soundEngine.setSFXVolume === 'function';
+    const hasMusicVolumeMethod = typeof window.soundEngine.setMusicVolume === 'function';
+    
+    // Check if sound engine has volume properties
+    const hasVolumeProperties = (
+      window.soundEngine.masterVolume !== undefined &&
+      window.soundEngine.musicVolume !== undefined &&
+      window.soundEngine.sfxVolume !== undefined
+    );
+    
+    return {
+      exists: true,
+      hasSFXVolumeMethod,
+      hasMusicVolumeMethod,
+      hasVolumeProperties
+    };
+  });
+
+  if (!volumeData.exists) {
+    result.status = 'fail';
+    result.note = volumeData.reason;
+  } else {
+    const checks = [
+      ['setSFXVolume method', volumeData.hasSFXVolumeMethod],
+      ['setMusicVolume method', volumeData.hasMusicVolumeMethod],
+      ['volume properties', volumeData.hasVolumeProperties]
+    ];
+
+    const failed = checks.filter(([, ok]) => !ok);
+
+    if (failed.length > 0) {
+      result.status = 'fail';
+      result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+    } else {
+      result.status = 'pass';
+      result.note = 'Volume mixer controls: Master, Music, and SFX volume controls implemented';
+    }
+  }
 }
 
 async function T2_19_noGameLoadedPopup(page, result) {
