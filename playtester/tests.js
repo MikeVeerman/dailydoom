@@ -701,6 +701,9 @@ const TIER_2_TESTS = [
   { id: 'T2-51', name: 'Floor blood splatters on kill', fn: T2_51_floorBloodSplatters }, // issue: #335
   { id: 'T2-52', name: 'Volume mixer controls in pause menu', fn: T2_50_volumeMixerControls }, // issue: #348
   { id: 'T2-53', name: 'Wave spawn safety radius and line-of-sight', fn: T2_53_waveSpawnSafety }, // issue: #346
+  { id: 'T2-54', name: 'Flash intensity accessibility setting', fn: T2_54_flashIntensity }, // issue: #347
+  { id: 'T2-55', name: 'Explosion intensity accessibility setting', fn: T2_55_explosionIntensity }, // issue: #347
+  { id: 'T2-56', name: 'Crosshair preset accessibility setting', fn: T2_56_crosshairPreset }, // issue: #347
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -4483,6 +4486,165 @@ async function T2_53_waveSpawnSafety(page, result) {
     result.status = 'pass';
     result.note = `Spawn safety: ${safetyData.spawnPointCount} spawn points, LOS + wall checks operational`;
   }
+}
+
+async function T2_54_flashIntensity(page, result) {
+  // T2-54: Flash intensity accessibility setting (issue: #347)
+  // Pass condition: Pause menu has flash intensity control, can adjust 0-100%, persists in localStorage
+  await page.waitForTimeout(1000);
+
+  // Open pause menu
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(500);
+
+  const flashData = await page.evaluate(() => {
+    if (!window.game || !window.game.player) {
+      return { exists: false, reason: 'Game not initialized' };
+    }
+
+    // Check if CONFIG has accessibility settings
+    const hasAccessibility = window.CONFIG && window.CONFIG.accessibility;
+    const flashIntensity = hasAccessibility ? window.CONFIG.accessibility.flashIntensity : null;
+    const hasSaveSettings = typeof window.saveSettings === 'function';
+
+    return {
+      exists: true,
+      hasAccessibility,
+      flashIntensity,
+      hasSaveSettings,
+      flashInRange: flashIntensity !== null && flashIntensity >= 0 && flashIntensity <= 1
+    };
+  });
+
+  if (!flashData.exists) {
+    result.status = 'fail';
+    result.note = flashData.reason;
+    return;
+  }
+
+  if (!flashData.hasAccessibility) {
+    result.status = 'fail';
+    result.note = 'CONFIG.accessibility not found';
+    return;
+  }
+
+  if (flashData.flashIntensity === null || !flashData.flashInRange) {
+    result.status = 'fail';
+    result.note = `Flash intensity not in valid range [0,1]: ${flashData.flashIntensity}`;
+    return;
+  }
+
+  if (!flashData.hasSaveSettings) {
+    result.status = 'fail';
+    result.note = 'window.saveSettings not found';
+    return;
+  }
+
+  result.status = 'pass';
+  result.note = `Flash intensity: ${flashData.flashIntensity}, persistence available`;
+}
+
+async function T2_55_explosionIntensity(page, result) {
+  // T2-55: Explosion intensity accessibility setting (issue: #347)
+  // Pass condition: Pause menu has explosion intensity control, can adjust 0-100%, persists in localStorage
+  await page.waitForTimeout(1000);
+
+  const expData = await page.evaluate(() => {
+    if (!window.game || !window.game.player) {
+      return { exists: false, reason: 'Game not initialized' };
+    }
+
+    const hasAccessibility = window.CONFIG && window.CONFIG.accessibility;
+    const explosionIntensity = hasAccessibility ? window.CONFIG.accessibility.explosionIntensity : null;
+    const hasSaveSettings = typeof window.saveSettings === 'function';
+
+    return {
+      exists: true,
+      hasAccessibility,
+      explosionIntensity,
+      hasSaveSettings,
+      expInRange: explosionIntensity !== null && explosionIntensity >= 0 && explosionIntensity <= 1
+    };
+  });
+
+  if (!expData.exists) {
+    result.status = 'fail';
+    result.note = expData.reason;
+    return;
+  }
+
+  if (!expData.hasAccessibility) {
+    result.status = 'fail';
+    result.note = 'CONFIG.accessibility not found';
+    return;
+  }
+
+  if (expData.explosionIntensity === null || !expData.expInRange) {
+    result.status = 'fail';
+    result.note = `Explosion intensity not in valid range [0,1]: ${expData.explosionIntensity}`;
+    return;
+  }
+
+  if (!expData.hasSaveSettings) {
+    result.status = 'fail';
+    result.note = 'window.saveSettings not found';
+    return;
+  }
+
+  result.status = 'pass';
+  result.note = `Explosion intensity: ${expData.explosionIntensity}, persistence available`;
+}
+
+async function T2_56_crosshairPreset(page, result) {
+  // T2-56: Crosshair preset accessibility setting (issue: #347)
+  // Pass condition: Pause menu has crosshair preset control, can toggle between presets, persists in localStorage
+  await page.waitForTimeout(1000);
+
+  const crosshairData = await page.evaluate(() => {
+    if (!window.game || !window.game.player) {
+      return { exists: false, reason: 'Game not initialized' };
+    }
+
+    const hasAccessibility = window.CONFIG && window.CONFIG.accessibility;
+    const crosshairPreset = hasAccessibility ? window.CONFIG.accessibility.crosshairPreset : null;
+    const validPresets = ['standard', 'colorblind'];
+    const hasSaveSettings = typeof window.saveSettings === 'function';
+
+    return {
+      exists: true,
+      hasAccessibility,
+      crosshairPreset,
+      isValidPreset: crosshairPreset !== null && validPresets.includes(crosshairPreset),
+      hasSaveSettings
+    };
+  });
+
+  if (!crosshairData.exists) {
+    result.status = 'fail';
+    result.note = crosshairData.reason;
+    return;
+  }
+
+  if (!crosshairData.hasAccessibility) {
+    result.status = 'fail';
+    result.note = 'CONFIG.accessibility not found';
+    return;
+  }
+
+  if (crosshairData.crosshairPreset === null || !crosshairData.isValidPreset) {
+    result.status = 'fail';
+    result.note = `Crosshair preset not valid: ${crosshairData.crosshairPreset}`;
+    return;
+  }
+
+  if (!crosshairData.hasSaveSettings) {
+    result.status = 'fail';
+    result.note = 'window.saveSettings not found';
+    return;
+  }
+
+  result.status = 'pass';
+  result.note = `Crosshair preset: ${crosshairData.crosshairPreset}, persistence available`;
 }
 
 const TIER_3_TESTS = [

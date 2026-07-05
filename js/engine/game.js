@@ -251,6 +251,39 @@ class GameEngine {
                             }
                             break;
                         }
+                        case 'flashIntensity': {
+                            const flashStep = 0.1;
+                            if (window.CONFIG && window.CONFIG.accessibility) {
+                                const current = window.CONFIG.accessibility.flashIntensity;
+                                const newIntensity = isLeftHalf
+                                    ? Math.max(0, current - flashStep)
+                                    : Math.min(1, current + flashStep);
+                                window.CONFIG.accessibility.flashIntensity = newIntensity;
+                                if (window.saveSettings) window.saveSettings({ flashIntensity: newIntensity });
+                            }
+                            break;
+                        }
+                        case 'explosionIntensity': {
+                            const expStep = 0.1;
+                            if (window.CONFIG && window.CONFIG.accessibility) {
+                                const current = window.CONFIG.accessibility.explosionIntensity;
+                                const newIntensity = isLeftHalf
+                                    ? Math.max(0, current - expStep)
+                                    : Math.min(1, current + expStep);
+                                window.CONFIG.accessibility.explosionIntensity = newIntensity;
+                                if (window.saveSettings) window.saveSettings({ explosionIntensity: newIntensity });
+                            }
+                            break;
+                        }
+                        case 'crosshairPreset': {
+                            if (window.CONFIG && window.CONFIG.accessibility) {
+                                const current = window.CONFIG.accessibility.crosshairPreset;
+                                const newPreset = current === 'colorblind' ? 'standard' : 'colorblind';
+                                window.CONFIG.accessibility.crosshairPreset = newPreset;
+                                if (window.saveSettings) window.saveSettings({ crosshairPreset: newPreset });
+                            }
+                            break;
+                        }
                     }
                     e.stopPropagation();
                     e.preventDefault();
@@ -2580,6 +2613,10 @@ class GameEngine {
         const masterVolume = window.soundEngine ? Math.round(window.soundEngine.masterVolume * 100) : 50;
         const musicVolume = window.soundEngine ? Math.round(window.soundEngine.musicVolume * 100) : 30;
         const sfxVolume = window.soundEngine ? Math.round(window.soundEngine.sfxVolume * 100) : 70;
+        const accessibility = window.CONFIG && window.CONFIG.accessibility ? window.CONFIG.accessibility : {};
+        const flashIntensityLabel = Math.round((accessibility.flashIntensity || 1) * 100) + '%';
+        const explosionIntensityLabel = Math.round((accessibility.explosionIntensity || 1) * 100) + '%';
+        const crosshairPresetLabel = (accessibility.crosshairPreset || 'standard') === 'colorblind' ? 'Colorblind' : 'Standard';
 
         // Menu items
         const crtLabel = this.hud && this.hud.crtEnabled ? 'ON' : 'OFF';
@@ -2592,7 +2629,10 @@ class GameEngine {
             { label: `MUSIC: ${musicVolume}%`, action: 'musicVolume' },
             { label: `SFX: ${sfxVolume}%`, action: 'sfxVolume' },
             { label: `SENSITIVITY: ${sensLabel}`, action: 'sensitivity' },
-            { label: `CRT EFFECTS: ${crtLabel}`, action: 'toggleCRT' }
+            { label: `CRT EFFECTS: ${crtLabel}`, action: 'toggleCRT' },
+            { label: `DAMAGE FLASH: ${flashIntensityLabel}`, action: 'flashIntensity' },
+            { label: `EXPLOSION BLOOM: ${explosionIntensityLabel}`, action: 'explosionIntensity' },
+            { label: `CROSSHAIR: ${crosshairPresetLabel}`, action: 'crosshairPreset' }
         ];
 
         const itemH = 40;

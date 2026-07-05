@@ -381,7 +381,8 @@ class GameMap {
 
         // Explosion dynamic light
         if (window.game && window.game.renderer && window.game.renderer.addDynamicLight) {
-            window.game.renderer.addDynamicLight(barrel.x, barrel.y, 1.0, 0.5, 0, 5, 400);
+            const intensity = window.CONFIG && window.CONFIG.accessibility ? window.CONFIG.accessibility.explosionIntensity : 1;
+            window.game.renderer.addDynamicLight(barrel.x, barrel.y, 1.0 * intensity, 0.5 * intensity, 0, 5, 400);
         }
 
         // Play explosion sound + particles

@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-07-05T15:58:49.279Z",
-  "passed": 62,
+  "timestamp": "2026-07-05T17:00:53.793Z",
+  "passed": 65,
   "failed": 0,
   "skipped": 3,
   "results": [
@@ -37,7 +37,7 @@
     {
       "id": "T1-07",
       "status": "pass",
-      "note": "Rotated from 0° to 175°"
+      "note": "Rotated from 0° to 174°"
     },
     {
       "id": "T1-08",
@@ -72,7 +72,7 @@
     {
       "id": "T2-05",
       "status": "pass",
-      "note": "Pickup system active with 17 items"
+      "note": "Pickup system active with 15 items"
     },
     {
       "id": "T2-06",
@@ -147,7 +147,7 @@
     {
       "id": "T2-20",
       "status": "pass",
-      "note": "24x24 map, 8 wall types [1,10,2,3,4,5,6,9], 17 enemies in 4 quadrants, 9 pickups"
+      "note": "24x24 map, 7 wall types [1,10,2,3,4,5,9], 17 enemies in 4 quadrants, 8 pickups"
     },
     {
       "id": "T2-21",
@@ -182,7 +182,7 @@
     {
       "id": "T2-27",
       "status": "pass",
-      "note": "Hazards: 8 acid tiles, 6 barrels, explosion + chain reaction + sound"
+      "note": "Hazards: 4 acid tiles, 6 barrels, explosion + chain reaction + sound"
     },
     {
       "id": "T2-28",
@@ -297,7 +297,7 @@
     {
       "id": "T2-50",
       "status": "pass",
-      "note": "Minimap: 5 zones [crypt_north, crypt_center, flooded_left, flooded_right, tomb], legend togglable"
+      "note": "Minimap: 5 zones [entry_cavern, lava_chamber, bone_corridor_left, bone_corridor_right, throne_room], legend togglable"
     },
     {
       "id": "T2-51",
@@ -313,6 +313,21 @@
       "id": "T2-53",
       "status": "pass",
       "note": "Spawn safety: 10 spawn points, LOS + wall checks operational"
+    },
+    {
+      "id": "T2-54",
+      "status": "pass",
+      "note": "Flash intensity: 1, persistence available"
+    },
+    {
+      "id": "T2-55",
+      "status": "pass",
+      "note": "Explosion intensity: 1, persistence available"
+    },
+    {
+      "id": "T2-56",
+      "status": "pass",
+      "note": "Crosshair preset: standard, persistence available"
     },
     {
       "id": "T3-01",
