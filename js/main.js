@@ -44,7 +44,12 @@ const CONFIG = {
         showFPS: true,
         enableProfiling: false
     },
-    difficulty: 'normal'
+    difficulty: 'normal',
+    accessibility: {
+        flashIntensity: 1,
+        explosionIntensity: 1,
+        crosshairPreset: 'standard'
+    }
 };
 
 // Difficulty presets
@@ -94,6 +99,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Load individual volume settings for backward compatibility
         if (saved.musicVolume != null) CONFIG.musicVolume = saved.musicVolume;
         if (saved.sfxVolume != null) CONFIG.sfxVolume = saved.sfxVolume;
+        // Load accessibility settings
+        if (saved.flashIntensity != null) CONFIG.accessibility.flashIntensity = saved.flashIntensity;
+        if (saved.explosionIntensity != null) CONFIG.accessibility.explosionIntensity = saved.explosionIntensity;
+        if (saved.crosshairPreset != null) CONFIG.accessibility.crosshairPreset = saved.crosshairPreset;
     }
 
     // Setup canvas

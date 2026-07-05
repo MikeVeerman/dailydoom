@@ -630,7 +630,11 @@ class HUD {
             ? weaponInfo.bloomLevel / weaponInfo.bloomMax
             : 0;
 
-        this.ctx.strokeStyle = '#FFFFFF';
+        // Get crosshair color based on preset
+        const preset = window.CONFIG && window.CONFIG.accessibility ? window.CONFIG.accessibility.crosshairPreset : 'standard';
+        const crosshairColor = this.getCrosshairColor(preset);
+        this.ctx.strokeStyle = crosshairColor;
+        this.ctx.fillStyle = crosshairColor;
         this.ctx.lineWidth = 2;
 
         switch (weaponName) {
@@ -658,6 +662,15 @@ class HUD {
         this.renderHitMarker(centerX, centerY);
     }
 
+    getCrosshairColor(preset) {
+        // Standard: white crosshair for maximum contrast
+        // Colorblind-safe: yellow/gold with high luminance for deuteranopia/protanopia/tritanopia
+        if (preset === 'colorblind') {
+            return '#FFFF00';
+        }
+        return '#FFFFFF';
+    }
+
     drawPistolCrosshair(cx, cy, bloomFraction = 0) {
         // Small precise dot with thin cross lines
         this.ctx.lineWidth = 1;
@@ -674,7 +687,6 @@ class HUD {
         this.ctx.lineTo(cx + gap + size, cy);
         this.ctx.stroke();
         // Center dot
-        this.ctx.fillStyle = '#FFFFFF';
         this.ctx.beginPath();
         this.ctx.arc(cx, cy, 1.5, 0, Math.PI * 2);
         this.ctx.fill();
@@ -700,7 +712,6 @@ class HUD {
         this.ctx.lineTo(cx + radius + tickLen, cy);
         this.ctx.stroke();
         // Small center dot
-        this.ctx.fillStyle = '#FFFFFF';
         this.ctx.fillRect(cx - 1, cy - 1, 2, 2);
     }
 
@@ -1332,7 +1343,8 @@ class HUD {
         const timeSinceDamage = now - this.lastDamageTime;
         if (timeSinceDamage < this.damageFlashDuration) {
             const alpha = 1 - (timeSinceDamage / this.damageFlashDuration);
-            this.ctx.fillStyle = `rgba(255, 0, 0, ${alpha * 0.4})`;
+            const intensity = window.CONFIG && window.CONFIG.accessibility ? window.CONFIG.accessibility.flashIntensity : 1;
+            this.ctx.fillStyle = `rgba(255, 0, 0, ${alpha * 0.4 * intensity})`;
             this.ctx.fillRect(0, 0, w, h);
         }
 
