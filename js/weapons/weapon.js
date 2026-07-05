@@ -355,7 +355,7 @@ class Weapon {
                 const falloff = 1 - (playerDist / splashRadius);
                 const selfDmg = Math.round(splashDamage * falloff * (stats.selfDamageMultiplier || 1));
                 if (selfDmg > 0) {
-                    player.takeDamage(selfDmg);
+                    player.takeDamage(selfDmg, { type: 'explosion', label: 'Rocket Splash' });
                     if (window.game && window.game.hud) {
                         window.game.hud.onPlayerDamageFrom(hit.hitPoint.x, hit.hitPoint.y, selfDmg);
                     }
@@ -612,7 +612,7 @@ class Weapon {
             if (playerDist < splashRadius) {
                 const falloff = 1 - (playerDist / splashRadius);
                 const selfDmg = Math.round(splashDamage * falloff * 0.5);
-                if (selfDmg > 0) player.takeDamage(selfDmg);
+                if (selfDmg > 0) player.takeDamage(selfDmg, { type: 'explosion', label: 'Rocket Splash' });
                 if (player.applyKnockback) {
                     player.applyKnockback(burstX, burstY, 400 * falloff);
                 }

@@ -362,7 +362,7 @@ class Enemy {
 
                     this.tryBark('attack');
                     const damage = 15;
-                    if (player.takeDamage(damage)) {
+                    if (player.takeDamage(damage, { type: 'enemy', label: this.type })) {
                         if (window.game && window.game.hud) {
                             window.game.hud.onPlayerDamageFrom(this.x, this.y, damage);
                             window.game.hud.triggerScreenShake(8);

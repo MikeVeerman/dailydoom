@@ -402,7 +402,7 @@ class GameMap {
             if (dist < barrel.explodeRadius) {
                 const falloff = 1 - (dist / barrel.explodeRadius);
                 const dmg = Math.round(barrel.explodeDamage * falloff);
-                player.takeDamage(dmg);
+                player.takeDamage(dmg, { type: 'explosion', label: 'Explosion' });
                 if (window.game.hud) window.game.hud.onPlayerDamageFrom(barrel.x, barrel.y, dmg);
                 // Knockback: 400 force at center, scaled by falloff
                 if (player.applyKnockback) {
