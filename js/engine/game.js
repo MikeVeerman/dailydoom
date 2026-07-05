@@ -711,6 +711,15 @@ class GameEngine {
         console.log(`Level ${this.currentLevel} Wave ${waveNumber}: spawned ${count} enemies`);
     }
 
+    // ========== WAVE THREAT PROFILES ==========
+
+    getThreatProfile(waveNumber) {
+        if (waveNumber <= 2) return { label: 'Heavy Melee', color: '#FF6644' };
+        if (waveNumber <= 4) return { label: 'Mixed Threats', color: '#FFAA44' };
+        if (waveNumber <= 7) return { label: 'Heavy Artillery', color: '#FF4444' };
+        return { label: 'Elite Assault', color: '#FF00FF' };
+    }
+
     // ========== HIGH SCORE SYSTEM ==========
 
     calculateScore() {

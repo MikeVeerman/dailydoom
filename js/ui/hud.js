@@ -303,6 +303,8 @@ class HUD {
             // Render wave indicator
             if (gameEngine && gameEngine.waveSystem && gameEngine.waveSystem.active) {
                 this.renderWaveIndicator(gameEngine.waveSystem);
+                // Render inter-wave prep panel during waiting state
+                this.renderInterWavePrep(gameEngine.waveSystem, gameEngine);
             }
 
             // Render kill feed
@@ -1965,6 +1967,80 @@ class HUD {
 
             ctx.restore();
         }
+    }
+
+    renderInterWavePrep(waveSystem, gameEngine) {
+        if (waveSystem.state !== 'waiting') return;
+
+        const ws = waveSystem;
+        const now = performance.now();
+        const elapsed = now - ws.lastWaveClearTime;
+        const remainingMs = Math.max(0, ws.delayBetweenWaves - elapsed);
+        const remainingSec = Math.ceil(remainingMs / 250) / 4; // round to nearest 0.25
+
+        // Don't show if all waves are complete (next wave would exceed wavesPerLevel)
+        const wavesPerLevel = gameEngine && gameEngine.wavesPerLevel ? gameEngine.wavesPerLevel : 3;
+        const nextWaveNumber = ws.currentWave + 1;
+        if (nextWaveNumber > wavesPerLevel) return;
+
+        const threat = gameEngine && gameEngine.getThreatProfile ? gameEngine.getThreatProfile(nextWaveNumber) : { label: 'Incoming', color: '#FFAA44' };
+
+        const w = this.canvas.width;
+        const ctx = this.ctx;
+
+        // Panel dimensions (bottom-center, above health bar)
+        const panelW = 300;
+        const panelH = 56;
+        const panelX = (w - panelW) / 2;
+        const panelY = this.canvas.height - 100;
+
+        // Fade in/out at edges of delay window
+        const fadeEdge = 200;
+        let alpha = 1;
+        if (remainingSec > (ws.delayBetweenWaves / 1000) - 0.1) {
+            // Just appeared: fade in
+            alpha = Math.min(1, remainingMs / fadeEdge);
+        }
+
+        // Background panel
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(panelX, panelY, panelW, panelH);
+        ctx.strokeStyle = threat.color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(panelX, panelY, panelW, panelH);
+
+        // Wave number (left side)
+        ctx.font = 'bold 16px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#AAAAFF';
+        ctx.fillText(`WAVE ${nextWaveNumber}`, panelX + 12, panelY + 22);
+
+        // Countdown timer (right side)
+        ctx.textAlign = 'right';
+        ctx.fillStyle = remainingSec <= 1 ? '#FF4444' : '#FFFFFF';
+        ctx.font = 'bold 20px monospace';
+        ctx.fillText(`${remainingSec.toFixed(1)}s`, panelX + panelW - 12, panelY + 24);
+
+        // Threat profile (below wave number)
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = threat.color;
+        ctx.fillText(`THREAT: ${threat.label}`, panelX + 12, panelY + 42);
+
+        // Progress bar (thin bar at bottom of panel)
+        const barX = panelX + 12;
+        const barY = panelY + panelH - 8;
+        const barW = panelW - 24;
+        const barH = 3;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.fillRect(barX, barY, barW, barH);
+        const progress = elapsed / ws.delayBetweenWaves;
+        ctx.fillStyle = threat.color;
+        ctx.fillRect(barX, barY, barW * Math.min(1, progress), barH);
+
+        ctx.restore();
     }
 
     renderSecretsCounter(map) {
