@@ -139,6 +139,9 @@ class HUD {
         // Low health heartbeat tracking
         this.lastHeartbeatTime = 0;
 
+        // Adaptive performance
+        this.currentRenderScale = null;
+
         // Load weapon sprite images (from FPS Starter Kit, CC0)
         this.weaponImages = {};
         this.loadWeaponImages();
@@ -272,6 +275,11 @@ class HUD {
 
             if (this.showFPS && gameEngine) {
                 this.renderFPSCounter(gameEngine);
+            }
+            
+            // Render scale indicator (adaptive performance)
+            if (gameEngine) {
+                this.renderRenderScaleIndicator(gameEngine);
             }
             
             if (this.showDebugInfo && gameEngine) {
@@ -1136,6 +1144,31 @@ class HUD {
         this.ctx.font = this.font;
         this.ctx.textAlign = 'left';
         this.ctx.fillText(`FPS: ${gameEngine.fps}`, x, y);
+    }
+    
+    renderRenderScaleIndicator(gameEngine) {
+        if (this.currentRenderScale === null) return;
+        
+        const x = 20;
+        const y = 60;
+        const scalePercent = Math.round(this.currentRenderScale * 100);
+        const dynamicScaleEnabled = gameEngine && gameEngine.dynamicScalingEnabled;
+        
+        // Background
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        this.ctx.fillRect(x - 5, y - 18, 140, 28);
+        
+        // Render scale text
+        this.ctx.fillStyle = '#AAAAAA';
+        this.ctx.font = this.smallFont;
+        this.ctx.textAlign = 'left';
+        
+        let indicatorText = `SCALE: ${scalePercent}%`;
+        if (dynamicScaleEnabled) {
+            indicatorText += ' [AUTO]';
+        }
+        
+        this.ctx.fillText(indicatorText, x, y);
     }
     
     renderDebugInfo(player, gameEngine) {

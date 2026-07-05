@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-05T17:00:53.793Z",
+  "timestamp": "2026-07-05T18:13:29.596Z",
   "passed": 65,
   "failed": 0,
   "skipped": 3,
@@ -22,7 +22,7 @@
     {
       "id": "T1-04",
       "status": "pass",
-      "note": "Player at (288, 224)"
+      "note": "Player at (160, 160)"
     },
     {
       "id": "T1-05",
@@ -32,7 +32,7 @@
     {
       "id": "T1-06",
       "status": "pass",
-      "note": "Moved from (288, 224) to (431, 224)"
+      "note": "Moved from (160, 160) to (372, 160)"
     },
     {
       "id": "T1-07",
@@ -57,7 +57,7 @@
     {
       "id": "T2-02",
       "status": "pass",
-      "note": "16/17 enemies active with AI"
+      "note": "17/17 enemies active with AI"
     },
     {
       "id": "T2-03",
@@ -72,7 +72,7 @@
     {
       "id": "T2-05",
       "status": "pass",
-      "note": "Pickup system active with 15 items"
+      "note": "Pickup system active with 13 items"
     },
     {
       "id": "T2-06",
@@ -92,7 +92,7 @@
     {
       "id": "T2-09",
       "status": "pass",
-      "note": "A* pathfinding works (10 waypoints), 15 enemies with varied speeds"
+      "note": "A* pathfinding works (12 waypoints), 17 enemies with varied speeds"
     },
     {
       "id": "T2-10",
@@ -107,7 +107,7 @@
     {
       "id": "T2-12",
       "status": "pass",
-      "note": "11 enemy types (guard, imp, phantom, demon, berserker, spitter, sniper, soldier, shield_guard, exploder, boss), boss with high HP, 17 total enemies"
+      "note": "11 enemy types (guard, imp, exploder, phantom, demon, berserker, soldier, spitter, shield_guard, sniper, boss), boss with high HP, 17 total enemies"
     },
     {
       "id": "T2-13",
@@ -132,7 +132,7 @@
     {
       "id": "T2-17",
       "status": "pass",
-      "note": "7/14 enemies moved, 9 distinct speeds, replay stable (17 enemies)"
+      "note": "10/16 enemies moved, 10 distinct speeds, replay stable (17 enemies)"
     },
     {
       "id": "T2-18",
@@ -147,7 +147,7 @@
     {
       "id": "T2-20",
       "status": "pass",
-      "note": "24x24 map, 7 wall types [1,10,2,3,4,5,9], 17 enemies in 4 quadrants, 8 pickups"
+      "note": "24x24 map, 8 wall types [1,10,2,3,4,5,6,9], 17 enemies in 4 quadrants, 9 pickups"
     },
     {
       "id": "T2-21",
@@ -182,7 +182,7 @@
     {
       "id": "T2-27",
       "status": "pass",
-      "note": "Hazards: 4 acid tiles, 6 barrels, explosion + chain reaction + sound"
+      "note": "Hazards: 8 acid tiles, 6 barrels, explosion + chain reaction + sound"
     },
     {
       "id": "T2-28",
@@ -197,7 +197,7 @@
     {
       "id": "T2-30",
       "status": "pass",
-      "note": "Fog of war: 21/576 tiles revealed, radius 4"
+      "note": "Fog of war: 34/576 tiles revealed, radius 4"
     },
     {
       "id": "T2-31",
@@ -297,7 +297,7 @@
     {
       "id": "T2-50",
       "status": "pass",
-      "note": "Minimap: 5 zones [entry_cavern, lava_chamber, bone_corridor_left, bone_corridor_right, throne_room], legend togglable"
+      "note": "Minimap: 5 zones [control, reactor, waste, cooling_left, cooling_right], legend togglable"
     },
     {
       "id": "T2-51",
@@ -312,7 +312,7 @@
     {
       "id": "T2-53",
       "status": "pass",
-      "note": "Spawn safety: 10 spawn points, LOS + wall checks operational"
+      "note": "Spawn safety: 12 spawn points, LOS + wall checks operational"
     },
     {
       "id": "T2-54",

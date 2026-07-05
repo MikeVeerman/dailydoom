@@ -39,10 +39,19 @@ const CONFIG = {
         mouseSensitivity: 0.003,
         keyRepeatDelay: 150
     },
+    qualityPresets: {
+        performance: { label: 'Performance', renderScale: 0.6, dynamicScaling: true },
+        balanced: { label: 'Balanced', renderScale: 0.8, dynamicScaling: true },
+        quality: { label: 'Quality', renderScale: 1.0, dynamicScaling: false }
+    },
     performance: {
         targetFPS: 60,
         showFPS: true,
-        enableProfiling: false
+        enableProfiling: false,
+        dynamicScaleMin: 0.6,
+        dynamicScaleMax: 1.0,
+        fpsSampleWindowMs: 1000,
+        fpsScaleAdjustRate: 0.05
     },
     difficulty: 'normal',
     accessibility: {
@@ -103,6 +112,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (saved.flashIntensity != null) CONFIG.accessibility.flashIntensity = saved.flashIntensity;
         if (saved.explosionIntensity != null) CONFIG.accessibility.explosionIntensity = saved.explosionIntensity;
         if (saved.crosshairPreset != null) CONFIG.accessibility.crosshairPreset = saved.crosshairPreset;
+        // Load quality preset settings
+        if (saved.qualityPreset != null && CONFIG.qualityPresets[saved.qualityPreset]) {
+            CONFIG.currentQualityPreset = saved.qualityPreset;
+        } else {
+            CONFIG.currentQualityPreset = 'balanced';
+        }
+        if (saved.dynamicScalingEnabled != null) {
+            CONFIG.dynamicScalingEnabled = saved.dynamicScalingEnabled;
+        } else {
+            CONFIG.dynamicScalingEnabled = CONFIG.qualityPresets[CONFIG.currentQualityPreset].dynamicScaling;
+        }
+    } else {
+        CONFIG.currentQualityPreset = 'balanced';
+        CONFIG.dynamicScalingEnabled = true;
     }
 
     // Setup canvas
@@ -487,3 +510,15 @@ window.CONFIG = CONFIG;
 window.DIFFICULTY = DIFFICULTY;
 window.applyDifficulty = applyDifficulty;
 window.saveSettings = saveSettings;
+window.setQualityPreset = function(presetId) {
+    if (!CONFIG.qualityPresets[presetId]) return;
+    CONFIG.currentQualityPreset = presetId;
+    CONFIG.dynamicScalingEnabled = CONFIG.qualityPresets[presetId].dynamicScaling;
+    saveSettings({ qualityPreset: presetId, dynamicScalingEnabled: CONFIG.dynamicScalingEnabled });
+    if (window.game) {
+        window.game.updateRenderScale();
+    }
+};
+window.getCurrentQualityPreset = function() {
+    return CONFIG.currentQualityPreset || 'balanced';
+};

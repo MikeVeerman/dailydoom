@@ -108,6 +108,21 @@ class GameEngine {
         // Perk selection screen (shown on level-up)
         this.perkSelection = { active: false, choices: [], hoveredIndex: -1 };
 
+        // Adaptive performance mode
+        this.qualityPreset = CONFIG.currentQualityPreset || 'balanced';
+        this.dynamicScalingEnabled = CONFIG.dynamicScalingEnabled !== false;
+        this.currentRenderScale = CONFIG.qualityPresets[this.qualityPreset].renderScale;
+        this.adaptivePerformance = {
+            fpsHistory: [],
+            sampleInterval: CONFIG.performance.fpsSampleWindowMs || 1000,
+            lastSampleTime: performance.now(),
+            adjustRate: CONFIG.performance.fpsScaleAdjustRate || 0.05,
+            targetFPSLow: 50,
+            targetFPSHigh: 60,
+            scaleMin: CONFIG.performance.dynamicScaleMin || 0.6,
+            scaleMax: CONFIG.performance.dynamicScaleMax || 1.0
+        };
+
         // Initialize systems
         this.initialize();
     }
@@ -137,6 +152,9 @@ class GameEngine {
         // Initialize renderer
         this.renderer = new Renderer(this.canvas, this.map);
         console.log('Renderer initialized');
+        
+        // Apply initial render scale
+        this.updateRenderScale();
         
         // Initialize HUD
         this.hud = new HUD(this.canvas);
@@ -282,6 +300,10 @@ class GameEngine {
                                 window.CONFIG.accessibility.crosshairPreset = newPreset;
                                 if (window.saveSettings) window.saveSettings({ crosshairPreset: newPreset });
                             }
+                            break;
+                        }
+                        case 'qualityPreset': {
+                            this.cycleQualityPreset();
                             break;
                         }
                     }
@@ -566,6 +588,9 @@ class GameEngine {
 
         // Dynamic difficulty scaling
         this.updateDifficultyScaling();
+
+        // Adaptive performance mode
+        this.updateAdaptivePerformance();
 
         // Check level completion
         this.checkLevelComplete();
@@ -2632,7 +2657,8 @@ class GameEngine {
             { label: `CRT EFFECTS: ${crtLabel}`, action: 'toggleCRT' },
             { label: `DAMAGE FLASH: ${flashIntensityLabel}`, action: 'flashIntensity' },
             { label: `EXPLOSION BLOOM: ${explosionIntensityLabel}`, action: 'explosionIntensity' },
-            { label: `CROSSHAIR: ${crosshairPresetLabel}`, action: 'crosshairPreset' }
+            { label: `CROSSHAIR: ${crosshairPresetLabel}`, action: 'crosshairPreset' },
+            { label: `QUALITY: ${this._getQualityPresetLabel()}`, action: 'qualityPreset' }
         ];
 
         const itemH = 40;
@@ -2899,14 +2925,99 @@ class GameEngine {
         if (this.renderer) {
             this.renderer.width = width;
             this.renderer.height = height;
-            this.renderer.halfHeight = height / 2;
-            this.renderer.rayCount = width;
-            this.renderer.rayAngleStep = this.renderer.fov / this.renderer.rayCount;
-            this.renderer.imageData = this.renderer.ctx.createImageData(width, height);
-            this.renderer.pixelBuffer = new Uint32Array(this.renderer.imageData.data.buffer);
+            this.updateRenderScale();
         }
         
         console.log(`Canvas resized to ${width}x${height}`);
+    }
+    
+    // Adaptive performance: update render scale based on quality preset
+    updateRenderScale() {
+        const preset = CONFIG.qualityPresets[this.qualityPreset];
+        if (preset) {
+            this.currentRenderScale = preset.renderScale;
+        }
+        if (this.renderer) {
+            this.renderer.updateRenderScale(this.currentRenderScale);
+        }
+        this._updateRenderScaleIndicator();
+    }
+    
+    // Quality preset control
+    setQualityPreset(presetId) {
+        if (CONFIG.qualityPresets[presetId]) {
+            this.qualityPreset = presetId;
+            this.dynamicScalingEnabled = CONFIG.qualityPresets[presetId].dynamicScaling;
+            CONFIG.currentQualityPreset = presetId;
+            CONFIG.dynamicScalingEnabled = this.dynamicScalingEnabled;
+            this.updateRenderScale();
+            saveSettings({ qualityPreset: presetId, dynamicScalingEnabled: this.dynamicScalingEnabled });
+            return true;
+        }
+        return false;
+    }
+    
+    cycleQualityPreset() {
+        const presets = ['performance', 'balanced', 'quality'];
+        const currentIndex = presets.indexOf(this.qualityPreset);
+        const nextIndex = (currentIndex + 1) % presets.length;
+        return this.setQualityPreset(presets[nextIndex]);
+    }
+    
+    // Adaptive performance: monitor FPS and adjust render scale dynamically
+    updateAdaptivePerformance() {
+        if (!this.dynamicScalingEnabled) return;
+        
+        const now = performance.now();
+        const adaptive = this.adaptivePerformance;
+        
+        // Collect FPS sample
+        adaptive.fpsHistory.push(this.fps);
+        
+        const lastSampleTime = adaptive.lastSampleTime;
+        if (now - lastSampleTime >= adaptive.sampleInterval) {
+            adaptive.lastSampleTime = now;
+            
+            // Calculate average FPS over the sample window
+            const fpsValues = adaptive.fpsHistory;
+            const fpsSum = fpsValues.reduce((a, b) => a + b, 0);
+            const avgFPS = fpsSum / fpsValues.length;
+            
+            // Clear history for next sample
+            adaptive.fpsHistory = [];
+            
+            // Adjust render scale based on average FPS
+            const scaleMin = adaptive.scaleMin;
+            const scaleMax = adaptive.scaleMax;
+            const targetLow = adaptive.targetFPSLow;
+            const targetHigh = adaptive.targetFPSHigh;
+            const adjustRate = adaptive.adjustRate;
+            
+            if (avgFPS < targetLow) {
+                // FPS too low - decrease render scale
+                this.currentRenderScale = Math.max(scaleMin, this.currentRenderScale - adjustRate);
+            } else if (avgFPS > targetHigh) {
+                // FPS too high - increase render scale
+                this.currentRenderScale = Math.min(scaleMax, this.currentRenderScale + adjustRate);
+            }
+            
+            // Apply the new scale
+            if (this.renderer) {
+                this.renderer.updateRenderScale(this.currentRenderScale);
+            }
+            this._updateRenderScaleIndicator();
+        }
+    }
+    
+    _updateRenderScaleIndicator() {
+        if (this.hud) {
+            this.hud.currentRenderScale = this.currentRenderScale;
+        }
+    }
+    
+    _getQualityPresetLabel() {
+        const preset = CONFIG.qualityPresets[this.qualityPreset];
+        return preset ? preset.label : 'Balanced';
     }
     
     // Cleanup

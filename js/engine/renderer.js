@@ -12,6 +12,11 @@ class Renderer {
         this.height = canvas.height;
         this.halfHeight = this.height / 2;
         
+        // Render scale (0.6 to 1.0)
+        this.renderScale = 1.0;
+        this.logicalWidth = this.width;
+        this.logicalHeight = this.height;
+        
         // Field of view and projection
         this.fov = MathUtils.degToRad(60); // 60 degree FOV
         this.rayCount = this.width; // One ray per column
@@ -70,6 +75,32 @@ class Renderer {
             this.cosTable[i] = Math.cos(MathUtils.degToRad(i));
             this.sinTable[i] = Math.sin(MathUtils.degToRad(i));
         }
+    }
+    
+    updateRenderScale(newScale) {
+        this.renderScale = Math.max(0.6, Math.min(1.0, newScale));
+        this.logicalWidth = Math.max(1, Math.round(this.width * this.renderScale));
+        this.logicalHeight = Math.max(1, Math.round(this.height * this.renderScale));
+        
+        // Recast rays with reduced count
+        this.rayCount = this.logicalWidth;
+        this.rayAngleStep = this.fov / this.rayCount;
+        
+        // Recalculate projection plane for logical resolution
+        this.projectionDistance = (this.logicalWidth / 2) / Math.tan(this.fov / 2);
+        
+        // Recreate image buffer at logical resolution
+        this.imageData = this.ctx.createImageData(this.logicalWidth, this.logicalHeight);
+        this.pixelBuffer = new Uint32Array(this.imageData.data.buffer);
+        this.halfHeight = this.logicalHeight / 2;
+        
+        console.log('Render scale updated:', this.renderScale, '->', this.logicalWidth, 'x', this.logicalHeight);
+    }
+    
+    renderToCanvas(ctx) {
+        // Draw the logical-resolution image onto the full canvas, scaled up with nearest-neighbor
+        ctx.imageSmoothingEnabled = false;
+        ctx.putImageData(this.imageData, 0, 0);
     }
     
     addFloorSplatter(worldX, worldY, splatSize) {
@@ -377,8 +408,26 @@ class Renderer {
             this.renderWallSlice(rayIndex, rayResult, player);
         }
         
-        // Update canvas
-        this.ctx.putImageData(this.imageData, 0, 0);
+        // Update canvas at logical resolution, then scale up
+        this.ctx.imageSmoothingEnabled = false;
+        // If logical resolution differs from canvas size, draw scaled up
+        if (this.logicalWidth !== this.width || this.logicalHeight !== this.height) {
+            // Create a temporary canvas for the logical-resolution render
+            if (!this._renderBuffer) {
+                this._renderBuffer = document.createElement('canvas');
+                this._renderBufferCtx = this._renderBuffer.getContext('2d');
+            }
+            this._renderBuffer.width = this.logicalWidth;
+            this._renderBuffer.height = this.logicalHeight;
+            this._renderBufferCtx.putImageData(this.imageData, 0, 0);
+            
+            // Clear main canvas and draw scaled
+            this.ctx.imageSmoothingEnabled = false;
+            this.ctx.clearRect(0, 0, this.width, this.height);
+            this.ctx.drawImage(this._renderBuffer, 0, 0, this.width, this.height);
+        } else {
+            this.ctx.putImageData(this.imageData, 0, 0);
+        }
         
         // Render sprites (enemies, items, etc.)
         this.renderSprites(player);
@@ -509,7 +558,7 @@ class Renderer {
             const cosCorrection = Math.cos(rayAngle - player.angle);
             const ceilDistCoeff = (this.wallHeight / 2) * this.projectionDistance;
             const ceilR = 0x66, ceilG = 0x66, ceilB = 0x66;
-            for (let y = 0; y < wallTop && y < this.height; y++) {
+            for (let y = 0; y < wallTop && y < this.logicalHeight; y++) {
                 const rowDist = ceilDistCoeff / (this.halfHeight - y);
                 const shade = Math.max(0.08, 1 - (rowDist / cosCorrection / this.maxRenderDistance));
                 const r = Math.floor(ceilR * shade);
@@ -544,7 +593,7 @@ class Renderer {
             const cosCorrection = Math.cos(rayAngle - player.angle);
             const floorDistCoeff = (this.wallHeight / 2) * this.projectionDistance;
             const baseR = 0x33, baseG = 0x33, baseB = 0x33;
-            for (let y = Math.max(0, floorStartY); y < this.height; y++) {
+            for (let y = Math.max(0, floorStartY); y < this.logicalHeight; y++) {
                 const rowDist = floorDistCoeff / (y - this.halfHeight);
                 const actualDist = rowDist / cosCorrection;
                 const floorWorldX = player.x + actualDist * cosAngle;
@@ -594,7 +643,7 @@ class Renderer {
         const ceilR = 0x66, ceilG = 0x66, ceilB = 0x66;
         if (player && rayAngle !== undefined) {
             const cosCorrection = Math.cos(rayAngle - player.angle);
-            for (let y = 0; y < this.halfHeight; y++) {
+            for (let y = 0; y < this.logicalHeight; y++) {
                 const rowDist = ceilDistCoeff / (this.halfHeight - y);
                 const shade = Math.max(0.08, 1 - (rowDist / cosCorrection / this.maxRenderDistance));
                 const r = Math.floor(ceilR * shade);
@@ -603,7 +652,7 @@ class Renderer {
                 this.setPixel(x, y, 0xFF000000 | (b << 16) | (g << 8) | r);
             }
         } else {
-            for (let y = 0; y < this.halfHeight; y++) {
+            for (let y = 0; y < this.logicalHeight; y++) {
                 this.setPixel(x, y, this.hexToRgb(this.ceilingColor));
             }
         }
@@ -614,7 +663,7 @@ class Renderer {
             const cosCorrection = Math.cos(rayAngle - player.angle);
             const floorDistCoeff = (this.wallHeight / 2) * this.projectionDistance;
             const baseR = 0x33, baseG = 0x33, baseB = 0x33;
-            for (let y = Math.ceil(this.halfHeight); y < this.height; y++) {
+            for (let y = Math.ceil(this.halfHeight); y < this.logicalHeight; y++) {
                 const rowDist = floorDistCoeff / (y - this.halfHeight);
                 const actualDist = rowDist / cosCorrection;
                 const floorWorldX = player.x + actualDist * cosAngle;
@@ -656,19 +705,23 @@ class Renderer {
                 }
             }
         } else {
-            for (let y = Math.ceil(this.halfHeight); y < this.height; y++) {
+            for (let y = Math.ceil(this.halfHeight); y < this.logicalHeight; y++) {
                 this.setPixel(x, y, this.hexToRgb(this.floorColor));
             }
         }
     }
     
     clearScreen() {
-        this.pixelBuffer.fill(0x000000FF); // Black background
+        // Fill entire logical buffer with black
+        const len = this.logicalWidth * this.logicalHeight;
+        for (let i = 0; i < len; i++) {
+            this.pixelBuffer[i] = 0x000000FF;
+        }
     }
     
     setPixel(x, y, color) {
-        if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
-            const index = y * this.width + x;
+        if (x >= 0 && x < this.logicalWidth && y >= 0 && y < this.logicalHeight) {
+            const index = y * this.logicalWidth + x;
             this.pixelBuffer[index] = color;
         }
     }
@@ -725,7 +778,7 @@ class Renderer {
         // Render each pixel of the wall column
         const wallHeight = wallBottom - wallTop;
         
-        for (let y = Math.max(0, wallTop); y < Math.min(this.height, wallBottom); y++) {
+        for (let y = Math.max(0, wallTop); y < Math.min(this.logicalHeight, wallBottom); y++) {
             // Calculate V coordinate (vertical position on texture)
             const textureV = (y - wallTop) / wallHeight;
             const textureY = Math.floor(textureV * textureHeight) % textureHeight;
