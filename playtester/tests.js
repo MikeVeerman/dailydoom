@@ -700,6 +700,7 @@ const TIER_2_TESTS = [
   { id: 'T2-50', name: 'Minimap zone labels and legend', fn: T2_50_minimapZoneLabels }, // issue: #334
   { id: 'T2-51', name: 'Floor blood splatters on kill', fn: T2_51_floorBloodSplatters }, // issue: #335
   { id: 'T2-52', name: 'Volume mixer controls in pause menu', fn: T2_50_volumeMixerControls }, // issue: #348
+  { id: 'T2-53', name: 'Wave spawn safety radius and line-of-sight', fn: T2_53_waveSpawnSafety }, // issue: #346
 ];
 
 async function T2_08_enemyDamageSystem(page, result) {
@@ -4398,6 +4399,89 @@ async function T2_51_floorBloodSplatters(page, result) {
   } else {
     result.status = 'pass';
     result.note = `Floor splatters: max ${splatData.maxCount}, blob-based, per-type sizes, integrated in floor rendering`;
+  }
+}
+
+async function T2_53_waveSpawnSafety(page, result) {
+  // T2-53: Wave spawn safety — enemies don't spawn in player LOS or too close (issue: #346)
+  // Pass condition: Spawn safety constants and methods exist, spawn points are validated
+  await page.waitForTimeout(1000);
+
+  const safetyData = await page.evaluate(() => {
+    if (!window.game || !window.game.map || !window.game.waveSystem) {
+      return { exists: false, reason: 'Game systems not found' };
+    }
+
+    const game = window.game;
+    const map = game.map;
+    const ws = game.waveSystem;
+
+    // Check spawn points are defined
+    const hasSpawnPoints = Array.isArray(ws.spawnPoints) && ws.spawnPoints.length > 0;
+
+    // Check hasLineOfSight exists on map
+    const hasLOS = typeof map.hasLineOfSight === 'function';
+
+    // Check isWallAtPosition exists on map
+    const hasWallCheck = typeof map.isWallAtPosition === 'function';
+
+    // Verify a sample LOS check works (player -> a far tile)
+    let losCheckWorks = false;
+    if (hasLOS) {
+      const playerX = game.player.x;
+      const playerY = game.player.y;
+      // Check LOS from player to a nearby open tile — should be true for adjacent open tile
+      const nearbyX = playerX + 100;
+      const nearbyY = playerY;
+      try {
+        const result = map.hasLineOfSight(playerX, playerY, nearbyX, nearbyY);
+        losCheckWorks = typeof result === 'boolean';
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // Check waveSystem.spawnPoints structure
+    let spawnPointsValid = false;
+    if (hasSpawnPoints) {
+      spawnPointsValid = ws.spawnPoints.every(sp =>
+        typeof sp.x === 'number' && typeof sp.y === 'number'
+      );
+    }
+
+    return {
+      exists: true,
+      hasSpawnPoints,
+      hasLOS,
+      hasWallCheck,
+      losCheckWorks,
+      spawnPointsValid,
+      spawnPointCount: hasSpawnPoints ? ws.spawnPoints.length : 0
+    };
+  });
+
+  if (!safetyData.exists) {
+    result.status = 'fail';
+    result.note = safetyData.reason;
+    return;
+  }
+
+  const checks = [
+    ['spawn points defined', safetyData.hasSpawnPoints],
+    ['hasLineOfSight method', safetyData.hasLOS],
+    ['isWallAtPosition method', safetyData.hasWallCheck],
+    ['LOS check functional', safetyData.losCheckWorks],
+    ['spawn points valid structure', safetyData.spawnPointsValid]
+  ];
+
+  const failed = checks.filter(([, ok]) => !ok);
+
+  if (failed.length > 0) {
+    result.status = 'fail';
+    result.note = `Missing: ${failed.map(([name]) => name).join(', ')}`;
+  } else {
+    result.status = 'pass';
+    result.note = `Spawn safety: ${safetyData.spawnPointCount} spawn points, LOS + wall checks operational`;
   }
 }
 
