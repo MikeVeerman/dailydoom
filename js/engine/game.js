@@ -167,12 +167,20 @@ class GameEngine {
 
         // Bind pause menu click handler
         this.canvas.addEventListener('click', (e) => {
-            if (!this.paused || this._pauseMenuItems.length === 0) return;
             const rect = this.canvas.getBoundingClientRect();
             const scaleX = this.canvas.width / rect.width;
             const scaleY = this.canvas.height / rect.height;
             const clickX = (e.clientX - rect.left) * scaleX;
             const clickY = (e.clientY - rect.top) * scaleY;
+
+            // Check tooltip dismiss first (when not paused and tooltip is showing)
+            if (!this.paused && this._isInteractiveState()) {
+                if (this.handleTooltipClick(clickX, clickY)) {
+                    return;
+                }
+            }
+
+            if (!this.paused || this._pauseMenuItems.length === 0) return;
 
             for (const item of this._pauseMenuItems) {
                 if (clickX >= item.x && clickX <= item.x + item.w &&
@@ -392,6 +400,11 @@ class GameEngine {
         // Render pause menu overlay if paused
         if (this.paused) {
             this.renderPauseMenu();
+        }
+
+        // Render first-run tooltips if not paused and in interactive state
+        if (!this.paused && this._isInteractiveState()) {
+            this.renderTooltipOverlay();
         }
         
         // Performance tracking
@@ -2573,11 +2586,172 @@ class GameEngine {
             }
         }
 
+        // CONTROLS & HUD section
+        const controlsStartY = menuY + menuH - 110;
+        const controlsTitleY = controlsStartY;
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('CONTROLS & HUD', w / 2, controlsTitleY);
+
+        const controls = [
+            { key: 'WASD', desc: 'Move' },
+            { key: 'Space', desc: 'Dash' },
+            { key: 'X', desc: 'Fire' },
+            { key: 'M', desc: 'Minimap' },
+            { key: '+/-', desc: 'Minimap Zoom' },
+            { key: 'L', desc: 'Legend' },
+            { key: 'F3', desc: 'Crosshair' },
+            { key: 'F2', desc: 'FPS' },
+            { key: 'F4', desc: 'Weapon' },
+            { key: 'N', desc: 'Music' },
+            { key: 'ESC', desc: 'Resume' }
+        ];
+
+        const lineHeight = 10;
+        const startY = controlsTitleY + 12;
+        ctx.font = '9px monospace';
+        ctx.fillStyle = '#999999';
+        for (let i = 0; i < controls.length; i++) {
+            const rowY = startY + i * lineHeight;
+            ctx.fillStyle = '#FFD700';
+            ctx.textAlign = 'right';
+            ctx.fillText(controls[i].key, w / 2 - 8, rowY);
+            ctx.fillStyle = '#888888';
+            ctx.textAlign = 'left';
+            ctx.fillText(controls[i].desc, w / 2 + 8, rowY);
+        }
+
         // Controls hint at bottom
         ctx.fillStyle = '#666666';
         ctx.font = '11px monospace';
         ctx.textAlign = 'center';
         ctx.fillText('ESC resume | Click L/R to adjust settings', w / 2, menuY + menuH - 15);
+    }
+
+    // ========== FIRST-RUN TOOLTIPS ==========
+
+    _getTooltipsShown() {
+        try {
+            const saved = localStorage.getItem(SETTINGS_KEY);
+            if (saved) {
+                const settings = JSON.parse(saved);
+                return settings.tooltipsShown || [];
+            }
+        } catch (e) { /* ignore */ }
+        return [];
+    }
+
+    _saveTooltipShown(key) {
+        const tooltips = this._getTooltipsShown();
+        if (!tooltips.includes(key)) {
+            tooltips.push(key);
+            try {
+                const saved = localStorage.getItem(SETTINGS_KEY);
+                const settings = saved ? JSON.parse(saved) : {};
+                settings.tooltipsShown = tooltips;
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            } catch (e) { /* ignore */ }
+        }
+    }
+
+    _shouldShowTooltip(key) {
+        const tooltips = this._getTooltipsShown();
+        return !tooltips.includes(key);
+    }
+
+    _isInteractiveState() {
+        return !this.paused && !this.showDeathScreen && !this.intermission.active && !this.modSelection.active && !this.perkSelection.active;
+    }
+
+    _getTooltipOrder() {
+        return [
+            { key: 'pause', text: 'ESC to pause & adjust settings' },
+            { key: 'music', text: 'N to toggle music' },
+            { key: 'minimap', text: 'M to toggle minimap' },
+            { key: 'legend', text: 'L to toggle legend' },
+            { key: 'zoom', text: '+/- to zoom minimap' },
+            { key: 'crosshair', text: 'F3 to toggle crosshair' }
+        ];
+    }
+
+    renderTooltipOverlay() {
+        if (!this._isInteractiveState()) return;
+
+        const tooltipsShown = this._getTooltipsShown();
+        const pendingTooltips = this._getTooltipOrder().filter(t => !tooltipsShown.includes(t.key));
+
+        if (pendingTooltips.length === 0) return;
+
+        const ctx = this.canvas.getContext('2d');
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        const tooltip = pendingTooltips[0];
+        const boxWidth = 280;
+        const boxHeight = 55;
+        const boxX = (w - boxWidth) / 2;
+        const boxY = h - boxHeight - 20;
+
+        if (!this._tooltipStartTime) {
+            this._tooltipStartTime = performance.now();
+        }
+
+        const fadeProgress = Math.min(1, (performance.now() - this._tooltipStartTime) / 400);
+        const alpha = Math.max(0, Math.min(1, fadeProgress));
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        // Background
+        ctx.fillStyle = 'rgba(10, 10, 20, 0.9)';
+        ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+        ctx.strokeStyle = '#FF4444';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+        // Text
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '14px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(tooltip.text, w / 2, boxY + 22);
+
+        // Dismiss button
+        const dismissText = 'Don\'t show again';
+        const dismissWidth = ctx.measureText(dismissText).width + 16;
+        const dismissX = w / 2 - dismissWidth / 2;
+        const dismissY = boxY + 32;
+        const dismissH = 18;
+
+        ctx.fillStyle = 'rgba(255, 68, 68, 0.3)';
+        ctx.fillRect(dismissX, dismissY, dismissWidth, dismissH);
+        ctx.strokeStyle = '#FF4444';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(dismissX, dismissY, dismissWidth, dismissH);
+
+        ctx.fillStyle = '#FF4444';
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(dismissText, w / 2, dismissY + 13);
+
+        this._tooltipBox = { x: boxX, y: boxY, w: boxWidth, h: boxHeight };
+        this._tooltipDismissBox = { x: dismissX, y: dismissY, w: dismissWidth, h: dismissH };
+
+        ctx.restore();
+    }
+
+    handleTooltipClick(mx, my) {
+        if (!this._tooltipDismissBox) return false;
+        const box = this._tooltipDismissBox;
+        if (mx >= box.x && mx <= box.x + box.w && my >= box.y && my <= box.y + box.h) {
+            const pendingTooltip = this._getTooltipOrder().find(t => !this._getTooltipsShown().includes(t.key));
+            if (pendingTooltip) {
+                this._saveTooltipShown(pendingTooltip.key);
+                this._tooltipStartTime = null;
+            }
+            return true;
+        }
+        return false;
     }
 
     // Event handling
