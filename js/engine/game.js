@@ -643,16 +643,55 @@ class GameEngine {
         else if (waveNumber <= 7) typePool = lateTypes;
         else typePool = bossTypes;
 
-        // Filter spawn points far enough from player and weight by distance
+        // Spawn-safety system: filter by distance ring + line-of-sight
         const playerX = this.player.x;
         const playerY = this.player.y;
-        const minSpawnDist = 5 * tileSize;
-        const validSpawns = ws.spawnPoints.filter(sp => {
+        const MIN_SPAWN_RADIUS = 5 * tileSize; // Minimum tiles from player (configurable)
+        const MAX_SPAWN_RETRIES = 12; // Bounded retries to prevent soft-locks
+
+        // Phase 1: Filter by minimum distance
+        const distanceValid = ws.spawnPoints.filter(sp => {
             const dx = sp.x * tileSize - playerX;
             const dy = sp.y * tileSize - playerY;
-            return Math.sqrt(dx * dx + dy * dy) >= minSpawnDist;
+            return Math.sqrt(dx * dx + dy * dy) >= MIN_SPAWN_RADIUS;
         });
-        const spawns = validSpawns.length > 0 ? validSpawns : ws.spawnPoints;
+
+        // Phase 2: Among distance-valid points, reject those in player's line-of-sight
+        let safeSpawns = distanceValid.filter(sp => {
+            const spawnWorldX = sp.x * tileSize;
+            const spawnWorldY = sp.y * tileSize;
+            // Check LOS from player camera to spawn point
+            return !this.map.hasLineOfSight(playerX, playerY, spawnWorldX, spawnWorldY);
+        });
+
+        // Phase 3: Fallback if no ideal spawns exist
+        let spawns;
+        if (safeSpawns.length > 0) {
+            spawns = safeSpawns;
+        } else {
+            // No spawns passed both distance and LOS checks.
+            // Fall back to the farthest valid spawn point from the player.
+            if (distanceValid.length > 0) {
+                spawns = distanceValid;
+            } else {
+                // Even distance filter found nothing — use all spawn points
+                // This can only happen on very small maps or unusual configurations.
+                spawns = ws.spawnPoints;
+            }
+            // Deterministically pick the farthest point on retry to spread load
+            const allDistances = spawns.map(sp => {
+                const dx = sp.x * tileSize - playerX;
+                const dy = sp.y * tileSize - playerY;
+                return Math.sqrt(dx * dx + dy * dy);
+            });
+            const maxDist = Math.max(...allDistances);
+            const farthest = spawns.filter((_, i) => allDistances[i] === maxDist);
+            // Pick deterministically based on wave number for consistency
+            spawns = [farthest[waveNumber % farthest.length]];
+            if (this.debugMode) {
+                console.log(`[spawn-safety] No safe spawn points found (distance or LOS). Fallback to farthest: ${JSON.stringify(spawns[0])}`);
+            }
+        }
 
         // Weight spawns by distance (prefer spawns further from player)
         const spawnWeights = spawns.map(sp => {
@@ -672,10 +711,24 @@ class GameEngine {
             }
             const sp = spawns[spIndex];
 
-            // Add position jitter (±0.4 tiles) and validate against walls
-            let spawnX = sp.x * tileSize + (Math.random() - 0.5) * 0.8 * tileSize;
-            let spawnY = sp.y * tileSize + (Math.random() - 0.5) * 0.8 * tileSize;
-            if (this.map.isWallAtPosition(spawnX, spawnY)) {
+            // Add position jitter (±0.4 tiles) with bounded retries for wall/LOS validation
+            let spawnX = sp.x * tileSize;
+            let spawnY = sp.y * tileSize;
+            let jitterUsed = false;
+            for (let attempt = 0; attempt < MAX_SPAWN_RETRIES; attempt++) {
+                spawnX = sp.x * tileSize + (Math.random() - 0.5) * 0.8 * tileSize;
+                spawnY = sp.y * tileSize + (Math.random() - 0.5) * 0.8 * tileSize;
+                // Check wall collision first
+                if (this.map.isWallAtPosition(spawnX, spawnY)) continue;
+                // Only enforce LOS when we have ideal (safe) spawns available
+                if (safeSpawns.length > 0 && !this.map.hasLineOfSight(playerX, playerY, spawnX, spawnY)) {
+                    continue;
+                }
+                jitterUsed = true;
+                break;
+            }
+            if (!jitterUsed) {
+                // All retries failed — fall back to center of spawn point
                 spawnX = sp.x * tileSize;
                 spawnY = sp.y * tileSize;
             }

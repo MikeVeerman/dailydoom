@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-07-05T14:28:09.150Z",
-  "passed": 61,
+  "timestamp": "2026-07-05T15:58:49.279Z",
+  "passed": 62,
   "failed": 0,
   "skipped": 3,
   "results": [
@@ -147,7 +147,7 @@
     {
       "id": "T2-20",
       "status": "pass",
-      "note": "24x24 map, 6 wall types [1,10,2,3,5,9], 17 enemies in 4 quadrants, 8 pickups"
+      "note": "24x24 map, 8 wall types [1,10,2,3,4,5,6,9], 17 enemies in 4 quadrants, 9 pickups"
     },
     {
       "id": "T2-21",
@@ -182,7 +182,7 @@
     {
       "id": "T2-27",
       "status": "pass",
-      "note": "Hazards: 4 acid tiles, 6 barrels, explosion + chain reaction + sound"
+      "note": "Hazards: 8 acid tiles, 6 barrels, explosion + chain reaction + sound"
     },
     {
       "id": "T2-28",
@@ -297,7 +297,7 @@
     {
       "id": "T2-50",
       "status": "pass",
-      "note": "Minimap: 5 zones [entry_cavern, lava_chamber, bone_corridor_left, bone_corridor_right, throne_room], legend togglable"
+      "note": "Minimap: 5 zones [crypt_north, crypt_center, flooded_left, flooded_right, tomb], legend togglable"
     },
     {
       "id": "T2-51",
@@ -308,6 +308,11 @@
       "id": "T2-52",
       "status": "pass",
       "note": "Volume mixer controls: Master, Music, and SFX volume controls implemented"
+    },
+    {
+      "id": "T2-53",
+      "status": "pass",
+      "note": "Spawn safety: 10 spawn points, LOS + wall checks operational"
     },
     {
       "id": "T3-01",
