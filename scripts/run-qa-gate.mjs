@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { spawnSync } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
 import { pathToFileURL } from 'url';
@@ -158,6 +159,33 @@ async function validateExistingFiles(rootDir, recorder, id, refs, sourceLabel) {
   recorder.pass(id, `${sourceLabel} references exist.`, [`checked=${uniqueRefs.length}`]);
 }
 
+function validateJsSyntax(rootDir, recorder, scriptRefs) {
+  const errors = [];
+  const checked = scriptRefs.filter(ref => ref.endsWith('.js') || ref.endsWith('.mjs'));
+
+  for (const ref of checked) {
+    const result = spawnSync(process.execPath, ['--check', path.join(rootDir, ref)], { encoding: 'utf8' });
+    if (result.status !== 0) {
+      const firstError = (result.stderr || 'unknown parse error').trim().split('\n')
+        .filter(line => line.trim() !== '')
+        .slice(0, 2)
+        .join(' | ');
+      errors.push(`${ref} - ${firstError}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    recorder.fail(
+      'JS-SYNTAX-01',
+      'JavaScript files fail to parse (node --check). A parse error disables the entire script file at runtime.',
+      errors
+    );
+    return;
+  }
+
+  recorder.pass('JS-SYNTAX-01', 'All referenced JavaScript files parse.', [`checked=${checked.length}`]);
+}
+
 async function runQaGate(rootDir = process.cwd()) {
   const recorder = createRecorder();
   const indexPath = path.join(rootDir, 'index.html');
@@ -178,6 +206,8 @@ async function runQaGate(rootDir = process.cwd()) {
       existingScriptRefs.push(scriptRef);
     }
   }
+
+  validateJsSyntax(rootDir, recorder, existingScriptRefs);
 
   const jsAssetRefs = await collectJsLiteralAssetRefs(rootDir, existingScriptRefs);
   for (const keyAsset of KEY_RUNTIME_ASSETS) {

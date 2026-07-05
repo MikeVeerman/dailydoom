@@ -36,10 +36,19 @@ execution, pushing, PR creation, and merging.
    - New playtester tests get new IDs (never reuse or renumber).
    - Keep tests deterministic — no reliance on wall-clock timing or RNG
      without seeding.
-5. Sanity-check your work: the game must still boot (no syntax errors, no
-   missing asset references). The pipeline runs `scripts/run-qa-gate.mjs`
-   and the full playtester suite after you finish; if they fail, the run is
-   discarded and the issue is marked failed.
+5. Verify your work before finishing — iterate until every check passes.
+   Do NOT end the session on an unverified first draft:
+   - Run `node --check <file>` on EVERY JavaScript file you created or
+     modified. One parse error (for example a duplicated `const`) disables
+     that entire script file in the browser and breaks game boot. Fix and
+     re-run until every file parses cleanly.
+   - Then run `node scripts/run-qa-gate.mjs` (running it is allowed and
+     expected — rule 4 only forbids editing it). If it prints anything
+     other than `QA_GATE PASS`, fix the reported failures and run it
+     again. Repeat until it passes.
+   - The pipeline re-runs the QA gate plus the full playtester suite after
+     you finish; if they fail, the run is discarded and the issue is
+     marked failed. A check you skipped is a whole run wasted.
 6. End your session with a short summary: what you changed, which files,
    what tests cover it, and any known risks. This summary becomes evidence
    in the PR body.
