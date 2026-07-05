@@ -35,6 +35,12 @@ class Player {
         // Damage tracking
         this.lastDamageTime = 0;
 
+        // Death recap: records recent damage events for death screen
+        this.deathRecap = {
+            hits: [],      // Array of { source, damage, timestamp }
+            killedBy: null // { source, damage } for the final hit
+        };
+
         // Keys collected
         this.keys = [];
 
@@ -769,7 +775,7 @@ class Player {
     }
     
     // Status methods
-    takeDamage(damage) {
+    takeDamage(damage, source) {
         // Invulnerability power-up check
         if (this.hasInvulnerability()) return false;
 
@@ -807,6 +813,21 @@ class Player {
         this.health = Math.max(0, this.health - actualDamage);
         this.lastDamageTime = now;
         this.stats.damageTaken += actualDamage;
+
+        // Record damage event for death recap
+        const sourceLabel = source && source.label ? source.label : 'Unknown';
+        const sourceType = source && source.type ? source.type : 'Unknown';
+        this.deathRecap.hits.push({
+            source: sourceLabel,
+            sourceType: sourceType,
+            damage: Math.round(actualDamage * 10) / 10,
+            timestamp: now
+        });
+        // Keep only last 50 hits to bound memory
+        if (this.deathRecap.hits.length > 50) {
+            this.deathRecap.hits.shift();
+        }
+
         console.log(`Player took ${actualDamage} damage. Health: ${this.health}, Armor: ${this.armor}`);
 
         // Screen shake proportional to damage taken
@@ -832,6 +853,18 @@ class Player {
         console.log('Player died!');
         this.isDead = true;
         this.stats.deaths++;
+
+        // Capture the death-causing hit
+        const lastHit = this.deathRecap.hits.length > 0
+            ? this.deathRecap.hits[this.deathRecap.hits.length - 1]
+            : null;
+        if (lastHit) {
+            this.deathRecap.killedBy = {
+                source: lastHit.source,
+                sourceType: lastHit.sourceType,
+                damage: lastHit.damage
+            };
+        }
 
         // Play death sound
         if (window.soundEngine && window.soundEngine.isInitialized) {

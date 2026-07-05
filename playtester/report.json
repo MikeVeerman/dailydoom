@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-05T13:45:33.050Z",
+  "timestamp": "2026-07-05T14:28:09.150Z",
   "passed": 61,
   "failed": 0,
   "skipped": 3,
@@ -72,7 +72,7 @@
     {
       "id": "T2-05",
       "status": "pass",
-      "note": "Pickup system active with 18 items"
+      "note": "Pickup system active with 17 items"
     },
     {
       "id": "T2-06",
@@ -147,7 +147,7 @@
     {
       "id": "T2-20",
       "status": "pass",
-      "note": "24x24 map, 7 wall types [1,10,2,3,4,5,9], 17 enemies in 4 quadrants, 8 pickups"
+      "note": "24x24 map, 6 wall types [1,10,2,3,5,9], 17 enemies in 4 quadrants, 8 pickups"
     },
     {
       "id": "T2-21",
@@ -182,7 +182,7 @@
     {
       "id": "T2-27",
       "status": "pass",
-      "note": "Hazards: 8 acid tiles, 6 barrels, explosion + chain reaction + sound"
+      "note": "Hazards: 4 acid tiles, 6 barrels, explosion + chain reaction + sound"
     },
     {
       "id": "T2-28",
@@ -197,7 +197,7 @@
     {
       "id": "T2-30",
       "status": "pass",
-      "note": "Fog of war: 31/576 tiles revealed, radius 4"
+      "note": "Fog of war: 21/576 tiles revealed, radius 4"
     },
     {
       "id": "T2-31",
@@ -297,7 +297,7 @@
     {
       "id": "T2-50",
       "status": "pass",
-      "note": "Minimap: 5 zones [research_wing, cryo_chamber, containment_left, containment_right, breach_zone], legend togglable"
+      "note": "Minimap: 5 zones [entry_cavern, lava_chamber, bone_corridor_left, bone_corridor_right, throne_room], legend togglable"
     },
     {
       "id": "T2-51",

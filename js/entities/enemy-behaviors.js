@@ -735,7 +735,7 @@ class EnhancedEnemyAI {
             if (dist < this.enemy.attackRange * 1.5) {
                 this.enemy.tryBark('attack');
                 const damage = this.behavior.damage;
-                if (player.takeDamage(damage)) {
+                if (player.takeDamage(damage, { type: 'enemy', label: this.enemy.type })) {
                     if (window.game && window.game.hud) {
                         window.game.hud.onPlayerDamageFrom(this.enemy.x, this.enemy.y, damage);
                         window.game.hud.triggerScreenShake(15);
@@ -832,7 +832,7 @@ class EnhancedEnemyAI {
 
                 this.enemy.tryBark('attack');
 
-                if (player.takeDamage(finalDamage)) {
+                if (player.takeDamage(finalDamage, { type: 'enemy', label: this.enemy.type })) {
                     if (window.game && window.game.hud) {
                         window.game.hud.onPlayerDamageFrom(this.enemy.x, this.enemy.y, finalDamage);
                         window.game.hud.triggerScreenShake(8);
@@ -1144,7 +1144,7 @@ class EnhancedEnemyAI {
         // Check collision with player
         if (dist < 50) {
             const chargeDamage = 50;
-            if (player.takeDamage(chargeDamage)) {
+            if (player.takeDamage(chargeDamage, { type: 'enemy', label: this.enemy.type })) {
                 if (window.game && window.game.hud) {
                     window.game.hud.onPlayerDamageFrom(this.enemy.x, this.enemy.y, chargeDamage);
                     window.game.hud.triggerScreenShake(15);
@@ -1175,7 +1175,7 @@ class EnhancedEnemyAI {
                 // Damage falls off with distance
                 const falloff = 1 - (distance / slamRadius);
                 const damage = Math.round(slamDamage * falloff);
-                if (player.takeDamage(damage)) {
+                if (player.takeDamage(damage, { type: 'enemy', label: this.enemy.type })) {
                     if (window.game && window.game.hud) {
                         window.game.hud.onPlayerDamageFrom(this.enemy.x, this.enemy.y, damage);
                         window.game.hud.addKillFeedMessage('BOSS SLAM!', '#FF8800');

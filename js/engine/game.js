@@ -497,14 +497,14 @@ class GameEngine {
         const inLava = this.map.isLavaAtPosition(this.player.x, this.player.y);
         if (inAcid) {
             if (!this._lastAcidTick || Date.now() - this._lastAcidTick > 500) {
-                this.player.takeDamage(2.5); // 2.5 per tick = 5/sec
+                this.player.takeDamage(2.5, { type: 'hazard', label: 'Acid Pool' });
                 if (this.hud) this.hud.onPlayerDamage();
                 this._lastAcidTick = Date.now();
             }
         }
         if (inLava) {
             if (!this._lastLavaTick || Date.now() - this._lastLavaTick > 500) {
-                this.player.takeDamage(4); // 4 per tick = 8/sec
+                this.player.takeDamage(4, { type: 'hazard', label: 'Lava' });
                 if (this.hud) this.hud.onPlayerDamage();
                 this._lastLavaTick = Date.now();
             }
@@ -1003,7 +1003,7 @@ class GameEngine {
         const panelX = w * 0.2;
         const panelY = h * 0.15;
         const panelW = w * 0.6;
-        const panelH = h * 0.65;
+        const panelH = h * 0.72;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.fillRect(panelX, panelY, panelW, panelH);
         ctx.strokeStyle = '#FF4444';
@@ -1072,6 +1072,50 @@ class GameEngine {
                 ctx.font = '16px monospace';
             }
             y += lineH + (bestKey && newBests[bestKey] ? 10 : 0);
+        }
+
+        // Death recap section
+        const recap = this.player.deathRecap;
+        if (recap && (recap.killedBy || recap.hits.length > 0)) {
+            y += 8;
+            ctx.fillStyle = '#CC3300';
+            ctx.font = 'bold 14px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('— DEATH RECAP —', w / 2, y);
+            y += 20;
+
+            // Killed By line
+            if (recap.killedBy) {
+                ctx.fillStyle = '#FF4444';
+                ctx.font = 'bold 14px monospace';
+                ctx.textAlign = 'left';
+                const killedByLabel = `${recap.killedBy.source} — ${recap.killedBy.damage} DMG`;
+                ctx.fillText('Killed By:', startX, y);
+                ctx.textAlign = 'right';
+                ctx.fillText(killedByLabel, panelX + panelW - 20, y);
+                y += lineH;
+            }
+
+            // Last 3 Hits (newest first)
+            if (recap.hits.length > 1) {
+                ctx.fillStyle = '#888888';
+                ctx.font = 'bold 12px monospace';
+                ctx.textAlign = 'left';
+                ctx.fillText('Last Hits:', startX, y);
+                y += 16;
+
+                const recentHits = recap.hits.slice(-3);
+                for (const hit of recentHits) {
+                    ctx.fillStyle = hit.sourceType === 'hazard' ? '#FF8800' : '#AAAAAA';
+                    ctx.font = '12px monospace';
+                    ctx.textAlign = 'left';
+                    const hitLabel = `${hit.source} — ${hit.damage} DMG`;
+                    ctx.fillText(hitLabel, startX + 10, y);
+                    y += 16;
+                }
+            }
+
+            y += 4;
         }
 
         // Lifetime stats summary line

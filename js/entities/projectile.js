@@ -73,7 +73,8 @@ class Projectile {
         const dy = this.y - player.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < player.radius + this.radius) {
-            if (player.takeDamage(this.damage)) {
+            const sourceLabel = this.owner ? this.owner.type + ' projectile' : 'projectile';
+            if (player.takeDamage(this.damage, { type: 'projectile', label: sourceLabel })) {
                 // Trigger HUD damage flash from projectile direction
                 if (window.game && window.game.hud) {
                     window.game.hud.onPlayerDamageFrom(this.x, this.y, this.damage);
